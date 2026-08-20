@@ -6,6 +6,7 @@ import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 import { sendPaymentReceiptEmail } from "@/lib/order-emails";
 import { readJsonBody, rejectCrossOriginMutation } from "@/lib/request-security";
 import { trackServerProductEvent } from "@/lib/analytics";
+import { getAppUrl } from "@/lib/app-origin";
 
 type RouteContext = { params: Promise<{ reference: string }> };
 
@@ -96,11 +97,11 @@ export async function PATCH(_request: Request, context: RouteContext) {
         groupName: group.groupName,
         reference: payment.reference,
         amountCents: payment.amountCents,
-        orderUrl: new URL(`/pedido/${group.accessCode}`, _request.url).toString(),
+        orderUrl: getAppUrl(`/pedido/${group.accessCode}`),
       });
     } else {
       const [group] = await db.select().from(groupOrders).where(eq(groupOrders.id, payment.groupId)).limit(1);
-      if (group) emailStatus = await sendPaymentReceiptEmail({ to: group.organizerEmail, contactName: group.organizerName, groupName: group.groupName, reference: payment.reference, amountCents: payment.amountCents, orderUrl: new URL(`/pedido/${group.accessCode}`, _request.url).toString() });
+      if (group) emailStatus = await sendPaymentReceiptEmail({ to: group.organizerEmail, contactName: group.organizerName, groupName: group.groupName, reference: payment.reference, amountCents: payment.amountCents, orderUrl: getAppUrl(`/pedido/${group.accessCode}`) });
     }
     await DB.prepare("INSERT INTO audit_logs (actor, action, entity_type, entity_id, metadata_json) VALUES (?, 'transfer_confirmed', 'payment', ?, '{}')").bind(admin.email, String(payment.id)).run();
     await trackServerProductEvent("payment_completed", { payment_method: "transfer", payment_status: "confirmed" });

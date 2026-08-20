@@ -7,6 +7,7 @@ import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, takeRa
 import { paymentAvailability } from "@/lib/payments/availability";
 import { reportServerError } from "@/lib/observability";
 import { demoRoutesEnabled } from "@/lib/demo-routes";
+import { getAppUrl } from "@/lib/app-origin";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -225,7 +226,7 @@ export async function POST(request: Request, context: RouteContext) {
       throw error;
     }
 
-    const editUrl = new URL(`/participante/${editToken}`, request.url).toString();
+    const editUrl = getAppUrl(`/participante/${editToken}`);
     const emailStatus = await sendParticipantEditEmail({ to: email, contactName, groupName: group.groupName, editUrl });
 
     return Response.json({ ok: true, emailStatus, editUrl, garments: validated.garments.length }, { status: 201 });

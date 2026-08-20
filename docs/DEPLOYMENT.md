@@ -24,15 +24,16 @@ Usar `.env.example` como contrato. Separar valores por entorno. Las claves de se
 
 ## Vercel preview
 
-Pendiente de conexión y decisión de persistencia. Antes de activar previews:
+Vercel Preview sirve para validar el build y la UI, pero no es el runtime de
+datos para pagos. Antes de usarlo como referencia visual:
 
 - conectar el repositorio y seleccionar la rama principal;
 - configurar variables por `Preview`, nunca copiar producción;
 - elegir autenticación administrativa portable;
-- disponer de DB y almacenamiento de staging;
+- disponer de DB y almacenamiento de staging en el Worker Cloudflare separado;
 - fijar `APP_ENV=preview` y `NEXT_PUBLIC_APP_ENV=preview`;
 - proteger previews con acceso de equipo y `noindex`;
-- comprobar callbacks externos con una URL estable de staging.
+- comprobar callbacks externos con la URL HTTPS estable del Worker de staging.
 
 No despliegues este artefacto Vinext como si fuese un build Next `.next`: el artefacto actual es un Worker en `dist/server/index.js`.
 

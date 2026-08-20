@@ -38,6 +38,10 @@ export type SiteRuntimeEnv = {
   REDSYS_BIZUM_ENABLED?: string;
   BANK_TRANSFER_IBAN?: string;
   BANK_TRANSFER_ACCOUNT_HOLDER?: string;
+  /** Canonical server-side origin used for links and payment callbacks. */
+  APP_ORIGIN?: string;
+  /** Optional comma-separated aliases accepted for incoming same-site requests. */
+  APP_ALLOWED_ORIGINS?: string;
   APP_ENV?: string;
 };
 

@@ -3,6 +3,7 @@ import { trackServerProductEvent } from "@/lib/analytics";
 import { createMerchantOrder, createPaymentCancellationToken, createRedsysProvider, getRedsysConfig } from "@/lib/payments/redsys";
 import type { PaymentMethod } from "@/lib/payments/types";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+import { getConfiguredAppOrigin, getRedsysReturnUrls, isAllowedAppRequestOrigin } from "@/lib/app-origin";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, secureJson, takeRateLimit } from "@/lib/request-security";
 import { reportServerError } from "@/lib/observability";
 import { hashPrivateToken } from "@/lib/group-orders";
@@ -16,6 +17,11 @@ export async function POST(request: Request) {
   if (rejected) return rejected;
   const limited = takeRateLimit(request, "payment_start", { limit: 15, windowMs: 10 * 60_000 });
   if (limited) return limited;
+  try {
+    if (!isAllowedAppRequestOrigin(request)) return secureJson({ error: "Origen de aplicación no permitido." }, { status: 421 });
+  } catch {
+    return secureJson({ error: "El origen seguro de la aplicación no está configurado." }, { status: 503 });
+  }
   const idempotencyKey = String(request.headers.get("idempotency-key") || "").trim();
   if (!/^[a-zA-Z0-9_-]{20,100}$/.test(idempotencyKey)) return secureJson({ error: "Falta una clave de idempotencia válida." }, { status: 400 });
 
@@ -50,6 +56,11 @@ export async function POST(request: Request) {
 
     const config = getRedsysConfig();
     if (!config) return secureJson({ error: "El TPV Redsys todavía no está configurado." }, { status: 503 });
+    try {
+      getConfiguredAppOrigin({ requireHttps: true });
+    } catch {
+      return secureJson({ error: "El origen HTTPS del TPV todavía no está configurado." }, { status: 503 });
+    }
     if (payload.method === "bizum" && REDSYS_BIZUM_ENABLED !== "true") return secureJson({ error: "Bizum todavía no está activado por la entidad bancaria." }, { status: 503 });
     let merchantOrder = "";
     for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -115,9 +126,8 @@ async function paymentResponse(request: Request, payment: { reference: string; m
   }
   const config = getRedsysConfig();
   if (!config || !payment.merchant_order) return secureJson({ error: "El TPV Redsys todavía no está configurado." }, { status: 503 });
-  const origin = new URL(request.url).origin;
   const cancellationToken = await createPaymentCancellationToken(payment.reference, config.signingKey);
-  const form = await createRedsysProvider(config).createHostedPayment({ merchantOrder: payment.merchant_order, amountCents: payment.amount_cents, method: payment.method === "bizum" ? "bizum" : "card", notificationUrl: `${origin}/api/pagos/redsys/notificacion`, successUrl: `${origin}/pago/resultado?ref=${encodeURIComponent(payment.reference)}&estado=pendiente`, cancelUrl: `${origin}/pago/resultado?ref=${encodeURIComponent(payment.reference)}&estado=cancelado&token=${encodeURIComponent(cancellationToken)}`, merchantData: payment.reference });
+  const form = await createRedsysProvider(config).createHostedPayment({ merchantOrder: payment.merchant_order, amountCents: payment.amount_cents, method: payment.method === "bizum" ? "bizum" : "card", ...getRedsysReturnUrls(payment.reference, cancellationToken), merchantData: payment.reference });
   return secureJson({ kind: "redsys", reference: payment.reference, amountCents: payment.amount_cents, status: payment.status, form }, { status });
 }
 

@@ -44,10 +44,17 @@ D1 almacena datos estructurados. R2 almacena diseños privados bajo claves aleat
 
 ## Runtime y evolución
 
-El código actual produce un Worker compatible con Cloudflare mediante Vinext. Vercel Preview no puede compartir D1/R2 de forma nativa sin un adaptador o una segunda capa de datos. La decisión recomendada antes de implementar staging es una de estas:
+El código actual produce un Worker compatible con Cloudflare mediante Vinext.
+Vercel Preview no puede compartir D1/R2 de forma nativa sin un adaptador o una
+segunda capa de datos. La decisión adoptada para staging es ejecutar el mismo
+Worker en Cloudflare con D1/R2 exclusivos, dejando Vercel para build/Preview
+visual y CI. La plantilla no destructiva está en
+[`wrangler.staging.example.jsonc`](../wrangler.staging.example.jsonc).
 
-1. Mantener producción Cloudflare y usar previews Cloudflare por PR, sustituyendo Vercel.
-2. Migrar la aplicación a Next.js App Router estándar con Postgres y almacenamiento S3-compatible compartido, usando Vercel para previews y Cloudflare como DNS/CDN.
-3. Mantener D1/R2 detrás de una API autenticada, consumida desde previews Vercel.
+1. Mantener el Worker de staging en Cloudflare y usar Vercel para previews de build/visual.
+2. No migrar a Next.js/Postgres en esta fase: rompería el runtime Vinext y no es
+   necesario para persistencia.
+3. No exponer D1/R2 directamente a Vercel; los callbacks Redsys deben llegar al
+   Worker estable de staging.
 
 No se debe crear una base distinta por cada preview si se pretenden probar callbacks de pago y flujos de grupo estables.

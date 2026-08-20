@@ -2,15 +2,18 @@
 
 ## Decisión de persistencia
 
-El runtime productivo es un Worker de Cloudflare y usa las bindings `DB` (D1)
-y `BUCKET` (R2) definidas en `.openai/hosting.json`. El Preview de Vercel
-compila la aplicación, pero no recibe esas bindings; por tanto no se debe usar
-como staging E2E ni conectarlo a SQLite efímero para pagos.
+El runtime de la aplicación es un Worker de Cloudflare generado por Vinext. Usa
+las bindings `DB` (D1) y `BUCKET` (R2) definidas en `.openai/hosting.json`.
+Vercel compila el artefacto y genera Preview, pero sus funciones Next no reciben
+esas bindings; por tanto el Preview de Vercel no es un staging E2E persistente y
+no se conecta a SQLite efímero para pagos.
 
 Para un staging operativo se necesita una base D1 y un bucket R2 separados de
 producción, con las mismas migraciones y nombres de binding (`DB` y `BUCKET`).
-La URL de ese Worker debe ser HTTPS, privada/no indexable y estable durante la
-prueba, porque Redsys necesita llamar a `POST /api/pagos/redsys/notificacion`.
+La aplicación debe desplegarse como un Worker de staging con un hostname HTTPS
+estable (preferiblemente el `workers.dev` asignado por Cloudflare, sin tocar los
+nameservers de Hostinger). Ese origen se registra en Redsys porque el TPV llama
+a `POST /api/pagos/redsys/notificacion` servidor a servidor.
 
 La separación prevista es:
 
@@ -21,7 +24,28 @@ La separación prevista es:
 | Producción | `production` | D1/R2 productivos | Redsys real | pública |
 
 No se debe compartir la base de producción con Preview ni reutilizar una base
-efímera entre despliegues.
+efímera entre despliegues. En esta fase no se crea ni se activa ningún recurso
+de producción.
+
+### Estado de recursos
+
+El checkout contiene la configuración y migraciones necesarias, pero no se ha
+creado todavía un D1/R2 remoto nuevo porque este entorno no tiene una sesión de
+Cloudflare autorizada. Crear recursos con nombres o IDs inventados sería peor
+que dejar el paso bloqueado. El procedimiento seguro, una vez disponible el
+acceso de la cuenta, es:
+
+1. Crear `tu-sudadera-staging-db` y `tu-sudadera-staging-uploads` en la cuenta
+   de Cloudflare de staging.
+2. Copiar sus IDs reales en el secreto/entorno de despliegue, nunca en Git.
+3. Aplicar `drizzle/0000`–`drizzle/0008` en orden y verificar constraints,
+   índices y triggers.
+4. Desplegar únicamente el Worker de staging y comprobar su hostname HTTPS.
+5. Configurar `APP_ENV=staging`, `APP_ORIGIN=<hostname HTTPS real>` y
+   `REDSYS_ENVIRONMENT=test`.
+
+No se deben cambiar nameservers ni activar el dominio principal para completar
+este procedimiento.
 
 ## Variables que ya están preparadas
 
@@ -29,7 +53,10 @@ Copiar `.env.example` solo al gestor de secretos del entorno. Los nombres que
 consume el código son:
 
 ```text
-REDSYS_ENVIRONMENT=test|production
+APP_ENV=staging
+APP_ORIGIN=https://<hostname-workers-dev-real>
+APP_ALLOWED_ORIGINS=
+REDSYS_ENVIRONMENT=test
 REDSYS_MERCHANT_CODE=          # FUC/merchant code asignado por el banco
 REDSYS_TERMINAL=001            # terminal asignado por el banco
 REDSYS_SIGNING_KEY=            # clave de firma asignada por el banco
@@ -37,22 +64,22 @@ REDSYS_BIZUM_ENABLED=false     # true solo tras confirmación del banco
 ```
 
 La moneda está fijada a EUR (`978`) en el generador y se vuelve a validar en
-cada notificación. Las URLs no se aceptan desde el navegador ni desde una
-variable mutable: se derivan del origen HTTPS de la petición de inicio y se
-firman dentro de `Ds_MerchantParameters`:
+cada notificación. Las URLs no se aceptan desde el navegador, `Host`, `Origin`,
+`Referer` ni parámetros del cliente. Se derivan exclusivamente de `APP_ORIGIN`,
+validado en servidor, y se firman dentro de `Ds_MerchantParameters`:
 
 - `POST /api/pagos/redsys/notificacion` (servidor a servidor, fuente de verdad)
 - `/pago/resultado?...estado=pendiente` (retorno OK informativo)
-- `/pago/resultado?...estado=cancelado&token=...` (retorno KO/cancelación)
+- `/pago/resultado?...estado=cancelado&token=...` (retorno KO informativo y
+  solicitud de cancelación ligada a la referencia)
 
 La página de resultado nunca marca una operación como pagada.
 
 ## Estado actual de las capacidades críticas
 
-- **Persistencia:** producción/Sites usa D1 + R2 mediante las bindings `DB` y
-  `BUCKET`. Vercel Preview no tiene esas bindings; no se usa como base de datos
-  ni se conecta a SQLite efímero. El staging real pendiente debe ser otro
-  Worker/Site con D1 y R2 separados de producción.
+- **Persistencia:** el Worker usa D1 + R2 mediante `DB` y `BUCKET`. Vercel
+  Preview no tiene esas bindings; no se usa como base de datos ni se conecta a
+  SQLite efímero. El staging real será otro Worker con recursos D1/R2 propios.
 - **Administración:** el panel valida en servidor la identidad confiable del
   host privado de Sites y una allowlist `ADMIN_EMAIL` separable por comas. En
   Vercel genérico `TRUST_OPENAI_IDENTITY_HEADERS` permanece desactivado. No se
@@ -77,6 +104,16 @@ La página de resultado nunca marca una operación como pagada.
   públicamente. Antes de producción conviene añadir un escáner aislado para
   PDF/AI (por ejemplo ClamAV gestionado o un servicio especializado).
 
+## WAF y callback Redsys
+
+El callback exacto es `POST /api/pagos/redsys/notificacion`. No debe pasar por
+Turnstile, challenge interactivo, protección bot ni una regla que reescriba o
+comprima el body. Puede llevar rate limit de volumen alto y observación de
+errores, pero no se debe confiar solo en IP: la firma `HMAC_SHA512_V2` y las
+validaciones comerciales son obligatorias. Si el banco entrega rangos oficiales
+de Redsys, se pueden añadir como capa adicional de allowlist; si no los entrega,
+no se inventan.
+
 ## Qué falta el lunes
 
 1. Introducir en el secreto del entorno de test el FUC, terminal y clave que
@@ -89,7 +126,8 @@ La página de resultado nunca marca una operación como pagada.
 5. Ejecutar aprobada, rechazada y cancelada, y comprobar que cada una llega al
    callback firmado y actualiza una sola vez el pago.
 6. Para producción, cambiar únicamente el entorno y los tres secretos por los
-   valores de producción después de reconciliar un pago real controlado.
+   valores de producción después de reconciliar un pago real controlado. Esto
+   será una operación posterior y no forma parte de esta fase.
 
 ## Firma y controles
 
@@ -100,6 +138,32 @@ se usa únicamente para el token interno de cancelación del navegador; no
 sustituye la firma Redsys.
 
 Antes de aceptar una notificación se validan firma, versión, pedido, importe,
-moneda, merchant code, terminal y `Ds_MerchantData`. El cambio de estado se
-condiciona a `processing`; callbacks repetidos son idempotentes y nunca crean
-otro pago, factura, recibo ni cobro.
+moneda, merchant code, terminal y `Ds_MerchantData`. El callback actualiza de
+forma idempotente una operación `processing`; una cancelación de navegador ya
+registrada no puede ser reabierta por una notificación posterior. Callbacks
+repetidos nunca crean otro pago, factura, recibo ni cobro. La URL OK solo
+consulta el estado persistido y abrirla manualmente no cambia el pago.
+
+## Información que pedir al banco
+
+Solicitar exactamente:
+
+1. FUC/Merchant Code.
+2. Número de terminal.
+3. Clave de firma.
+4. Algoritmo y configuración de firma aplicables.
+5. URL HTTPS de notificación a registrar.
+6. Si deben registrar también OK/KO.
+7. Tarjetas de prueba, fechas y CVV oficiales.
+8. Códigos para aprobado, rechazado y cancelado.
+9. Confirmación de Bizum y su habilitación en el comercio.
+10. Métodos de pago habilitados y requisitos 3DS.
+11. Restricciones de tarjeta, whitelist/IPs y requisitos WAF.
+12. Endpoint de test y procedimiento exacto para pasar a producción.
+13. Confirmación de si FUC, terminal o clave cambian entre test y producción.
+14. Pruebas obligatorias antes de activar producción.
+15. Contacto técnico para incidencias.
+
+Lo que ya sabemos: el proyecto usa `HMAC_SHA512_V2`, EUR (`978`), callback
+servidor-servidor y separación `REDSYS_ENVIRONMENT=test|production`. Todo lo
+demás anterior queda pendiente del banco.

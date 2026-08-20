@@ -11,6 +11,7 @@ import {
   parseStoredQuoteConfiguration,
   readCommercialSnapshot,
 } from "@/lib/commercial";
+import { getAppUrl } from "@/lib/app-origin";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -87,7 +88,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
     if (!group) throw new Error("Could not generate unique group code");
     if (!createdGroup) return Response.json({ group, idempotent: true });
-    const groupUrl = new URL(`/pedido/${group.accessCode}`, request.url).toString();
+    const groupUrl = getAppUrl(`/pedido/${group.accessCode}`);
     const emailStatus = await sendOrganizerGroupEmail({ to: quote.email, organizerName: quote.organizerName, groupName: group.groupName, groupUrl });
     await db.update(quoteRequests).set({ status: "approved", emailStatus, updatedAt: new Date().toISOString() }).where(and(eq(quoteRequests.id, quote.id), eq(quoteRequests.code, code)));
     await trackServerProductEvent("grupo_created", { product_type: group.productType, quantity: group.estimatedQuantity });

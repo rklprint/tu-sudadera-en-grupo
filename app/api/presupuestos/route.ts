@@ -3,6 +3,7 @@ import { ensureQuoteSchema, getDb } from "@/db";
 import { quoteRequests } from "@/db/schema";
 import { notifyQuoteRequest } from "@/lib/quote-email";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+import { getAppUrl } from "@/lib/app-origin";
 import { validateDesignFile } from "@/lib/design-files";
 import {
   rejectCrossOriginMutation,
@@ -219,7 +220,6 @@ export async function POST(request: Request) {
       throw insertError;
     }
 
-    const origin = new URL(request.url).origin;
     const emailStatus = await notifyQuoteRequest({
       code,
       organizerName,
@@ -232,7 +232,7 @@ export async function POST(request: Request) {
       notes,
       referenceUrl,
       configuration,
-      statusUrl: `${origin}/pedido/${encodeURIComponent(code)}`,
+      statusUrl: getAppUrl(`/pedido/${encodeURIComponent(code)}`),
     });
 
     if (emailStatus !== "pending") {

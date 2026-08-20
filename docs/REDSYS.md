@@ -6,13 +6,23 @@ La implementación usa el formulario alojado por Redsys. El navegador envía los
 
 ## Variables
 
+- `APP_ENV=staging|production`
+- `APP_ORIGIN` (origen canónico HTTPS de servidor; obligatorio para pagos)
+- `APP_ALLOWED_ORIGINS` (opcional, alias entrantes conocidos; nunca se usa
+  para generar URLs)
 - `REDSYS_ENVIRONMENT=test|production`
 - `REDSYS_MERCHANT_CODE`
 - `REDSYS_TERMINAL`
 - `REDSYS_SIGNING_KEY`
 - `REDSYS_BIZUM_ENABLED=true|false`
 
-La clave se almacena solo como secreto del entorno. Nunca se registra ni llega al navegador. Bizum permanece desactivado hasta que el banco lo habilite para el comercio/terminal.
+La clave se almacena solo como secreto del entorno. Nunca se registra ni llega
+al navegador. Bizum permanece desactivado hasta que el banco lo habilite para
+el comercio/terminal.
+
+`MerchantURL`, OK y KO se generan en servidor a partir de `APP_ORIGIN`. No se
+usan `request.url`, `Host`, `Origin`, `Referer` ni valores del formulario para
+construirlas. La URL OK solo consulta el estado persistido; no confirma pagos.
 
 ## Validaciones
 
@@ -37,6 +47,8 @@ La suite contiene el vector oficial de firma. Eso no sustituye una prueba E2E de
 6. Bizum aceptado y rechazado, si está habilitado.
 7. Pago individual más pago restante del organizador: suma exacta sin sobrecobro.
 8. Transferencia: pendiente hasta confirmación manual; rechazo/cancelación trazable.
+
+La matriz completa está en [`REDSYS-MATRIX.md`](./REDSYS-MATRIX.md).
 
 ## Paso a producción
 

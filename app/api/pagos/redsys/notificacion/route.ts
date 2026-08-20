@@ -5,6 +5,7 @@ import { getRedsysConfig, parseAndVerifyRedsysNotification } from "@/lib/payment
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 import { rejectOversizedRequest, takeRateLimit } from "@/lib/request-security";
 import { reportServerError } from "@/lib/observability";
+import { getAppUrl } from "@/lib/app-origin";
 
 export async function POST(request: Request) {
   const sizeError = rejectOversizedRequest(request, 64 * 1024);
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
         const participant = await DB.prepare("SELECT email, contact_name FROM participants WHERE id = ?").bind(payment.participant_id).first<{ email: string; contact_name: string }>();
         if (participant) receipt = { to: participant.email, contactName: participant.contact_name };
       }
-      await sendPaymentReceiptEmail({ to: receipt.to, contactName: receipt.contactName, groupName: payment.group_name, reference: payment.reference, amountCents: payment.amount_cents, orderUrl: new URL(`/pedido/${payment.access_code}`, request.url).toString() });
+      await sendPaymentReceiptEmail({ to: receipt.to, contactName: receipt.contactName, groupName: payment.group_name, reference: payment.reference, amountCents: payment.amount_cents, orderUrl: getAppUrl(`/pedido/${payment.access_code}`) });
       await trackServerProductEvent("payment_completed", { payment_method: payment.method, payment_status: "confirmed" });
     }
     return callbackResponse("OK");

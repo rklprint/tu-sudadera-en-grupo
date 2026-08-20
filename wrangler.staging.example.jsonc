@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tu-sudadera-en-grupo-staging",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "APP_ENV": "staging",
+    "APP_ORIGIN": "https://REPLACE_WITH_ASSIGNED_WORKERS_DEV_ORIGIN",
+    "APP_ALLOWED_ORIGINS": "",
+    "REDSYS_ENVIRONMENT": "test",
+    "REDSYS_BIZUM_ENABLED": "false",
+    "ENABLE_DEMO_ROUTES": "false",
+    "TRUST_OPENAI_IDENTITY_HEADERS": "false"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tu-sudadera-staging-db",
+      "database_id": "REPLACE_WITH_REAL_STAGING_D1_ID",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "tu-sudadera-staging-uploads"
+    }
+  ]
+}

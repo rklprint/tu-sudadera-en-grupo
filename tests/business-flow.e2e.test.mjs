@@ -21,6 +21,8 @@ const runtime = {
   REDSYS_BIZUM_ENABLED: "true",
   BANK_TRANSFER_IBAN: "ES0000000000000000000000",
   BANK_TRANSFER_ACCOUNT_HOLDER: "Titular E2E",
+  APP_ENV: "staging",
+  APP_ORIGIN: "https://e2e.example.invalid",
   ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
 };
 const execution = { waitUntil() {}, passThroughOnException() {} };
@@ -34,9 +36,9 @@ function headers(admin = false) {
   };
 }
 
-async function request(path, options = {}) {
+async function request(path, options = {}, requestOrigin = origin) {
   const worker = await workerPromise;
-  const response = await worker.fetch(new Request(`${origin}${path}`, options), runtime, execution);
+  const response = await worker.fetch(new Request(`${requestOrigin}${path}`, options), runtime, execution);
   const type = response.headers.get("content-type") || "";
   const body = type.includes("json") ? await response.json() : await response.text();
   return { response, body };
@@ -247,6 +249,14 @@ test("critical 25-garment flow preserves data through production export", async 
   assert.equal(opened.body.group.paymentStatus, "open");
   const frozenItemsBeforePayment = db.queryAll("SELECT participant_id, product_name, model, color, quantity, print_name, size, name_placement, front_extra, front_detail, sleeve_extra, sleeve_detail, extras_cents, unit_price_cents FROM order_items WHERE participant_id IN (SELECT id FROM participants WHERE group_id = ?) ORDER BY id", groupRow.id);
 
+  const attackerStart = await request("/api/pagos/iniciar", {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": idempotency("attacker-origin") },
+    body: JSON.stringify({ method: "card", scope: "participant", participantToken: tokens[0] }),
+  }, "https://attacker.example.invalid");
+  assert.equal(attackerStart.response.status, 421);
+  assert.equal(db.query("SELECT count(*) AS total FROM payments WHERE idempotency_key = ?", idempotency("attacker-origin")).total, 0);
+
   const [cardStart, secondCardStart] = await Promise.all([
     startPayment({ method: "card", scope: "participant", participantToken: tokens[0] }, "p1-card"),
     startPayment({ method: "card", scope: "participant", participantToken: tokens[1] }, "p2-card"),
@@ -265,6 +275,9 @@ test("critical 25-garment flow preserves data through production export", async 
 
   const p1Payment = db.query("SELECT * FROM payments WHERE reference = ?", cardStart.body.reference);
   const p2FailedPayment = db.query("SELECT * FROM payments WHERE reference = ?", secondCardStart.body.reference);
+  const browserOk = await request(`/pago/resultado?ref=${encodeURIComponent(p1Payment.reference)}&estado=pendiente`);
+  assert.equal(browserOk.response.status, 200);
+  assert.equal(db.query("SELECT status FROM payments WHERE id = ?", p1Payment.id).status, "processing");
   const simultaneousParticipantCallbacks = await Promise.all([
     redsysNotification(p1Payment, "0000", "AUTH-P1"),
     redsysNotification(p2FailedPayment, "0190", ""),

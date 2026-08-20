@@ -5,6 +5,7 @@ import { getAdminApiUser } from "@/lib/admin-auth";
 import { normalizeCode, priceForQuantityCents } from "@/lib/group-orders";
 import { sendOrganizerStatusEmail } from "@/lib/order-emails";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+import { getAppUrl } from "@/lib/app-origin";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest } from "@/lib/request-security";
 import {
   parseStoredQuoteConfiguration,
@@ -147,7 +148,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       to: updated.organizerEmail,
       organizerName: updated.organizerName,
       groupName: updated.groupName,
-      groupUrl: new URL(`/pedido/${updated.accessCode}`, request.url).toString(),
+      groupUrl: getAppUrl(`/pedido/${updated.accessCode}`),
       ...notification,
     }) : "not_required";
     return Response.json({ group: updated, emailStatus });
