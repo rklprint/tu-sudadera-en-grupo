@@ -7,7 +7,7 @@ test("aplica todos los tramos públicos confirmados de sudaderas", () => {
   const cases: Array<[number, number | null]> = [
     [1, null], [4, null], [5, 3000], [10, 3000], [11, 2800], [20, 2800],
     [21, 2600], [30, 2600], [31, 2500], [40, 2500], [41, 2400], [50, 2400],
-    [51, 2300], [75, 2300], [76, 2200], [99, 2200], [100, null],
+    [51, 2300], [75, 2300], [76, 2200], [100, 2200], [101, null],
   ];
   for (const [quantity, expected] of cases) {
     assert.equal(unitPriceForQuantity(quantity, HOODIE_PRICE_TIERS), expected, `cantidad ${quantity}`);

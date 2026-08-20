@@ -44,8 +44,8 @@ export const HOODIE_PRICE_TIERS = [
   { min: 31, max: 40, label: "31–40", unitPriceCents: 2_500 },
   { min: 41, max: 50, label: "41–50", unitPriceCents: 2_400 },
   { min: 51, max: 75, label: "51–75", unitPriceCents: 2_300 },
-  { min: 76, max: 99, label: "76–99", unitPriceCents: 2_200 },
-  { min: 100, max: null, label: "100+", unitPriceCents: null },
+  { min: 76, max: 100, label: "76–100", unitPriceCents: 2_200 },
+  { min: 101, max: null, label: "101+", unitPriceCents: null },
 ] as const satisfies readonly CatalogPriceTier[];
 
 export const DEFAULT_CATALOG = [

@@ -592,3 +592,236 @@ select {
     transform: scale(.9);
   }
 }
+
+/* Compact, mobile-first personalizer flow */
+main .customizer-layout {
+  min-height: 650px;
+}
+
+main .customizer-progress > div {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+main .config-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 24px 0 0;
+  padding: 13px 15px;
+  border-left: 3px solid var(--blue);
+  background: #f3f9fc;
+}
+
+main .config-hint b {
+  font-size: 9px;
+}
+
+main .config-hint span {
+  color: #66758a;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+main .front-details {
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfaf6;
+}
+
+main .front-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 64px;
+  padding: 13px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+main .front-details summary::-webkit-details-marker {
+  display: none;
+}
+
+main .front-details summary > span,
+main .front-details summary > b {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+main .front-details summary > span {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+main .front-details summary small {
+  color: #738097;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+main .front-details summary > b {
+  align-items: flex-end;
+  color: #2e73ad;
+  font-size: 8px;
+}
+
+main .front-details summary i {
+  color: var(--navy);
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: .6;
+}
+
+main .front-details[open] summary {
+  border-bottom: 1px solid var(--line);
+  background: #eef8fb;
+}
+
+main .front-details[open] summary i {
+  transform: rotate(45deg);
+}
+
+main .front-details-body {
+  padding: 18px;
+}
+
+main .front-details-body .front-options {
+  margin-bottom: 18px;
+}
+
+main .price-section-linked {
+  scroll-margin-top: 20px;
+}
+
+@media (max-width: 1100px) {
+  main .customizer-layout {
+    min-height: 0;
+  }
+
+  main .preview-panel {
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 700px) {
+  main .customizer-section {
+    padding-bottom: 52px;
+  }
+
+  main .customizer-progress {
+    height: 68px;
+  }
+
+  main .customizer-progress button {
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 3px;
+    font-size: 7px;
+    letter-spacing: .04em;
+  }
+
+  main .customizer-progress button i {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    font-size: 7px;
+  }
+
+  main .preview-panel {
+    min-height: 430px;
+  }
+
+  main .preview-summary {
+    height: 62px;
+  }
+
+  main .preview-summary div {
+    padding-inline: 11px;
+  }
+
+  main .controls-panel {
+    min-height: 0;
+    padding: 24px 17px 20px;
+  }
+
+  main .step-header {
+    grid-template-columns: 34px 1fr;
+    gap: 9px;
+    margin-bottom: 21px;
+  }
+
+  main .step-header > span {
+    width: 29px;
+    height: 29px;
+    font-size: 8px;
+  }
+
+  main .step-header h2 {
+    margin-bottom: 4px;
+    font-size: 23px;
+  }
+
+  main .step-header p {
+    font-size: 9px;
+  }
+
+  main .path-tabs,
+  main .front-options {
+    gap: 6px;
+  }
+
+  main .path-tabs button,
+  main .front-options button {
+    min-height: 61px;
+  }
+
+  main .style-options {
+    max-height: 235px;
+  }
+
+  main .config-hint {
+    margin-top: 20px;
+  }
+
+  main .front-details {
+    margin-top: 18px;
+  }
+
+  main .front-details summary {
+    min-height: 58px;
+    padding: 11px 13px;
+  }
+
+  main .front-details-body {
+    padding: 15px 12px;
+  }
+
+  main .next-button,
+  main .finish-button {
+    margin-top: 22px;
+  }
+
+  main .price-section-linked {
+    padding-top: 58px;
+  }
+}
+
+@media (max-width: 420px) {
+  main .preview-panel {
+    min-height: 395px;
+  }
+
+  main .preview-stage .hoodie {
+    transform: scale(.77);
+  }
+
+  main .customizer-progress button {
+    font-size: 6px;
+  }
+}

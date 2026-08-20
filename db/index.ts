@@ -347,6 +347,10 @@ async function seedCatalog(DB: NonNullable<ReturnType<typeof getSiteRuntimeEnv>[
     ...CORE_SIZES.map((size, position) => DB.prepare("INSERT OR IGNORE INTO product_sizes (product_id, name, position) VALUES (?, ?, ?)").bind(productId, size, position + 1)),
   ]);
   const tiers = HOODIE_PRICE_TIERS.map((tier, position) => DB.prepare("INSERT OR IGNORE INTO product_price_tiers (product_id, min_quantity, max_quantity, unit_price_cents, position) VALUES (?, ?, ?, ?, ?)").bind(hoodieId, tier.min, tier.max, tier.unitPriceCents, position + 1));
+  await DB.batch([
+    DB.prepare("UPDATE product_price_tiers SET max_quantity = 100 WHERE product_id = ? AND min_quantity = 76 AND max_quantity = 99 AND unit_price_cents = 2200").bind(hoodieId),
+    DB.prepare("UPDATE product_price_tiers SET min_quantity = 101 WHERE product_id = ? AND min_quantity = 100 AND max_quantity IS NULL AND unit_price_cents IS NULL AND NOT EXISTS (SELECT 1 FROM product_price_tiers AS existing WHERE existing.product_id = product_price_tiers.product_id AND existing.min_quantity = 101)").bind(hoodieId),
+  ]);
   await DB.batch([...variants, ...tiers]);
 
   await DB.prepare(`INSERT OR IGNORE INTO product_extras (product_id, extra_id)
