@@ -7,6 +7,10 @@ import { sendOrganizerGroupEmail } from "@/lib/order-emails";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest } from "@/lib/request-security";
 import { trackServerProductEvent } from "@/lib/analytics";
 import { reportServerError } from "@/lib/observability";
+import {
+  parseStoredQuoteConfiguration,
+  readCommercialSnapshot,
+} from "@/lib/commercial";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -29,40 +33,60 @@ export async function POST(request: Request, context: RouteContext) {
     const [existing] = await db.select().from(groupOrders).where(eq(groupOrders.quoteId, quote.id)).limit(1);
     if (existing) return Response.json({ group: existing });
 
-    let configuration: Record<string, string> = {};
-    try { configuration = JSON.parse(quote.configurationJson) as Record<string, string>; } catch { configuration = {}; }
-    const suggested = priceForQuantityCents(quote.quantity);
-    const unitPriceCents = Number(payload.unitPriceCents || suggested || 0);
+    const configuration = parseStoredQuoteConfiguration(quote.configurationJson);
+    const commercialSnapshot = readCommercialSnapshot(configuration.commercialSnapshot);
+    const suggested = commercialSnapshot?.quotedUnitPriceCents ?? priceForQuantityCents(quote.quantity);
+    const requestedPrice = payload.unitPriceCents === undefined ? suggested : Number(payload.unitPriceCents);
+    const unitPriceCents = Number(requestedPrice || 0);
     if (!Number.isInteger(unitPriceCents) || unitPriceCents < 100 || unitPriceCents > 100000) {
       return Response.json({ error: "Define un precio unitario válido antes de aprobar." }, { status: 400 });
     }
+    const approvedAt = new Date().toISOString();
+    const groupConfiguration = {
+      ...configuration,
+      approvedCommercial: {
+        approvedAt,
+        approvedQuantity: quote.quantity,
+        approvedUnitPriceCents: unitPriceCents,
+        source: commercialSnapshot?.quotedUnitPriceCents === unitPriceCents ? "quoted" : "manual",
+      },
+    };
 
     let group = null;
+    let createdGroup = false;
     for (let attempt = 0; attempt < 3 && !group; attempt += 1) {
       const accessCode = createAccessCode();
       const [collision] = await db.select({ id: groupOrders.id }).from(groupOrders).where(eq(groupOrders.accessCode, accessCode)).limit(1);
       if (collision) continue;
-      [group] = await db.insert(groupOrders).values({
-        quoteId: quote.id,
-        accessCode,
-        groupName: configuration.groupName || quote.groupType,
-        organizerName: quote.organizerName,
-        organizerEmail: quote.email,
-        organizerPhone: quote.phone,
-        productType: configuration.product === "Camiseta" ? "tshirt" : "hoodie",
-        garment: configuration.model || "Gildan 18500",
-        color: configuration.color || "Por confirmar",
-        estimatedQuantity: quote.quantity,
-        unitPriceCents,
-        designStatus: payload.designApproved ? "approved" : "review",
-        registrationStatus: "open",
-        paymentStatus: "locked",
-        productionStatus: "planning",
-        deadline: String(payload.deadline || quote.desiredDate || "").slice(0, 80),
-        configurationJson: quote.configurationJson,
-      }).returning();
+      try {
+        [group] = await db.insert(groupOrders).values({
+          quoteId: quote.id,
+          accessCode,
+          groupName: String(configuration.groupName || quote.groupType),
+          organizerName: quote.organizerName,
+          organizerEmail: quote.email,
+          organizerPhone: quote.phone,
+          productId: commercialSnapshot && /^\d+$/.test(commercialSnapshot.productId) ? Number(commercialSnapshot.productId) : null,
+          productType: commercialSnapshot?.productCategory || (configuration.product === "Camiseta" ? "tshirt" : "hoodie"),
+          garment: commercialSnapshot?.model || String(configuration.model || "Gildan 18500"),
+          color: commercialSnapshot?.color || String(configuration.color || "Por confirmar"),
+          estimatedQuantity: quote.quantity,
+          unitPriceCents,
+          designStatus: payload.designApproved ? "approved" : "review",
+          registrationStatus: "open",
+          paymentStatus: "locked",
+          productionStatus: "planning",
+          deadline: String(payload.deadline || quote.desiredDate || "").slice(0, 80),
+          configurationJson: JSON.stringify(groupConfiguration),
+        }).returning();
+        createdGroup = true;
+      } catch {
+        const [concurrent] = await db.select().from(groupOrders).where(eq(groupOrders.quoteId, quote.id)).limit(1);
+        if (concurrent) group = concurrent;
+      }
     }
     if (!group) throw new Error("Could not generate unique group code");
+    if (!createdGroup) return Response.json({ group, idempotent: true });
     const groupUrl = new URL(`/pedido/${group.accessCode}`, request.url).toString();
     const emailStatus = await sendOrganizerGroupEmail({ to: quote.email, organizerName: quote.organizerName, groupName: group.groupName, groupUrl });
     await db.update(quoteRequests).set({ status: "approved", emailStatus, updatedAt: new Date().toISOString() }).where(and(eq(quoteRequests.id, quote.id), eq(quoteRequests.code, code)));

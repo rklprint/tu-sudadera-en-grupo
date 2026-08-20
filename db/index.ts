@@ -133,7 +133,7 @@ export async function ensureQuoteSchema() {
         FOREIGN KEY (product_id) REFERENCES products(id)
       )`),
       DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS group_orders_access_code_unique ON group_orders (access_code)"),
-      DB.prepare("CREATE INDEX IF NOT EXISTS group_orders_quote_id_idx ON group_orders (quote_id)"),
+      DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS group_orders_quote_id_unique ON group_orders (quote_id)"),
       DB.prepare(`CREATE TABLE IF NOT EXISTS participants (
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         group_id INTEGER NOT NULL,

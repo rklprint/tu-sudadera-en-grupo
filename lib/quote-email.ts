@@ -1,4 +1,5 @@
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+import type { StoredQuoteConfiguration } from "@/lib/commercial";
 
 type QuoteEmailPayload = {
   code: string;
@@ -11,7 +12,7 @@ type QuoteEmailPayload = {
   desiredDate: string;
   notes: string;
   referenceUrl: string;
-  configuration: Record<string, string>;
+  configuration: StoredQuoteConfiguration;
   statusUrl: string;
 };
 
@@ -53,7 +54,7 @@ export async function notifyQuoteRequest(payload: QuoteEmailPayload): Promise<Em
     ["Espalda", clean(payload.configuration.backDesign)],
     ["Delantera", clean(payload.configuration.frontDesign)],
     ["Manga", clean(payload.configuration.sleeve)],
-    ["Diseño adjunto", clean(payload.configuration.designFileName)],
+    ["Diseño adjunto", clean(String(payload.configuration.designFileName || ""))],
     ["Precio base mostrado", clean(payload.configuration.basePrice)],
     ["Precio configurado mostrado", clean(payload.configuration.configuredPrice)],
     ["Notas", clean(payload.notes)],

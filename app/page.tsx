@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CORE_COLORS, DEFAULT_CATALOG, unitPriceForQuantity, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
+import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
+import { pricingForSelection } from "@/lib/commercial";
 import { trackProductEvent } from "@/lib/analytics";
 
 type Side = "front" | "back";
@@ -184,18 +185,24 @@ export default function Home() {
     return `${name}\nX ANIVERSARIO`;
   }, [designPath, groupName, style]);
 
-  const basePriceCents = activeProduct.quoteOnly ? null : unitPriceForQuantity(quantity, activeProduct.priceTiers);
+  const selectionPricing = pricingForSelection(activeProduct, quantity, {
+    frontType,
+    frontTechnique,
+    sleeveFlag,
+    sleeveTechnique,
+  });
+  const basePriceCents = selectionPricing.baseUnitPriceCents;
   const baseUnitPrice = basePriceCents === null ? null : basePriceCents / 100;
   const productName = productType === "hoodie" ? "Sudadera" : "Camiseta";
   const productModel = activeProduct.model;
   const backDesignLabel = designPath === "template" ? style.label : designPath === "upload" ? "Diseño aportado" : "Diseño a medida";
   const frontDesignLabel = frontOptions.find((item) => item.id === frontType)?.label || "Detalle delantero";
   const selectedFlag = flagOptions.find((item) => item.id === sleeveFlag)?.label || "Sin bandera";
-  const frontExtra = frontTechnique === "embroidery" && frontType === "coordinates" ? 1 : 0;
-  const sleeveExtra = sleeveFlag === "none" ? 0 : sleeveTechnique === "print" ? 1 : sleeveFlag === "custom" ? 0 : 2;
-  const customEmbroidery = frontTechnique === "embroidery" && frontType !== "coordinates" || sleeveTechnique === "embroidery" && sleeveFlag === "custom";
-  const knownExtras = frontExtra + sleeveExtra;
-  const configuredUnitPrice = baseUnitPrice === null || customEmbroidery ? null : baseUnitPrice + knownExtras;
+  const customEmbroidery = selectionPricing.customPricingRequired;
+  const knownExtras = selectionPricing.commonExtrasCents / 100;
+  const configuredUnitPrice = selectionPricing.quotedUnitPriceCents === null
+    ? null
+    : selectionPricing.quotedUnitPriceCents / 100;
   const hasPriceExtra = knownExtras > 0 || customEmbroidery;
   const progress = ((openStep + 1) / chapters.length) * 100;
   const updateQuantity = (value: number) => {
@@ -231,13 +238,23 @@ export default function Home() {
       design_path: designPath,
     });
     const params = new URLSearchParams({
+      productSlug: activeProduct.slug,
+      productCategory: productType,
       product: productName,
       model: productModel,
       color: garment.name,
       printColor: print.name,
+      designPath,
+      designStyle: style.id,
       backDesign: designPath === "template" ? style.label : designPath === "upload" ? "Diseño subido" : "Diseño a medida",
       groupName: groupName || "Sin nombre todavía",
+      frontType,
+      frontText,
+      frontTechnique,
       frontDesign: `${frontOptions.find((item) => item.id === frontType)?.label || "Sin definir"}${frontText ? ` · ${frontText}` : ""} · ${frontTechnique === "embroidery" ? "Bordado" : "DTF"}`,
+      sleeveFlag,
+      sleeveDetail,
+      sleeveTechnique,
       sleeve: `${flagOptions.find((item) => item.id === sleeveFlag)?.label || "Sin manga"}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}`,
       quantity: String(quantity),
       basePrice: baseUnitPrice === null ? "Consultar" : `${baseUnitPrice} € por unidad`,

@@ -119,7 +119,7 @@ export const groupOrders = sqliteTable("group_orders", {
   configurationJson: text("configuration_json").notNull().default("{}"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => [uniqueIndex("group_orders_quote_id_unique").on(table.quoteId)]);
 
 export const participants = sqliteTable("participants", {
   id: integer("id").primaryKey({ autoIncrement: true }),

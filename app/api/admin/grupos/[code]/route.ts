@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { ensureQuoteSchema, getDb } from "@/db";
 import { groupOrders, orderItems, participants } from "@/db/schema";
 import { getAdminApiUser } from "@/lib/admin-auth";
@@ -6,6 +6,11 @@ import { normalizeCode, priceForQuantityCents } from "@/lib/group-orders";
 import { sendOrganizerStatusEmail } from "@/lib/order-emails";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest } from "@/lib/request-security";
+import {
+  parseStoredQuoteConfiguration,
+  priceFromCommercialSnapshot,
+  readCommercialSnapshot,
+} from "@/lib/commercial";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -31,9 +36,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const changes: Partial<typeof groupOrders.$inferInsert> = { updatedAt: new Date().toISOString() };
     if (payload.action === "close_registration") {
-      const [result] = await db.select({ total: count(orderItems.id) }).from(orderItems).innerJoin(participants, eq(orderItems.participantId, participants.id)).where(eq(participants.groupId, group.id));
+      const [result] = await db.select({ total: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` }).from(orderItems).innerJoin(participants, eq(orderItems.participantId, participants.id)).where(eq(participants.groupId, group.id));
       const actualQuantity = Number(result?.total || 0);
-      const recalculated = priceForQuantityCents(actualQuantity);
+      const configuration = parseStoredQuoteConfiguration(group.configurationJson);
+      const commercialSnapshot = readCommercialSnapshot(configuration.commercialSnapshot);
+      const recalculated = commercialSnapshot
+        ? priceFromCommercialSnapshot(commercialSnapshot, actualQuantity)
+        : priceForQuantityCents(actualQuantity);
       const manual = Number(payload.unitPriceCents || 0);
       if (actualQuantity < 1) return Response.json({ error: "No puedes cerrar un registro sin prendas." }, { status: 409 });
       if (!recalculated && (!Number.isInteger(manual) || manual < 100 || manual > 100000)) {
@@ -42,6 +51,15 @@ export async function PATCH(request: Request, context: RouteContext) {
       changes.registrationStatus = "closed";
       changes.estimatedQuantity = actualQuantity;
       changes.unitPriceCents = recalculated || manual;
+      changes.configurationJson = JSON.stringify({
+        ...configuration,
+        closedCommercial: {
+          closedAt: new Date().toISOString(),
+          actualQuantity,
+          unitPriceCents: recalculated || manual,
+          source: recalculated ? "approved_price_table" : "manual",
+        },
+      });
     } else if (payload.action === "reopen_registration") {
       if (group.paymentStatus !== "locked") return Response.json({ error: "No puede reabrirse después de abrir pagos." }, { status: 409 });
       changes.registrationStatus = "open";
@@ -65,7 +83,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       changes.unitPriceCents = manual;
     } else if (payload.action === "complete_payment") {
       const totals = await DB.prepare(`SELECT
-          coalesce((SELECT sum(oi.unit_price_cents + oi.extras_cents)
+          coalesce((SELECT sum((oi.unit_price_cents + oi.extras_cents) * oi.quantity)
             FROM order_items oi
             INNER JOIN participants p ON p.id = oi.participant_id
             WHERE p.group_id = ?), 0) AS expected,

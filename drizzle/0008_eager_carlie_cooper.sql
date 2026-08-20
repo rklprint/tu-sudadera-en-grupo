@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `group_orders_quote_id_unique` ON `group_orders` (`quote_id`);

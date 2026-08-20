@@ -14,6 +14,12 @@ import {
 } from "@/lib/request-security";
 import { trackServerProductEvent } from "@/lib/analytics";
 import { reportServerError } from "@/lib/observability";
+import { readCatalog } from "@/lib/catalog-store";
+import {
+  createCommercialSnapshot,
+  normalizePersonalizerSelection,
+  type StoredQuoteConfiguration,
+} from "@/lib/commercial";
 
 const allowedGroupTypes = new Set([
   "Colegio o instituto",
@@ -36,7 +42,7 @@ type QuoteInput = {
   desiredDate?: string;
   notes?: string;
   referenceUrl?: string;
-  configuration?: Record<string, string>;
+  configuration?: Record<string, unknown>;
   privacyAccepted?: boolean;
   website?: string;
   turnstileToken?: string;
@@ -61,9 +67,9 @@ async function readPayload(request: Request): Promise<{ payload: QuoteInput; des
   }
 
   const formData = await request.formData();
-  let configuration: Record<string, string> = {};
+  let configuration: Record<string, unknown> = {};
   try {
-    configuration = JSON.parse(String(formData.get("configuration") || "{}")) as Record<string, string>;
+    configuration = JSON.parse(String(formData.get("configuration") || "{}")) as Record<string, unknown>;
   } catch {
     configuration = {};
   }
@@ -137,13 +143,36 @@ export async function POST(request: Request) {
       return secureJson({ error: "Revisa los campos obligatorios antes de enviar." }, { status: 400 });
     }
 
-    const configuration = Object.fromEntries(
-      Object.entries(payload.configuration || {})
-        .slice(0, 20)
-        .map(([key, value]) => [trim(key, 40), trim(value, 160)]),
-    );
-    configuration.groupName = groupName;
     await ensureQuoteSchema();
+    const selection = normalizePersonalizerSelection({ ...payload.configuration, groupName });
+    const catalog = await readCatalog(false);
+    const product = catalog.find((item) => item.slug === selection.productSlug && item.active)
+      || catalog.find((item) => item.category === selection.productCategory && item.active);
+    if (!product) return secureJson({ error: "El producto seleccionado ya no está disponible." }, { status: 409 });
+    const colorIsSelectable = product.colors.some((color) => color.name === selection.color);
+    if (selection.color && selection.color !== "Por elegir" && !colorIsSelectable) {
+      return secureJson({ error: "El color seleccionado ya no está disponible." }, { status: 409 });
+    }
+    const authoritativeSelection = {
+      ...selection,
+      productSlug: product.slug,
+      productCategory: product.category,
+      product: product.category === "tshirt" ? "Camiseta" : "Sudadera",
+      model: product.model,
+      color: colorIsSelectable ? selection.color : "Por confirmar",
+      groupName,
+    };
+    const commercialSnapshot = createCommercialSnapshot(product, quantity, authoritativeSelection);
+    const configuration: StoredQuoteConfiguration = {
+      ...authoritativeSelection,
+      basePrice: commercialSnapshot.baseUnitPriceCents === null
+        ? "Consultar"
+        : `${commercialSnapshot.baseUnitPriceCents / 100} € por unidad`,
+      configuredPrice: commercialSnapshot.quotedUnitPriceCents === null
+        ? "Consultar"
+        : `${commercialSnapshot.quotedUnitPriceCents / 100} € por unidad`,
+      commercialSnapshot,
+    };
     const db = getDb();
     let code = createReference();
 
@@ -211,7 +240,18 @@ export async function POST(request: Request) {
     }
     await trackServerProductEvent("presupuesto_submitted", { product_type: configuration.product === "Camiseta" ? "tshirt" : "hoodie", quantity, group_type: groupType });
 
-    return secureJson({ code, status: "received", emailStatus }, { status: 201 });
+    return secureJson({
+      code,
+      status: "received",
+      emailStatus,
+      pricing: {
+        baseUnitPriceCents: commercialSnapshot.baseUnitPriceCents,
+        commonExtrasCents: commercialSnapshot.commonExtrasCents,
+        quotedUnitPriceCents: commercialSnapshot.quotedUnitPriceCents,
+        customPricingRequired: commercialSnapshot.customPricingRequired,
+        version: commercialSnapshot.version,
+      },
+    }, { status: 201 });
   } catch (error) {
     reportServerError(error, "quote");
     const message = error instanceof Error ? error.message : "Error inesperado";

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
 import { trackProductEvent } from "@/lib/analytics";
+import type { PersonalizerSelection } from "@/lib/commercial";
 
 const groupTypes = [
   "Colegio o instituto",
@@ -17,27 +18,29 @@ const groupTypes = [
   "Otro",
 ];
 
-type Configuration = {
-  product: string;
-  model: string;
-  color: string;
-  printColor: string;
-  backDesign: string;
-  groupName: string;
-  frontDesign: string;
-  sleeve: string;
+type Configuration = PersonalizerSelection & {
   basePrice: string;
   configuredPrice: string;
 };
 
 const defaultConfiguration: Configuration = {
+  productSlug: "sudadera-gildan-18500",
+  productCategory: "hoodie",
   product: "Sudadera",
   model: "Gildan 18500",
   color: "Por elegir",
   printColor: "Por elegir",
+  designPath: "template",
+  designStyle: "x",
   backDesign: "Idea por definir",
   groupName: "Vuestro grupo",
+  frontType: "coordinates",
+  frontText: "",
+  frontTechnique: "print",
   frontDesign: "Por definir",
+  sleeveFlag: "none",
+  sleeveDetail: "",
+  sleeveTechnique: "print",
   sleeve: "Sin decidir",
   basePrice: "Según cantidad",
   configuredPrice: "Según configuración",
@@ -49,13 +52,23 @@ function QuotePageContent() {
   const query = useSearchParams();
   const queriedGroupType = query.get("groupType");
   const configuration: Configuration = {
+    productSlug: query.get("productSlug") || defaultConfiguration.productSlug,
+    productCategory: query.get("productCategory") === "tshirt" ? "tshirt" : "hoodie",
     product: query.get("product") || defaultConfiguration.product,
     model: query.get("model") || defaultConfiguration.model,
     color: query.get("color") || defaultConfiguration.color,
     printColor: query.get("printColor") || defaultConfiguration.printColor,
+    designPath: query.get("designPath") === "upload" ? "upload" : query.get("designPath") === "studio" ? "studio" : "template",
+    designStyle: query.get("designStyle") || defaultConfiguration.designStyle,
     backDesign: query.get("backDesign") || defaultConfiguration.backDesign,
     groupName: query.get("groupName") || defaultConfiguration.groupName,
+    frontType: query.get("frontType") === "logo" ? "logo" : query.get("frontType") === "name" ? "name" : "coordinates",
+    frontText: query.get("frontText") || "",
+    frontTechnique: query.get("frontTechnique") === "embroidery" ? "embroidery" : "print",
     frontDesign: query.get("frontDesign") || defaultConfiguration.frontDesign,
+    sleeveFlag: ["spain", "community", "country", "custom"].includes(query.get("sleeveFlag") || "") ? query.get("sleeveFlag") as Configuration["sleeveFlag"] : "none",
+    sleeveDetail: query.get("sleeveDetail") || "",
+    sleeveTechnique: query.get("sleeveTechnique") === "embroidery" ? "embroidery" : "print",
     sleeve: query.get("sleeve") || defaultConfiguration.sleeve,
     basePrice: query.get("basePrice") || defaultConfiguration.basePrice,
     configuredPrice: query.get("configuredPrice") || defaultConfiguration.configuredPrice,
