@@ -12,6 +12,17 @@ producción, con las mismas migraciones y nombres de binding (`DB` y `BUCKET`).
 La URL de ese Worker debe ser HTTPS, privada/no indexable y estable durante la
 prueba, porque Redsys necesita llamar a `POST /api/pagos/redsys/notificacion`.
 
+La separación prevista es:
+
+| Entorno | `APP_ENV` | Datos | Pagos | Indexación |
+| --- | --- | --- | --- | --- |
+| Desarrollo | `development` | D1/R2 local o fixture | desactivados/test | noindex |
+| Staging | `staging` | D1/R2 exclusivos de QA | Redsys test | noindex |
+| Producción | `production` | D1/R2 productivos | Redsys real | pública |
+
+No se debe compartir la base de producción con Preview ni reutilizar una base
+efímera entre despliegues.
+
 ## Variables que ya están preparadas
 
 Copiar `.env.example` solo al gestor de secretos del entorno. Los nombres que
@@ -35,6 +46,36 @@ firman dentro de `Ds_MerchantParameters`:
 - `/pago/resultado?...estado=cancelado&token=...` (retorno KO/cancelación)
 
 La página de resultado nunca marca una operación como pagada.
+
+## Estado actual de las capacidades críticas
+
+- **Persistencia:** producción/Sites usa D1 + R2 mediante las bindings `DB` y
+  `BUCKET`. Vercel Preview no tiene esas bindings; no se usa como base de datos
+  ni se conecta a SQLite efímero. El staging real pendiente debe ser otro
+  Worker/Site con D1 y R2 separados de producción.
+- **Administración:** el panel valida en servidor la identidad confiable del
+  host privado de Sites y una allowlist `ADMIN_EMAIL` separable por comas. En
+  Vercel genérico `TRUST_OPENAI_IDENTITY_HEADERS` permanece desactivado. No se
+  ha añadido una contraseña propia ni se publicará el panel sin un proveedor
+  de identidad portable con sesiones seguras y MFA.
+- **Datos privados:** los códigos de grupo y tokens personales son aleatorios,
+  se comparan mediante hash, expiran/revocan y se excluyen de sitemap,
+  analítica y logs. Las rutas de demostración están desactivadas por defecto;
+  solo se habilitan con `ENABLE_DEMO_ROUTES=true` en development/test.
+- **Email:** Resend se ejecuta fuera de la transacción de datos y nunca decide
+  si un pago está confirmado. Sin `RESEND_API_KEY` el estado queda pendiente;
+  no se inventan credenciales ni se afirma entrega real. Las solicitudes usan
+  claves `Idempotency-Key` estables para que los reintentos de red no dupliquen
+  los mensajes; una cola durable sigue siendo recomendable antes de producción
+  si el volumen hace necesario reintentar envíos fallidos.
+- **Observabilidad:** Sentry filtra cookies, cuerpos, headers, query strings y
+  usuarios; PostHog solo recibe propiedades allowlisted sin PII y mantiene
+  Session Replay desactivado.
+- **Archivos:** PNG, JPG/JPEG, PDF y AI se validan por MIME y firma binaria,
+  con límite de 15 MB y clave privada aleatoria en R2. No hay un motor
+  antimalware conectado todavía; los archivos no se ejecutan ni se sirven
+  públicamente. Antes de producción conviene añadir un escáner aislado para
+  PDF/AI (por ejemplo ClamAV gestionado o un servicio especializado).
 
 ## Qué falta el lunes
 
@@ -62,4 +103,3 @@ Antes de aceptar una notificación se validan firma, versión, pedido, importe,
 moneda, merchant code, terminal y `Ds_MerchantData`. El cambio de estado se
 condiciona a `processing`; callbacks repetidos son idempotentes y nunca crean
 otro pago, factura, recibo ni cobro.
-

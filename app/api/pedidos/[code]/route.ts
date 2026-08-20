@@ -6,6 +6,7 @@ import { sendParticipantEditEmail } from "@/lib/participant-email";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, takeRateLimit } from "@/lib/request-security";
 import { paymentAvailability } from "@/lib/payments/availability";
 import { reportServerError } from "@/lib/observability";
+import { demoRoutesEnabled } from "@/lib/demo-routes";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -47,7 +48,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const { code: rawCode } = await context.params;
   const code = normalizeCode(rawCode);
 
-  if (code === "TSG-DEMO") return Response.json(demoOrder);
+  if (code === "TSG-DEMO" && demoRoutesEnabled()) return Response.json(demoOrder);
 
   try {
     await ensureQuoteSchema();
@@ -175,7 +176,7 @@ export async function POST(request: Request, context: RouteContext) {
     if (!/^\S+@\S+\.\S+$/.test(email)) return Response.json({ error: "Indica un correo electrónico válido." }, { status: 400 });
     if ("error" in validated) return Response.json({ error: validated.error }, { status: 400 });
 
-    if (code === "TSG-DEMO") {
+    if (code === "TSG-DEMO" && demoRoutesEnabled()) {
       return Response.json({
         ok: true,
         demo: true,

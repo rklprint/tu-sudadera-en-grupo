@@ -9,7 +9,7 @@ export async function sendParticipantEditEmail(payload: EditEmail): Promise<"sen
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `participant-edit:${payload.editUrl}:${payload.to}` },
       body: JSON.stringify({
         from: QUOTE_FROM_EMAIL || "Tu Sudadera en Grupo <web@tusudaderaengrupo.es>",
         to: [payload.to],

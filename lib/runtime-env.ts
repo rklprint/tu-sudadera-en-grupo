@@ -30,6 +30,7 @@ export type SiteRuntimeEnv = {
   ADMIN_EMAIL?: string;
   TURNSTILE_SECRET_KEY?: string;
   TRUST_OPENAI_IDENTITY_HEADERS?: string;
+  ENABLE_DEMO_ROUTES?: string;
   REDSYS_ENVIRONMENT?: string;
   REDSYS_MERCHANT_CODE?: string;
   REDSYS_TERMINAL?: string;

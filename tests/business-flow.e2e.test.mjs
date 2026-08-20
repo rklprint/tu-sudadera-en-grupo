@@ -138,6 +138,13 @@ async function startPayment(body, key) {
 }
 
 test("critical 25-garment flow preserves data through production export", async (t) => {
+  await t.test("denies admin access and disables demo mutations by default", async () => {
+    assert.equal((await request("/api/admin/resumen")).response.status, 403);
+    assert.equal((await request("/api/admin/grupos/TSG-DEMO", { method: "PATCH", headers: { ...headers(), "content-type": "application/json" }, body: JSON.stringify({ action: "open_payment" }) })).response.status, 403);
+    assert.equal((await request("/api/pedidos/TSG-DEMO")).response.status, 404);
+    assert.equal((await request("/api/participantes/TSG-DEMO-EDIT")).response.status, 404);
+  });
+
   await t.test("manual quantities and quote snapshot use authoritative commercial data", async () => {
     const quoteForm = new FormData();
     Object.entries({

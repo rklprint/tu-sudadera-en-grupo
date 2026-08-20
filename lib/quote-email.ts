@@ -79,6 +79,7 @@ export async function notifyQuoteRequest(payload: QuoteEmailPayload): Promise<Em
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "Idempotency-Key": `quote:${payload.code}:internal`,
       },
       body: JSON.stringify({
         from: runtimeEnv.QUOTE_FROM_EMAIL || "Tu Sudadera en Grupo <web@tusudaderaengrupo.es>",
@@ -97,6 +98,7 @@ export async function notifyQuoteRequest(payload: QuoteEmailPayload): Promise<Em
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "Idempotency-Key": `quote:${payload.code}:customer`,
       },
       body: JSON.stringify({
         from: runtimeEnv.QUOTE_FROM_EMAIL || "Tu Sudadera en Grupo <web@tusudaderaengrupo.es>",

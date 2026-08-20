@@ -5,6 +5,8 @@ const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
 const workerPromise = import(workerUrl.href).then((module) => module.default);
 const runtime = {
+  APP_ENV: "test",
+  ENABLE_DEMO_ROUTES: "true",
   ASSETS: {
     fetch: async () => new Response("Not found", { status: 404 }),
   },

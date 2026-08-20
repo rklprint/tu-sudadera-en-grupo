@@ -369,7 +369,6 @@ export default function Home() {
         <h3>¿Ya tenéis un pedido aprobado?</h3>
         <p>El organizador recibe un enlace único. Desde ahí el grupo registra sus prendas y, cuando la lista queda cerrada, accede al pago.</p>
         <Link className="payment-gate-primary" href="/pedido">Entrar a mi pedido <b>→</b></Link>
-        <Link className="payment-gate-demo" href="/pedido/TSG-DEMO" rel="nofollow">Ver una demostración</Link>
         <span className="payment-gate-note">El cobro real se activará al conectar el TPV definitivo.</span>
       </div>
     </section>

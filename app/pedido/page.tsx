@@ -31,7 +31,6 @@ export default function OrderAccessPage() {
         <p>Aparece en el enlace privado enviado al organizador.</p>
         <form onSubmit={submit}><label><span>Código del pedido</span><input required value={code} onChange={event => setCode(event.target.value.toUpperCase())} placeholder="TSG-000000" autoCapitalize="characters" /></label><button type="submit">Acceder <span>↗</span></button></form>
         <div className="access-help"><span>¿Todavía no tenéis código?</span><Link href="/presupuesto">Pedir presupuesto</Link></div>
-        <Link className="demo-order-link" href="/pedido/TSG-DEMO" rel="nofollow">Ver pedido de demostración →</Link>
       </div>
     </section>
     <FlowFooter />

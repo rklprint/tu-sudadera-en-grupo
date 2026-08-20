@@ -4,6 +4,7 @@ type EmailStatus = "sent" | "not_configured" | "failed";
 
 export async function sendOrganizerGroupEmail(payload: { to: string; organizerName: string; groupName: string; groupUrl: string }): Promise<EmailStatus> {
   return sendEmail({
+    idempotencyKey: `group-created:${payload.groupUrl}`,
     to: payload.to,
     subject: `${payload.groupName}: enlace privado abierto`,
     heading: "El grupo ya está abierto",
@@ -17,6 +18,7 @@ export async function sendOrganizerGroupEmail(payload: { to: string; organizerNa
 
 export async function sendOrganizerStatusEmail(payload: { to: string; organizerName: string; groupName: string; groupUrl: string; statusLabel: string; detail: string }): Promise<EmailStatus> {
   return sendEmail({
+    idempotencyKey: `group-status:${payload.groupUrl}:${payload.statusLabel}`,
     to: payload.to,
     subject: `${payload.groupName}: ${payload.statusLabel}`,
     heading: payload.statusLabel,
@@ -30,6 +32,7 @@ export async function sendOrganizerStatusEmail(payload: { to: string; organizerN
 
 export async function sendPaymentReceiptEmail(payload: { to: string; contactName: string; groupName: string; reference: string; amountCents: number; orderUrl: string }): Promise<EmailStatus> {
   return sendEmail({
+    idempotencyKey: `payment-receipt:${payload.reference}`,
     to: payload.to,
     subject: `Justificante de pago · ${payload.reference}`,
     heading: "Pago confirmado",
@@ -41,13 +44,13 @@ export async function sendPaymentReceiptEmail(payload: { to: string; contactName
   });
 }
 
-async function sendEmail(payload: { to: string; subject: string; heading: string; intro: string; body: string; actionLabel: string; actionUrl: string; note: string }): Promise<EmailStatus> {
+async function sendEmail(payload: { idempotencyKey: string; to: string; subject: string; heading: string; intro: string; body: string; actionLabel: string; actionUrl: string; note: string }): Promise<EmailStatus> {
   const { RESEND_API_KEY, QUOTE_FROM_EMAIL } = getSiteRuntimeEnv();
   if (!RESEND_API_KEY) return "not_configured";
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": payload.idempotencyKey },
       body: JSON.stringify({
         from: QUOTE_FROM_EMAIL || "Tu Sudadera en Grupo <web@tusudaderaengrupo.es>",
         to: [payload.to],

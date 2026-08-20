@@ -5,6 +5,7 @@ import { extrasForGarmentCents, hashPrivateToken, validateGarments } from "@/lib
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, takeRateLimit } from "@/lib/request-security";
 import { paymentAvailability } from "@/lib/payments/availability";
+import { demoRoutesEnabled } from "@/lib/demo-routes";
 
 type RouteContext = { params: Promise<{ token: string }> };
 
@@ -27,7 +28,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const rateLimitError = takeRateLimit(_request, "participant-view", { limit: 120, windowMs: 10 * 60_000 });
   if (rateLimitError) return rateLimitError;
   const token = normalizeToken((await context.params).token);
-  if (token === "TSG-DEMO-EDIT") return Response.json(demo);
+  if (token === "TSG-DEMO-EDIT" && demoRoutesEnabled()) return Response.json(demo);
 
   try {
     await ensureQuoteSchema();
@@ -94,7 +95,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (!contactName) return Response.json({ error: "Indica el nombre de contacto." }, { status: 400 });
     if (!/^\S+@\S+\.\S+$/.test(email)) return Response.json({ error: "Indica un correo válido." }, { status: 400 });
     if ("error" in validated) return Response.json({ error: validated.error }, { status: 400 });
-    if (token === "TSG-DEMO-EDIT") return Response.json({ ok: true, demo: true });
+    if (token === "TSG-DEMO-EDIT" && demoRoutesEnabled()) return Response.json({ ok: true, demo: true });
 
     await ensureQuoteSchema();
     const db = getDb();
