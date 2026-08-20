@@ -825,3 +825,70 @@ main .price-section-linked {
     font-size: 6px;
   }
 }
+
+/* Bring the main action into the first viewport flow. The customizer and its
+   calculator stay together while the supporting story follows afterwards. */
+main.homepage-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+main.homepage-flow > .announcement,
+main.homepage-flow > .site-header,
+main.homepage-flow > .hero,
+main.homepage-flow > .ticker {
+  order: 0;
+}
+
+main.homepage-flow > .customizer-section,
+main.homepage-flow > .price-section-linked {
+  order: 1;
+}
+
+main.homepage-flow > .quick-benefits,
+main.homepage-flow > .audience-directory {
+  order: 2;
+}
+
+main.homepage-flow > .inspiration-section,
+main.homepage-flow > .why-section,
+main.homepage-flow > .payment-section,
+main.homepage-flow > .process-section,
+main.homepage-flow > .reviews-section,
+main.homepage-flow > .faq-section,
+main.homepage-flow > .final-cta,
+main.homepage-flow > footer {
+  order: 3;
+}
+
+main.homepage-flow > .mobile-sticky {
+  order: 4;
+}
+
+main.homepage-flow > script {
+  order: -1;
+}
+
+@media (max-width: 700px) {
+  main.homepage-flow > .hero {
+    padding-top: 22px;
+    padding-bottom: 26px;
+    gap: 14px;
+  }
+
+  main.homepage-flow .hero-kicker {
+    margin-bottom: 18px;
+  }
+
+  main.homepage-flow .hero-lead {
+    margin-top: 18px;
+  }
+
+  main.homepage-flow .hero-proof {
+    margin-top: 24px;
+  }
+
+  main.homepage-flow > .customizer-section {
+    padding-top: 54px;
+  }
+}

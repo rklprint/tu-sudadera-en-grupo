@@ -246,7 +246,7 @@ export default function Home() {
     router.push(`/presupuesto?${params.toString()}`);
   };
 
-  return <main>
+  return <main className="homepage-flow">
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
