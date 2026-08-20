@@ -1,0 +1,358 @@
+.price-section {
+  grid-template-columns: minmax(300px, .68fr) minmax(620px, 1.32fr);
+  gap: clamp(42px, 6vw, 95px);
+  align-items: start;
+}
+
+.price-copy {
+  position: sticky;
+  top: 32px;
+}
+
+.price-copy > p:not(.eyebrow) {
+  max-width: 610px;
+}
+
+.included-list {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.single-order-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 28px;
+  padding: 17px 18px;
+  border-left: 3px solid var(--acid);
+  background: rgba(255, 255, 255, .07);
+}
+
+.single-order-note b {
+  font-size: 9px;
+}
+
+.single-order-note span {
+  color: #9eacc0;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.price-card {
+  padding: clamp(18px, 2.5vw, 32px);
+}
+
+.price-card > input[type="range"] {
+  margin-top: 17px;
+}
+
+.price-live-result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 22px 0 14px;
+}
+
+.price-live-result > div {
+  min-height: 126px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.price-live-result > div:nth-child(2) {
+  background: #2e73ad;
+}
+
+.price-live-result > div.consult {
+  background: #6f5632;
+}
+
+.price-live-result span {
+  color: #9ed8f4;
+  font-size: 6px;
+  font-weight: 950;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.price-live-result strong {
+  margin: 7px 0 5px;
+  font-size: 35px;
+  letter-spacing: -.06em;
+  line-height: .95;
+}
+
+.price-live-result sup {
+  margin-left: 2px;
+  font-size: 16px;
+}
+
+.price-live-result small {
+  color: #c7d4e5;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.price-table,
+.extras-table {
+  overflow: hidden;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.price-table-head,
+.price-table > div,
+.extras-table > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 35px;
+  padding: 8px 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.price-table > div:last-child,
+.extras-table > div:last-child {
+  border-bottom: 0;
+}
+
+.price-table-head,
+.extras-table-head {
+  background: #eef7fa;
+  color: #537087;
+  font-size: 6px;
+  font-weight: 950;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.price-table > div:not(.price-table-head),
+.extras-table > div:not(.extras-table-head) {
+  color: #637188;
+  font-size: 8px;
+}
+
+.price-table > div strong,
+.extras-table > div strong {
+  color: var(--navy);
+  font-size: 9px;
+}
+
+.price-table > div.active {
+  position: relative;
+  background: var(--navy);
+  color: #fff;
+}
+
+.price-table > div.active::before {
+  content: "Ahora";
+  margin-right: 10px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--acid);
+  color: var(--navy);
+  font-size: 5px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.price-table > div.active span {
+  margin-right: auto;
+}
+
+.price-table > div.active {
+  grid-template-columns: auto 1fr auto;
+}
+
+.price-table > div.active strong {
+  color: #fff;
+}
+
+.extras-table-head small {
+  color: #6c7a8e;
+  font-size: 6px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.extras-table > button {
+  width: 100%;
+  min-height: 45px;
+  display: grid;
+  grid-template-columns: 25px 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 13px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  color: #637188;
+  font: inherit;
+  font-size: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+
+.extras-table > button:last-child {
+  border-bottom: 0;
+}
+
+.extras-table > button:hover {
+  background: #f4f9fb;
+}
+
+.extras-table > button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #2e73ad;
+  outline-offset: -2px;
+}
+
+.extras-table > button i {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b7c3cc;
+  border-radius: 50%;
+  color: #607387;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.extras-table > button strong {
+  color: var(--navy);
+  font-size: 9px;
+}
+
+.extras-table > button.active {
+  background: #e7f4fa;
+  color: var(--navy);
+  font-weight: 850;
+}
+
+.extras-table > button.active i {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+
+.extras-table > button.consult strong {
+  color: #94621d;
+}
+
+.extras-table > button.active.consult {
+  background: #fff4df;
+}
+
+.extras-table-note {
+  margin: 8px 3px 0;
+  color: #738095;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.price-customization-summary {
+  margin-top: 12px;
+}
+
+.price-extra-notice.consult {
+  border-left-color: #c77832;
+  background: #fff0e4;
+}
+
+.flag-options {
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 12px;
+}
+
+.flag-options button {
+  min-height: 72px;
+  padding: 8px 4px;
+}
+
+.aggregate-list article {
+  grid-template-columns: 54px 1fr 25px;
+}
+
+.aggregate-list article > b {
+  width: 49px;
+  border-radius: 12px;
+  font-size: 7px;
+}
+
+.whatsapp-pending {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 17px;
+  border: 1px dashed #8794a6;
+  border-radius: 999px;
+  color: #6f7c90;
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  .price-section {
+    grid-template-columns: 1fr;
+  }
+
+  .price-copy {
+    position: static;
+  }
+
+  .price-card {
+    width: min(780px, 100%);
+    margin: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .price-live-result {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .price-live-result > div {
+    min-height: 112px;
+    padding: 15px 12px;
+  }
+
+  .price-live-result strong {
+    font-size: 28px;
+  }
+
+  .price-reference-product {
+    grid-template-columns: 1fr;
+  }
+
+  .price-mini-hoodies {
+    height: 126px;
+  }
+
+  .flag-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .price-live-result {
+    grid-template-columns: 1fr;
+  }
+
+  .price-table-head,
+  .price-table > div,
+  .extras-table > div,
+  .extras-table > button {
+    padding-inline: 10px;
+  }
+}

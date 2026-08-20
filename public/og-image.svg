@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f4f0e7"/>
+  <circle cx="1035" cy="70" r="315" fill="#9ed8f4"/>
+  <circle cx="1100" cy="610" r="230" fill="#e6ff58"/>
+  <path d="M0 520L1200 420V630H0Z" fill="#0b1830"/>
+  <g transform="translate(82 70) rotate(-4 52 52)">
+    <rect width="104" height="104" rx="28" fill="#0b1830"/>
+    <text x="21" y="34" fill="#fff" font-family="Arial, sans-serif" font-size="27" font-weight="900">T</text>
+    <text x="45" y="62" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="900">S</text>
+    <text x="70" y="89" fill="#fff" font-family="Arial, sans-serif" font-size="27" font-weight="900">G</text>
+  </g>
+  <text x="82" y="230" fill="#0b1830" font-family="Arial, sans-serif" font-size="24" font-weight="800" letter-spacing="3">TU SUDADERA EN GRUPO</text>
+  <text x="82" y="318" fill="#0b1830" font-family="Arial, sans-serif" font-size="64" font-weight="900">Sudaderas personalizadas</text>
+  <text x="82" y="388" fill="#2f78b9" font-family="Georgia, serif" font-size="70" font-style="italic">para grupos.</text>
+  <text x="82" y="575" fill="#ffffff" font-family="Arial, sans-serif" font-size="25" font-weight="700">Diseño incluido · Presupuesto sin compromiso · Envíos a toda España</text>
+</svg>
