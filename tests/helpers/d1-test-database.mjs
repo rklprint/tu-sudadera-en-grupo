@@ -38,8 +38,9 @@ class D1TestStatement {
 
   async raw(options = {}) {
     const statement = this.database.prepare(this.sql);
-    const columns = statement.columns().map((column) => column.name);
-    const values = statement.all(...this.values).map((row) => columns.map((column) => normalize(row[column])));
+    const rows = statement.all(...this.values);
+    const columns = rows.length ? Object.keys(rows[0]) : [];
+    const values = rows.map((row) => columns.map((column) => normalize(row[column])));
     return options.columnNames ? [columns, ...values] : values;
   }
 }
