@@ -149,6 +149,7 @@ export default function Home() {
   const [sleeveDetail, setSleeveDetail] = useState("");
   const [openStep, setOpenStep] = useState(0);
   const [quantity, setQuantity] = useState(25);
+  const [quantityDraft, setQuantityDraft] = useState("25");
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -168,12 +169,6 @@ export default function Home() {
     || catalog.find((product) => product.active)
     || DEFAULT_CATALOG[0];
   const garmentColors = activeProduct.colors.length ? activeProduct.colors : defaultGarmentColors;
-  const priceTiers = activeProduct.priceTiers.map((tier) => ({
-    ...tier,
-    max: tier.max ?? Number.POSITIVE_INFINITY,
-    price: tier.unitPriceCents === null ? null : tier.unitPriceCents / 100,
-  }));
-
   const designText = useMemo(() => {
     const name = groupName || "VUESTRO GRUPO";
     if (designPath === "upload") return "TU DISEÑO\nSUBIDO";
@@ -208,6 +203,12 @@ export default function Home() {
   const chestLogoEmbroiderySelected = frontType === "logo" && frontTechnique === "embroidery";
   const sleeveLogoEmbroiderySelected = sleeveFlag === "custom" && sleeveTechnique === "embroidery";
   const progress = ((openStep + 1) / chapters.length) * 100;
+  const updateQuantity = (value: number) => {
+    const next = Number.isFinite(value) ? Math.min(500, Math.max(5, Math.round(value))) : 5;
+    setQuantity(next);
+    setQuantityDraft(String(next));
+  };
+  const commitQuantityDraft = () => updateQuantity(Number(quantityDraft));
   const scrollToCustomizer = () => {
     void trackProductEvent("personalizador_started", { source: "homepage" });
     document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth" });
@@ -372,8 +373,26 @@ export default function Home() {
             <p>{productType === "hoodie" ? `Con capucha · Unisex · 50% algodón / 50% poliéster · Color ${garment.name}` : `El modelo y la tarifa se publicarán cuando estén cerrados. Color orientativo: ${garment.name}.`}</p>
           </div>
         </div>
-        <div className="price-top"><span>Número de {productName.toLowerCase()}s</span><strong>{quantity >= 100 ? `${quantity} · consultar` : `${quantity} unidades`}</strong></div>
-        <input aria-label={`Número de ${productName.toLowerCase()}s`} type="range" min="5" max="110" value={quantity} onChange={e=>setQuantity(Number(e.target.value))} />
+        <div className="price-top">
+          <label htmlFor="quantity-input">Número de {productName.toLowerCase()}s</label>
+          <div className="quantity-input-wrap">
+            <input
+              id="quantity-input"
+              aria-label={`Número de ${productName.toLowerCase()}s`}
+              type="number"
+              inputMode="numeric"
+              min="5"
+              max="500"
+              step="1"
+              value={quantityDraft}
+              onChange={event => setQuantityDraft(event.target.value)}
+              onBlur={commitQuantityDraft}
+              onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); commitQuantityDraft(); event.currentTarget.blur(); } }}
+            />
+            <span>unidades</span>
+          </div>
+        </div>
+        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} type="range" min="5" max="500" value={quantity} onChange={e=>updateQuantity(Number(e.target.value))} />
         <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>100+</span></div>
 
         <div className="price-live-result" aria-live="polite">
@@ -381,10 +400,7 @@ export default function Home() {
           <div className={configuredUnitPrice === null ? "consult" : ""}><span>Vuestra configuración</span><strong key={`configured-${configuredUnitPrice}-${knownExtras}-${customEmbroidery}`}>{configuredUnitPrice === null ? "Consultar" : <>{configuredUnitPrice}<sup>€</sup></>}</strong><small>{customEmbroidery ? "Incluye un logo bordado pendiente de valorar" : knownExtras ? `Incluye ${knownExtras} € en extras por prenda` : "Sin extras seleccionados"}</small></div>
         </div>
 
-        {productType === "hoodie" ? <div className="price-table" aria-label="Tabla completa de precios base">
-          <div className="price-table-head"><span>Unidades</span><span>Precio por unidad</span></div>
-          {priceTiers.map((tier) => <div key={tier.label} className={quantity >= tier.min && quantity <= tier.max ? "active" : ""}><span>{tier.label}</span><strong>{tier.price === null ? "Consultar" : `${tier.price} €`}</strong></div>)}
-        </div> : <div className="shirt-price-pending"><b>Tarifa de camisetas pendiente</b><p>Podéis incluir camisetas en la solicitud. Antes de activar pagos publicaremos el modelo, la impresión incluida y todos sus tramos de precio.</p></div>}
+        {productType !== "hoodie" && <div className="shirt-price-pending"><b>Tarifa de camisetas pendiente</b><p>Podéis incluir camisetas en la solicitud. Antes de activar pagos publicaremos el modelo, la impresión incluida y todos sus tramos de precio.</p></div>}
 
         <div className="extras-table" aria-label="Seleccionar extras opcionales por prenda">
           <div className="extras-table-head"><span>Extras opcionales por prenda</span><small>Seleccionad · se suman</small></div>
