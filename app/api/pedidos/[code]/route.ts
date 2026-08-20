@@ -65,9 +65,9 @@ export async function GET(_request: Request, context: RouteContext) {
 
       const [garmentResult] = await db
         .select({
-          registeredGarments: count(orderItems.id),
-          registeredValueCents: sql<number>`coalesce(sum(${orderItems.unitPriceCents} + ${orderItems.extrasCents}), 0)`,
-          paidGarments: sql<number>`sum(case when ${participants.paymentStatus} = 'paid' then 1 else 0 end)`,
+          registeredGarments: sql<number>`coalesce(sum(${orderItems.quantity}), 0)`,
+          registeredValueCents: sql<number>`coalesce(sum((${orderItems.unitPriceCents} + ${orderItems.extrasCents}) * ${orderItems.quantity}), 0)`,
+          paidGarments: sql<number>`coalesce(sum(case when ${participants.paymentStatus} = 'paid' then ${orderItems.quantity} else 0 end), 0)`,
         })
         .from(orderItems)
         .innerJoin(participants, eq(orderItems.participantId, participants.id))
@@ -79,7 +79,7 @@ export async function GET(_request: Request, context: RouteContext) {
         .where(and(eq(payments.groupId, group.id), eq(payments.status, "confirmed")));
 
       const sizeDistribution = await db
-        .select({ size: orderItems.size, quantity: count(orderItems.id) })
+        .select({ size: orderItems.size, quantity: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
         .from(orderItems)
         .innerJoin(participants, eq(orderItems.participantId, participants.id))
         .where(eq(participants.groupId, group.id))

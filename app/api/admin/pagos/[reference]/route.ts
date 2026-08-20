@@ -30,12 +30,17 @@ export async function PATCH(_request: Request, context: RouteContext) {
       if (payment.status === "confirmed") return Response.json({ error: "Un pago ya confirmado no puede rechazarse ni cancelarse sin una operación de devolución." }, { status: 409 });
       const { DB } = getSiteRuntimeEnv();
       if (!DB) throw new Error("Database unavailable");
-      const statements = [DB.prepare("UPDATE payments SET status = ?, active_scope_key = NULL, validated_at = '', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(nextStatus, payment.id)];
-      if (payment.participantId) statements.push(DB.prepare("UPDATE participants SET payment_status = 'unpaid', payment_method = '', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(payment.participantId));
-      await DB.batch(statements);
-      await DB.prepare("INSERT INTO audit_logs (actor, action, entity_type, entity_id, metadata_json) VALUES (?, ?, 'payment', ?, '{}')").bind(admin.email, `transfer_${nextStatus}`, String(payment.id)).run();
+      const statements = [
+        DB.prepare("UPDATE payments SET status = ?, active_scope_key = NULL, validated_at = '', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending'").bind(nextStatus, payment.id),
+        DB.prepare("INSERT OR IGNORE INTO payment_events (payment_id, provider, event_key, event_type, payload_hash) SELECT ?, 'manual', ?, ?, '' WHERE EXISTS (SELECT 1 FROM payments WHERE id = ? AND status = ?)").bind(payment.id, `manual:${payment.id}:${nextStatus}`, `payment_${nextStatus}`, payment.id, nextStatus),
+      ];
+      if (payment.participantId) statements.push(DB.prepare("UPDATE participants SET payment_status = 'unpaid', payment_method = '', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND EXISTS (SELECT 1 FROM payments WHERE id = ? AND status = ?)").bind(payment.participantId, payment.id, nextStatus));
+      const results = await DB.batch(statements);
+      const transitioned = Number((results[0] as { meta?: { changes?: number } })?.meta?.changes || 0) > 0;
+      if (transitioned) await DB.prepare("INSERT INTO audit_logs (actor, action, entity_type, entity_id, metadata_json) VALUES (?, ?, 'payment', ?, '{}')").bind(admin.email, `transfer_${nextStatus}`, String(payment.id)).run();
       const [updated] = await db.select().from(payments).where(eq(payments.id, payment.id)).limit(1);
-      return Response.json({ payment: updated, emailStatus: "not_required" });
+      if (!transitioned && updated.status !== nextStatus) return Response.json({ error: "La transferencia ya no está pendiente." }, { status: 409 });
+      return Response.json({ payment: updated, emailStatus: "not_required", idempotent: !transitioned });
     }
     if (payment.status === "confirmed") {
       return Response.json({ payment, emailStatus: "not_required", idempotent: true });
@@ -45,13 +50,26 @@ export async function PATCH(_request: Request, context: RouteContext) {
     const { DB } = getSiteRuntimeEnv();
     if (!DB) throw new Error("Database unavailable");
     const statements = [
-      DB.prepare("UPDATE payments SET status = 'confirmed', active_scope_key = NULL, validated_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(validatedAt, payment.id),
-      DB.prepare("INSERT OR IGNORE INTO invoices (payment_id, status) VALUES (?, 'not_requested')").bind(payment.id),
+      DB.prepare(`UPDATE payments
+        SET status = 'confirmed', active_scope_key = NULL, validated_at = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'pending'
+          AND (? IS NULL OR NOT EXISTS (SELECT 1 FROM payments AS paid_scope WHERE paid_scope.participant_id = ? AND paid_scope.status = 'confirmed'))
+          AND amount_cents + coalesce((SELECT sum(confirmed.amount_cents) FROM payments AS confirmed WHERE confirmed.group_id = ? AND confirmed.status = 'confirmed'), 0)
+            <= coalesce((SELECT sum((oi.unit_price_cents + oi.extras_cents) * oi.quantity) FROM order_items oi INNER JOIN participants participant ON participant.id = oi.participant_id WHERE participant.group_id = ?), 0)`)
+        .bind(validatedAt, payment.id, payment.participantId, payment.participantId, payment.groupId, payment.groupId),
+      DB.prepare("INSERT OR IGNORE INTO payment_events (payment_id, provider, event_key, event_type, payload_hash) SELECT ?, 'manual', ?, 'payment_confirmed', '' WHERE EXISTS (SELECT 1 FROM payments WHERE id = ? AND status = 'confirmed')").bind(payment.id, `manual:${payment.id}:confirmed`, payment.id),
+      DB.prepare("INSERT OR IGNORE INTO invoices (payment_id, status) SELECT ?, 'not_requested' WHERE EXISTS (SELECT 1 FROM payments WHERE id = ? AND status = 'confirmed')").bind(payment.id, payment.id),
     ];
-    if (payment.participantId) statements.push(DB.prepare("UPDATE participants SET payment_status = 'paid', payment_method = 'transfer', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(payment.participantId));
-    await DB.batch(statements);
+    if (payment.participantId) statements.push(DB.prepare("UPDATE participants SET payment_status = 'paid', payment_method = 'transfer', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND EXISTS (SELECT 1 FROM payments WHERE id = ? AND status = 'confirmed')").bind(payment.participantId, payment.id));
+    const results = await DB.batch(statements);
+    const transitioned = Number((results[0] as { meta?: { changes?: number } })?.meta?.changes || 0) > 0;
+    if (!transitioned) {
+      const [current] = await db.select().from(payments).where(eq(payments.id, payment.id)).limit(1);
+      if (current.status === "confirmed") return Response.json({ payment: current, emailStatus: "not_required", idempotent: true });
+      return Response.json({ error: "La transferencia ya no está pendiente o superaría el total válido del grupo." }, { status: 409 });
+    }
     const totals = await DB.prepare(`SELECT
-        coalesce((SELECT sum(oi.unit_price_cents + oi.extras_cents)
+        coalesce((SELECT sum((oi.unit_price_cents + oi.extras_cents) * oi.quantity)
           FROM order_items oi
           INNER JOIN participants p ON p.id = oi.participant_id
           WHERE p.group_id = ?), 0) AS expected,
@@ -61,11 +79,11 @@ export async function PATCH(_request: Request, context: RouteContext) {
       .bind(payment.groupId, payment.groupId)
       .first<{ expected: number; confirmed: number }>();
     if (Number(totals?.expected || 0) > 0 && Number(totals?.expected) === Number(totals?.confirmed)) {
-      await DB.batch([
-        DB.prepare("UPDATE group_orders SET payment_status = 'complete', production_status = 'queued', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(payment.groupId),
+      const completion = await DB.batch([
+        DB.prepare("UPDATE group_orders SET payment_status = 'complete', production_status = 'queued', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND payment_status = 'open'").bind(payment.groupId),
         DB.prepare("UPDATE participants SET payment_status = 'paid', payment_method = CASE WHEN payment_method = '' THEN 'organizer' ELSE payment_method END, updated_at = CURRENT_TIMESTAMP WHERE group_id = ?").bind(payment.groupId),
       ]);
-      await trackServerProductEvent("order_completed", { payment_status: "complete" });
+      if (Number((completion[0] as { meta?: { changes?: number } })?.meta?.changes || 0) > 0) await trackServerProductEvent("order_completed", { payment_status: "complete" });
     }
     const [updated] = await db.select().from(payments).where(eq(payments.id, payment.id)).limit(1);
     let emailStatus: string = "not_required";

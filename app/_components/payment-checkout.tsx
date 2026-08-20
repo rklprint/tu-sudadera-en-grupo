@@ -26,8 +26,11 @@ export function PaymentCheckout({ scope, credential, amountCents, availability }
         headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
         body: JSON.stringify(scope === "participant" ? { method, scope, participantToken: credential } : { method, scope, groupCode: credential }),
       });
-      const result = await response.json() as { error?: string; kind?: string; form?: HostedPaymentForm; instructions?: TransferInstructions };
-      if (!response.ok) throw new Error(result.error || "No hemos podido iniciar el pago.");
+      const result = await response.json() as { error?: string; retryable?: boolean; kind?: string; form?: HostedPaymentForm; instructions?: TransferInstructions };
+      if (!response.ok) {
+        if (result.retryable) delete idempotencyKeys.current[method];
+        throw new Error(result.error || "No hemos podido iniciar el pago.");
+      }
       if (result.kind === "transfer" && result.instructions) {
         setTransfer(result.instructions);
         void trackProductEvent("bank_transfer_selected", { payment_method: "transfer" });

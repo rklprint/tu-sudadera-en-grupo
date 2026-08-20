@@ -53,7 +53,7 @@ export async function GET(_request: Request, context: RouteContext) {
       row.sleeveDetail,
       row.unitPriceCents / 100,
       row.extrasCents / 100,
-      (row.unitPriceCents + row.extrasCents) / 100,
+      ((row.unitPriceCents + row.extrasCents) * row.quantity) / 100,
       row.paymentMethod,
       row.paymentStatus,
     ]);

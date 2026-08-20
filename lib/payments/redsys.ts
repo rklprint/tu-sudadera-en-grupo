@@ -96,6 +96,27 @@ export async function signRedsysParameters(merchantParameters: string, order: st
   return bytesToBase64Url(signature);
 }
 
+export async function createPaymentCancellationToken(reference: string, signingKey: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(signingKey),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`cancel:${reference}`),
+  ));
+  return bytesToBase64Url(signature);
+}
+
+export async function verifyPaymentCancellationToken(reference: string, token: string, signingKey: string) {
+  if (!token || token.length > 256) return false;
+  return constantTimeEqual(await createPaymentCancellationToken(reference, signingKey), token);
+}
+
 export async function parseAndVerifyRedsysNotification(
   signatureVersion: string,
   merchantParameters: string,

@@ -1,17 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { unitPriceForQuantity } from "@/lib/catalog";
 import { CatalogManager, type AdminCatalogProduct } from "@/app/admin/catalog-manager";
+import { parseStoredQuoteConfiguration, readCommercialSnapshot } from "@/lib/commercial";
 
 type Quote = { id: number; code: string; status: string; organizerName: string; phone: string; email: string; groupType: string; location: string; quantity: number; desiredDate: string; notes: string; configurationJson: string; createdAt: string; updatedAt: string; referenceUrl: string; emailStatus: string };
 type Group = { id: number; quoteId: number | null; accessCode: string; groupName: string; organizerName: string; organizerEmail: string; organizerPhone: string; garment: string; color: string; estimatedQuantity: number; unitPriceCents: number; designStatus: string; registrationStatus: string; paymentStatus: string; productionStatus: string; deadline: string; shippingAddress: string; shippingRecipient: string; shippingPostalCode: string; shippingCity: string; shippingProvince: string; shippingCountry: string; carrier: string; trackingCode: string; privateLinkRevokedAt: string; configurationJson: string; createdAt: string; updatedAt: string };
 type Payment = { id: number; groupId: number; participantId: number | null; reference: string; method: string; amountCents: number; status: string; validatedAt: string; createdAt: string };
-type Item = { id: number; groupId: number; contactName: string; email: string; paymentStatus: string; printName: string; size: string; frontExtra: string; frontDetail: string; sleeveExtra: string; sleeveDetail: string; extrasCents: number; unitPriceCents: number };
+type Item = { id: number; groupId: number; contactName: string; email: string; paymentStatus: string; printName: string; size: string; quantity: number; frontExtra: string; frontDetail: string; sleeveExtra: string; sleeveDetail: string; extrasCents: number; unitPriceCents: number };
 type Props = { user: { name: string; email: string }; signOutUrl: string; initialQuotes: Quote[]; initialGroups: Group[]; initialPayments: Payment[]; initialItems: Item[]; initialCatalog: AdminCatalogProduct[] };
 
 const money = (cents: number) => `${(cents / 100).toFixed(2).replace(".", ",")} €`;
-const parseConfiguration = (value: string) => { try { return JSON.parse(value) as Record<string, string>; } catch { return {}; } };
+const parseConfiguration = (value: string) => parseStoredQuoteConfiguration(value);
 
 export function AdminDashboard({ user, signOutUrl, initialQuotes, initialGroups, initialPayments, initialItems, initialCatalog }: Props) {
   const [quotes, setQuotes] = useState(initialQuotes);
@@ -27,8 +28,22 @@ export function AdminDashboard({ user, signOutUrl, initialQuotes, initialGroups,
   const [notice, setNotice] = useState("");
   const pendingQuotes = useMemo(() => quotes.filter(quote => !groups.some(group => group.quoteId === quote.id)), [quotes, groups]);
 
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/admin/resumen", { cache: "no-store" });
+        if (!response.ok || !active) return;
+        const result = await response.json() as { quotes: Quote[]; groups: Group[]; payments: Payment[]; items: Item[] };
+        setQuotes(result.quotes); setGroups(result.groups); setPayments(result.payments); setItems(result.items);
+      } catch { /* The next poll retries without disrupting an in-progress admin action. */ }
+    };
+    const interval = window.setInterval(() => void refresh(), 7500);
+    return () => { active = false; window.clearInterval(interval); };
+  }, []);
+
   const approve = async (quote: Quote) => {
-    const suggested = suggestedPrice(quote.quantity);
+    const suggested = suggestedPrice(quote);
     const rawPrice = quotePriceDrafts[quote.id] ?? (suggested ? String(suggested / 100) : "");
     const unitPriceCents = Math.round(Number(rawPrice.replace(",", ".")) * 100);
     if (!Number.isInteger(unitPriceCents) || unitPriceCents < 100 || unitPriceCents > 100000) {
@@ -88,31 +103,32 @@ export function AdminDashboard({ user, signOutUrl, initialQuotes, initialGroups,
 
       {tab === "quotes" && <div className="admin-list">{pendingQuotes.length ? pendingQuotes.map(quote => {
         const configuration = parseConfiguration(quote.configurationJson);
-        const suggested = suggestedPrice(quote.quantity);
+        const suggested = suggestedPrice(quote);
         const priceValue = quotePriceDrafts[quote.id] ?? (suggested ? String(suggested / 100) : "");
         const parsedPrice = Number(priceValue.replace(",", "."));
         const validPrice = Number.isFinite(parsedPrice) && parsedPrice >= 1 && parsedPrice <= 1000;
         return <article className="admin-quote" key={quote.id}>
-          <header><div><span>{quote.code}</span><h2>{configuration.groupName || quote.groupType}</h2><p>{quote.organizerName} · {quote.email} · {quote.phone}</p></div><time>{new Date(quote.createdAt).toLocaleDateString("es-ES")}</time></header>
-          <div className="admin-detail-grid"><p><span>Cantidad prevista</span><b>{quote.quantity} prendas</b></p><p><span>Color</span><b>{configuration.color || "Por confirmar"}</b></p><p><span>Precio de referencia</span><b>{suggested ? money(suggested) : "A consultar"}</b></p><p><span>Fecha deseada</span><b>{quote.desiredDate || "Sin fecha"}</b></p></div>
+          <header><div><span>{quote.code}</span><h2>{String(configuration.groupName || quote.groupType)}</h2><p>{quote.organizerName} · {quote.email} · {quote.phone}</p></div><time>{new Date(quote.createdAt).toLocaleDateString("es-ES")}</time></header>
+          <div className="admin-detail-grid"><p><span>Cantidad prevista</span><b>{quote.quantity} prendas</b></p><p><span>Color</span><b>{String(configuration.color || "Por confirmar")}</b></p><p><span>Precio de referencia</span><b>{suggested ? money(suggested) : "A consultar"}</b></p><p><span>Fecha deseada</span><b>{quote.desiredDate || "Sin fecha"}</b></p></div>
           <label className="admin-quote-price"><span>{suggested ? "Precio unitario acordado" : "Precio obligatorio para 101+"}</span><div><input type="number" min="1" max="1000" step="0.01" value={priceValue} onChange={event => setQuotePriceDrafts(current => ({ ...current, [quote.id]: event.target.value }))} /><b>€</b></div><small>Se confirma con el organizador antes de abrir el enlace.</small></label>
           {quote.notes && <p className="admin-notes">{quote.notes}</p>}
-          <footer><a href={`/pedido/${quote.code}`} target="_blank">Ver solicitud</a>{configuration.designFileName && <a href={`/api/admin/presupuestos/${quote.code}/archivo`}>Descargar {configuration.designFileName}</a>}<button disabled={busy === quote.code || !validPrice} onClick={() => approve(quote)}>{busy === quote.code ? "Creando…" : "Aprobar y crear enlace →"}</button></footer>
+          <footer><a href={`/pedido/${quote.code}`} target="_blank">Ver solicitud</a>{typeof configuration.designFileName === "string" && configuration.designFileName && <a href={`/api/admin/presupuestos/${quote.code}/archivo`}>Descargar {configuration.designFileName}</a>}<button disabled={busy === quote.code || !validPrice} onClick={() => approve(quote)}>{busy === quote.code ? "Creando…" : "Aprobar y crear enlace →"}</button></footer>
         </article>;
       }) : <EmptyState text="No hay presupuestos pendientes." />}</div>}
 
       {tab === "groups" && <div className="admin-list">{groups.length ? groups.map(group => {
         const groupItems = items.filter(item => item.groupId === group.id);
+        const groupUnits = groupItems.reduce((total, item) => total + item.quantity, 0);
         const priceValue = priceDrafts[group.id] ?? String(group.unitPriceCents / 100);
         const shipping = shippingDrafts[group.id] || { shippingAddress: group.shippingAddress || "", shippingRecipient: group.shippingRecipient || "", shippingPostalCode: group.shippingPostalCode || "", shippingCity: group.shippingCity || "", shippingProvince: group.shippingProvince || "", shippingCountry: group.shippingCountry || "España", carrier: group.carrier || "", trackingCode: group.trackingCode || "" };
         const setShippingField = (field: keyof typeof shipping, value: string) => setShippingDrafts(current => ({ ...current, [group.id]: { ...shipping, [field]: value } }));
         return <article className="admin-group" key={group.id}>
           <header><div><span>{group.accessCode}</span><h2>{group.groupName}</h2><p>{group.garment} · {group.color} · {money(group.unitPriceCents)}</p></div><a href={`/pedido/${group.accessCode}`} target="_blank">Abrir enlace ↗</a></header>
           <div className="group-state-grid"><p><span>Diseño</span><b>{group.designStatus}</b></p><p><span>Registro</span><b>{group.registrationStatus}</b></p><p><span>Pagos</span><b>{group.paymentStatus}</b></p><p><span>Producción</span><b>{group.productionStatus}</b></p></div>
-          <div className="admin-price-control"><label><span>Precio base por prenda</span><div><input type="number" min="1" step="0.01" disabled={group.paymentStatus !== "locked"} value={priceValue} onChange={event => setPriceDrafts(current => ({ ...current, [group.id]: event.target.value }))} /><b>€</b></div></label><button disabled={!!busy || group.paymentStatus !== "locked"} onClick={() => groupAction(group, "set_price", { unitPriceCents: Math.round(Number(priceValue.replace(",", ".")) * 100) })}>Guardar precio</button><button className="toggle-items" onClick={() => setOpenGroup(openGroup === group.id ? null : group.id)}>{openGroup === group.id ? "Ocultar prendas" : `Revisar prendas (${groupItems.length})`}</button></div>
+          <div className="admin-price-control"><label><span>Precio base por prenda</span><div><input type="number" min="1" step="0.01" disabled={group.paymentStatus !== "locked"} value={priceValue} onChange={event => setPriceDrafts(current => ({ ...current, [group.id]: event.target.value }))} /><b>€</b></div></label><button disabled={!!busy || group.paymentStatus !== "locked"} onClick={() => groupAction(group, "set_price", { unitPriceCents: Math.round(Number(priceValue.replace(",", ".")) * 100) })}>Guardar precio</button><button className="toggle-items" onClick={() => setOpenGroup(openGroup === group.id ? null : group.id)}>{openGroup === group.id ? "Ocultar prendas" : `Revisar ${groupUnits} prendas (${groupItems.length} configuraciones)`}</button></div>
           {openGroup === group.id && <div className="admin-item-list">{groupItems.length ? groupItems.map(item => <AdminItemRow key={item.id} item={item} locked={group.paymentStatus !== "locked" || item.paymentStatus === "paid"} busy={busy === `item:${item.id}`} onSave={updateItemExtras} />) : <p>Este grupo todavía no tiene prendas registradas.</p>}</div>}
           <section className="admin-shipping"><header><strong>Envío conjunto del grupo</strong><span>El seguimiento se comunica solo al organizador.</span></header><div><label><span>Destinatario</span><input value={shipping.shippingRecipient} onChange={event => setShippingField("shippingRecipient", event.target.value)} /></label><label><span>Dirección</span><input value={shipping.shippingAddress} onChange={event => setShippingField("shippingAddress", event.target.value)} /></label><label><span>Código postal</span><input value={shipping.shippingPostalCode} onChange={event => setShippingField("shippingPostalCode", event.target.value)} /></label><label><span>Localidad</span><input value={shipping.shippingCity} onChange={event => setShippingField("shippingCity", event.target.value)} /></label><label><span>Provincia</span><input value={shipping.shippingProvince} onChange={event => setShippingField("shippingProvince", event.target.value)} /></label><label><span>País</span><input value={shipping.shippingCountry} onChange={event => setShippingField("shippingCountry", event.target.value)} /></label><label><span>Transportista</span><input value={shipping.carrier} onChange={event => setShippingField("carrier", event.target.value)} /></label><label><span>Seguimiento</span><input value={shipping.trackingCode} onChange={event => setShippingField("trackingCode", event.target.value)} /></label></div><button disabled={!!busy} onClick={() => groupAction(group, "set_shipping", shipping)}>Guardar envío</button></section>
-          <footer className="admin-action-row"><button disabled={!!busy || group.registrationStatus !== "open" || groupItems.length < 1} onClick={() => groupAction(group, "close_registration", { unitPriceCents: Math.round(Number(priceValue.replace(",", ".")) * 100) })}>Cerrar registro y recalcular</button><button disabled={!!busy || group.registrationStatus === "open" || group.paymentStatus !== "locked"} onClick={() => groupAction(group, "open_payment")}>Abrir pagos</button><button disabled={!!busy || group.paymentStatus !== "open"} onClick={() => groupAction(group, "complete_payment")}>Marcar pago completo</button><button disabled={!!busy || group.paymentStatus !== "complete"} onClick={() => groupAction(group, "start_production")}>Iniciar producción</button><button disabled={!!busy || group.productionStatus !== "in_production" || !shipping.carrier || !shipping.trackingCode} onClick={() => groupAction(group, "mark_shipped", { carrier: shipping.carrier, trackingCode: shipping.trackingCode })}>Marcar enviado</button><button disabled={!!busy || group.productionStatus !== "shipped"} onClick={() => groupAction(group, "mark_delivered")}>Marcar entregado</button><button disabled={!!busy || !!group.privateLinkRevokedAt} onClick={() => groupAction(group, "revoke_private_link")}>Revocar enlace</button><a href={`/api/admin/grupos/${group.accessCode}/exportar`}>Exportar CSV</a></footer>
+          <footer className="admin-action-row"><button disabled={!!busy || group.registrationStatus !== "open" || groupItems.length < 1} onClick={() => groupAction(group, "close_registration", { unitPriceCents: Math.round(Number(priceValue.replace(",", ".")) * 100) })}>Cerrar registro y recalcular</button><button disabled={!!busy || group.registrationStatus === "open" || group.paymentStatus !== "locked"} onClick={() => groupAction(group, "open_payment")}>Abrir pagos</button><button disabled={!!busy || group.paymentStatus !== "open"} onClick={() => groupAction(group, "complete_payment")}>Marcar pago completo</button><button disabled={!!busy || group.paymentStatus !== "complete"} onClick={() => groupAction(group, "start_production")}>Iniciar producción</button><button disabled={!!busy || group.productionStatus !== "in_production" || !shipping.carrier || !shipping.trackingCode} onClick={() => groupAction(group, "mark_shipped", { carrier: shipping.carrier, trackingCode: shipping.trackingCode })}>Marcar enviado</button><button disabled={!!busy || group.productionStatus !== "shipped"} onClick={() => groupAction(group, "mark_delivered")}>Marcar entregado</button><button disabled={!!busy || !!group.privateLinkRevokedAt} onClick={() => groupAction(group, "revoke_private_link")}>Revocar enlace</button><a href={`/api/admin/grupos/${group.accessCode}/exportar`}>Exportar Excel</a></footer>
         </article>;
       }) : <EmptyState text="Todavía no hay grupos aprobados." />}</div>}
 
@@ -125,7 +141,7 @@ export function AdminDashboard({ user, signOutUrl, initialQuotes, initialGroups,
 function AdminItemRow({ item, locked, busy, onSave }: { item: Item; locked: boolean; busy: boolean; onSave: (item: Item, extrasCents: number) => Promise<void> }) {
   const [value, setValue] = useState(String(item.extrasCents / 100));
   return <article className="admin-item-row">
-    <div><strong>{item.printName} · {item.size}</strong><span>{item.contactName} · {item.email}</span></div>
+    <div><strong>{item.printName} · {item.size}{item.quantity > 1 ? ` · ${item.quantity} uds.` : ""}</strong><span>{item.contactName} · {item.email}</span></div>
     <div><span>Pecho</span><b>{item.frontExtra}{item.frontDetail ? ` · ${item.frontDetail}` : ""}</b></div>
     <div><span>Manga</span><b>{item.sleeveExtra}{item.sleeveDetail ? ` · ${item.sleeveDetail}` : ""}</b></div>
     <label><span>Extras manuales</span><div><input type="number" min="0" step="0.01" disabled={locked || busy} value={value} onChange={event => setValue(event.target.value)} /><b>€</b></div></label>
@@ -133,5 +149,9 @@ function AdminItemRow({ item, locked, busy, onSave }: { item: Item; locked: bool
   </article>;
 }
 
-function suggestedPrice(quantity: number): number | null { return unitPriceForQuantity(quantity); }
+function suggestedPrice(quote: Quote): number | null {
+  const configuration = parseStoredQuoteConfiguration(quote.configurationJson);
+  return readCommercialSnapshot(configuration.commercialSnapshot)?.quotedUnitPriceCents
+    ?? unitPriceForQuantity(quote.quantity);
+}
 function EmptyState({ text }: { text: string }) { return <div className="admin-empty"><span>✓</span><strong>{text}</strong><p>El panel se actualizará cuando haya nueva actividad.</p></div>; }

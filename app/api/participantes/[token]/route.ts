@@ -49,7 +49,7 @@ export async function GET(_request: Request, context: RouteContext) {
       sleeveExtra: orderItems.sleeveExtra,
       sleeveDetail: orderItems.sleeveDetail,
     }).from(orderItems).where(eq(orderItems.participantId, participant.id));
-    const [total] = await db.select({ amountDueCents: sql<number>`coalesce(sum(${orderItems.unitPriceCents} + ${orderItems.extrasCents}), 0)` }).from(orderItems).where(eq(orderItems.participantId, participant.id));
+    const [total] = await db.select({ amountDueCents: sql<number>`coalesce(sum((${orderItems.unitPriceCents} + ${orderItems.extrasCents}) * ${orderItems.quantity}), 0)` }).from(orderItems).where(eq(orderItems.participantId, participant.id));
 
     return Response.json({
       contactName: participant.contactName,

@@ -1,22 +1,13 @@
-import { desc } from "drizzle-orm";
-import Link from "next/link";
+import { desc, eq } from "drizzle-orm";
 import { ensureQuoteSchema, getDb } from "@/db";
 import { groupOrders, orderItems, participants, payments, quoteRequests } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { chatGPTSignOutPath } from "@/app/chatgpt-auth";
-import { requireAdminPage } from "@/lib/admin-auth";
-import { AdminDashboard } from "@/app/admin/admin-dashboard";
-import { readCatalog } from "@/lib/catalog-store";
+import { getAdminApiUser } from "@/lib/admin-auth";
 
-export const dynamic = "force-dynamic";
-
-export default async function AdminPage() {
-  const user = await requireAdminPage();
-  if (!user) return <main className="admin-denied"><div><span>⌁</span><p>Acceso restringido</p><h1>Esta cuenta no tiene permiso.</h1><p>El panel solo admite el correo definido como administrador. La política es de denegación por defecto.</p><Link href="/">Volver a la web</Link></div></main>;
-
+export async function GET() {
+  if (!await getAdminApiUser()) return Response.json({ error: "Acceso no autorizado." }, { status: 403 });
   await ensureQuoteSchema();
   const db = getDb();
-  const [quotes, groups, paymentRows, items, catalog] = await Promise.all([
+  const [quotes, groups, paymentRows, items] = await Promise.all([
     db.select().from(quoteRequests).orderBy(desc(quoteRequests.createdAt)).limit(100),
     db.select().from(groupOrders).orderBy(desc(groupOrders.createdAt)).limit(100),
     db.select().from(payments).orderBy(desc(payments.createdAt)).limit(100),
@@ -36,8 +27,6 @@ export default async function AdminPage() {
       extrasCents: orderItems.extrasCents,
       unitPriceCents: orderItems.unitPriceCents,
     }).from(orderItems).innerJoin(participants, eq(orderItems.participantId, participants.id)).orderBy(desc(orderItems.createdAt)).limit(500),
-    readCatalog(true),
   ]);
-
-  return <AdminDashboard user={{ name: user.displayName, email: user.email }} signOutUrl={chatGPTSignOutPath("/")} initialQuotes={quotes} initialGroups={groups} initialPayments={paymentRows} initialItems={items} initialCatalog={catalog} />;
+  return Response.json({ quotes, groups, payments: paymentRows, items }, { headers: { "Cache-Control": "no-store, private" } });
 }

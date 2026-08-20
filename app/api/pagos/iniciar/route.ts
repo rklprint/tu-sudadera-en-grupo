@@ -1,6 +1,6 @@
 import { ensureQuoteSchema } from "@/db";
 import { trackServerProductEvent } from "@/lib/analytics";
-import { createMerchantOrder, createRedsysProvider, getRedsysConfig } from "@/lib/payments/redsys";
+import { createMerchantOrder, createPaymentCancellationToken, createRedsysProvider, getRedsysConfig } from "@/lib/payments/redsys";
 import type { PaymentMethod } from "@/lib/payments/types";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, secureJson, takeRateLimit } from "@/lib/request-security";
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 async function participantActor(DB: Database, rawToken: string): Promise<Actor | { error: string; status: number }> {
   const token = rawToken.trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);
   const tokenHash = await hashPrivateToken(token);
-  const participant = await DB.prepare(`SELECT p.id, p.group_id, p.payment_status, p.edit_token_expires_at, p.edit_token_revoked_at, g.private_link_revoked_at, g.payment_status AS group_payment_status, coalesce((SELECT sum(unit_price_cents + extras_cents) FROM order_items WHERE participant_id = p.id), 0) AS amount FROM participants p INNER JOIN group_orders g ON g.id = p.group_id WHERE p.edit_token_hash = ? OR p.edit_token = ?`).bind(tokenHash, token).first<{ id: number; group_id: number; payment_status: string; edit_token_expires_at: string; edit_token_revoked_at: string; private_link_revoked_at: string; group_payment_status: string; amount: number }>();
+  const participant = await DB.prepare(`SELECT p.id, p.group_id, p.payment_status, p.edit_token_expires_at, p.edit_token_revoked_at, g.private_link_revoked_at, g.payment_status AS group_payment_status, coalesce((SELECT sum((unit_price_cents + extras_cents) * quantity) FROM order_items WHERE participant_id = p.id), 0) AS amount FROM participants p INNER JOIN group_orders g ON g.id = p.group_id WHERE p.edit_token_hash = ? OR p.edit_token = ?`).bind(tokenHash, token).first<{ id: number; group_id: number; payment_status: string; edit_token_expires_at: string; edit_token_revoked_at: string; private_link_revoked_at: string; group_payment_status: string; amount: number }>();
   if (!participant) return { error: "El enlace personal no es válido.", status: 404 };
   if (participant.edit_token_revoked_at || (participant.edit_token_expires_at && Date.parse(participant.edit_token_expires_at) <= Date.now())) return { error: "El enlace personal ha caducado o ha sido revocado.", status: 410 };
   if (participant.private_link_revoked_at) return { error: "El acceso privado de este grupo ha sido revocado.", status: 410 };
@@ -89,7 +89,7 @@ async function participantActor(DB: Database, rawToken: string): Promise<Actor |
 
 async function remainingActor(DB: Database, rawCode: string): Promise<Actor | { error: string; status: number }> {
   const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 40);
-  const group = await DB.prepare(`SELECT g.id, g.payment_status, coalesce((SELECT sum(oi.unit_price_cents + oi.extras_cents) FROM order_items oi INNER JOIN participants p ON p.id = oi.participant_id WHERE p.group_id = g.id), 0) AS expected, coalesce((SELECT sum(amount_cents) FROM payments WHERE group_id = g.id AND status = 'confirmed'), 0) AS confirmed FROM group_orders g WHERE g.access_code = ? AND g.private_link_revoked_at = ''`).bind(code).first<{ id: number; payment_status: string; expected: number; confirmed: number }>();
+  const group = await DB.prepare(`SELECT g.id, g.payment_status, coalesce((SELECT sum((oi.unit_price_cents + oi.extras_cents) * oi.quantity) FROM order_items oi INNER JOIN participants p ON p.id = oi.participant_id WHERE p.group_id = g.id), 0) AS expected, coalesce((SELECT sum(amount_cents) FROM payments WHERE group_id = g.id AND status = 'confirmed'), 0) AS confirmed FROM group_orders g WHERE g.access_code = ? AND g.private_link_revoked_at = ''`).bind(code).first<{ id: number; payment_status: string; expected: number; confirmed: number }>();
   if (!group) return { error: "El enlace del grupo no es válido o ha sido revocado.", status: 404 };
   if (group.payment_status !== "open") return { error: "Los pagos de este grupo no están abiertos.", status: 409 };
   const activePayment = await DB.prepare("SELECT id FROM payments WHERE group_id = ? AND status IN ('pending', 'processing') LIMIT 1").bind(group.id).first<{ id: number }>();
@@ -99,6 +99,9 @@ async function remainingActor(DB: Database, rawCode: string): Promise<Actor | { 
 
 async function paymentResponse(request: Request, payment: { reference: string; method: string; provider: string; merchant_order: string | null; amount_cents: number; status: string }, requestedMethod: PaymentMethod, status = 200) {
   if (payment.method !== requestedMethod) return secureJson({ error: "La clave de idempotencia ya se utilizó con otro método." }, { status: 409 });
+  if (["failed", "rejected", "cancelled"].includes(payment.status)) {
+    return secureJson({ error: "La operación anterior ya terminó. Inicia un nuevo intento de pago.", retryable: true }, { status: 409 });
+  }
   if (payment.provider === "manual") {
     const { BANK_TRANSFER_IBAN, BANK_TRANSFER_ACCOUNT_HOLDER } = getSiteRuntimeEnv();
     if (!BANK_TRANSFER_IBAN || !BANK_TRANSFER_ACCOUNT_HOLDER) return secureJson({ error: "La transferencia todavía no está configurada." }, { status: 503 });
@@ -113,7 +116,8 @@ async function paymentResponse(request: Request, payment: { reference: string; m
   const config = getRedsysConfig();
   if (!config || !payment.merchant_order) return secureJson({ error: "El TPV Redsys todavía no está configurado." }, { status: 503 });
   const origin = new URL(request.url).origin;
-  const form = await createRedsysProvider(config).createHostedPayment({ merchantOrder: payment.merchant_order, amountCents: payment.amount_cents, method: payment.method === "bizum" ? "bizum" : "card", notificationUrl: `${origin}/api/pagos/redsys/notificacion`, successUrl: `${origin}/pago/resultado?ref=${encodeURIComponent(payment.reference)}&estado=pendiente`, cancelUrl: `${origin}/pago/resultado?ref=${encodeURIComponent(payment.reference)}&estado=cancelado`, merchantData: payment.reference });
+  const cancellationToken = await createPaymentCancellationToken(payment.reference, config.signingKey);
+  const form = await createRedsysProvider(config).createHostedPayment({ merchantOrder: payment.merchant_order, amountCents: payment.amount_cents, method: payment.method === "bizum" ? "bizum" : "card", notificationUrl: `${origin}/api/pagos/redsys/notificacion`, successUrl: `${origin}/pago/resultado?ref=${encodeURIComponent(payment.reference)}&estado=pendiente`, cancelUrl: `${origin}/pago/resultado?ref=${encodeURIComponent(payment.reference)}&estado=cancelado&token=${encodeURIComponent(cancellationToken)}`, merchantData: payment.reference });
   return secureJson({ kind: "redsys", reference: payment.reference, amountCents: payment.amount_cents, status: payment.status, form }, { status });
 }
 
