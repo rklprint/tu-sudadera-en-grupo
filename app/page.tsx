@@ -392,11 +392,11 @@ export default function Home() {
             <span>unidades</span>
           </div>
         </div>
-        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} type="range" min="5" max="500" value={quantity} onChange={e=>updateQuantity(Number(e.target.value))} />
-        <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>100+</span></div>
+        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} aria-valuetext={quantity >= 101 ? "Consultar para 101 o más unidades" : `${quantity} unidades`} type="range" min="5" max="101" value={Math.min(quantity, 101)} onChange={e=>updateQuantity(Number(e.target.value))} />
+        <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>101+ · consultar</span></div>
 
         <div className="price-live-result" aria-live="polite">
-          <div><span>Precio base</span><strong key={`base-${productType}-${baseUnitPrice}`}>{baseUnitPrice === null ? "Consultar" : <>{baseUnitPrice}<sup>€</sup></>}</strong><small>{productType === "hoodie" ? "Sudadera + DTF delante y detrás + nombre" : "Modelo y precio de camiseta pendientes de publicación"}</small></div>
+          <div><span>Precio base</span><strong key={`base-${productType}-${baseUnitPrice}`}>{baseUnitPrice === null ? "Consultar" : <>{baseUnitPrice}<sup>€</sup></>}</strong><small>{productType === "hoodie" ? "Sudadera + impresión en pecho + espalda + nombre" : "Modelo y precio de camiseta pendientes de publicación"}</small></div>
           <div className={configuredUnitPrice === null ? "consult" : ""}><span>Vuestra configuración</span><strong key={`configured-${configuredUnitPrice}-${knownExtras}-${customEmbroidery}`}>{configuredUnitPrice === null ? "Consultar" : <>{configuredUnitPrice}<sup>€</sup></>}</strong><small>{customEmbroidery ? "Incluye un logo bordado pendiente de valorar" : knownExtras ? `Incluye ${knownExtras} € en extras por prenda` : "Sin extras seleccionados"}</small></div>
         </div>
 
