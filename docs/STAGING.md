@@ -63,6 +63,19 @@ REDSYS_SIGNING_KEY=            # clave de firma asignada por el banco
 REDSYS_BIZUM_ENABLED=false     # true solo tras confirmación del banco
 ```
 
+### Orígenes permitidos por entorno
+
+| Entorno | `APP_ORIGIN` canónico | Orígenes adicionales |
+| --- | --- | --- |
+| development | `http://localhost:3000` | solo localhost si se necesita desarrollo local |
+| test | el origen HTTPS de la fixture | ninguno |
+| staging | el `https://*.workers.dev` asignado al Worker de staging | solo aliases HTTPS controlados |
+| production | `https://tusudaderaengrupo.es` | únicamente aliases HTTPS aprobados explícitamente |
+
+`APP_ALLOWED_ORIGINS` es una lista separada por comas para validar solicitudes
+entrantes conocidas. Nunca sustituye a `APP_ORIGIN` al crear enlaces ni URLs de
+Redsys. En staging y producción no se permite HTTP.
+
 La moneda está fijada a EUR (`978`) en el generador y se vuelve a validar en
 cada notificación. Las URLs no se aceptan desde el navegador, `Host`, `Origin`,
 `Referer` ni parámetros del cliente. Se derivan exclusivamente de `APP_ORIGIN`,
