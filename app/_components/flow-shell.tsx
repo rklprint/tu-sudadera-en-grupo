@@ -30,7 +30,7 @@ export function FlowSteps({ active }: { active: 1 | 2 | 3 | 4 }) {
 export function FlowFooter() {
   return <footer className="flow-footer">
     <span>© 2026 Tu Sudadera en Grupo</span>
-    <strong>pedidos@tusudaderaengrupo.es</strong>
-    <span>Hecho para pertenecer ✦</span>
+    <a href="mailto:pedidos@tusudaderaengrupo.es">pedidos@tusudaderaengrupo.es</a>
+    <span><Link href="/privacidad">Privacidad</Link> · <Link href="/cookies">Cookies</Link> · Hecho para pertenecer ✦</span>
   </footer>;
 }

@@ -5,14 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FlowFooter, FlowHeader } from "@/app/_components/flow-shell";
 import { GarmentEditor, type GarmentDraft } from "@/app/_components/garment-editor";
+import { trackProductEvent } from "@/lib/analytics";
+import { PaymentCheckout } from "@/app/_components/payment-checkout";
 
 type ParticipantData = {
   contactName: string;
   email: string;
   editable: boolean;
   paymentStatus: string;
-  group: { code: string; name: string; garment: string; color: string; unitPriceCents: number; registrationStatus: string; paymentStatus: string };
+  group: { code: string; name: string; garment: string; productType?: "hoodie" | "tshirt"; color: string; unitPriceCents: number; registrationStatus: string; paymentStatus: string };
   garments: GarmentDraft[];
+  amountDueCents: number;
+  paymentAvailability: { card: boolean; bizum: boolean; transfer: boolean };
 };
 
 export default function ParticipantPage() {
@@ -25,6 +29,7 @@ export default function ParticipantPage() {
 
   useEffect(() => {
     if (!token) return;
+    void trackProductEvent("participant_started", { source: "email_edit_link" });
     fetch(`/api/participantes/${encodeURIComponent(token)}`)
       .then(async response => {
         const result = await response.json() as ParticipantData & { error?: string };
@@ -45,6 +50,10 @@ export default function ParticipantPage() {
       const result = await response.json() as { ok?: boolean; error?: string };
       if (!response.ok) throw new Error(result.error || "No hemos podido guardar los cambios.");
       setSaved(true);
+      void trackProductEvent("participant_edited", {
+        product_type: data.group.productType || "hoodie",
+        quantity: data.garments.length,
+      });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No hemos podido guardar los cambios.");
     } finally { setSaving(false); }
@@ -58,10 +67,12 @@ export default function ParticipantPage() {
     {!data.editable && <div className="locked-selection"><span>⌁</span><div><strong>Selección bloqueada</strong><p>{data.paymentStatus === "paid" ? "El pago ya está confirmado. Cualquier cambio debe revisarse con nuestro equipo." : "El registro del grupo ya está cerrado y el precio definitivo está en revisión."}</p></div></div>}
     <form className="participant-edit-card" onSubmit={save}>
       <div className="participant-fields"><label><span>Nombre de contacto</span><input required disabled={!data.editable} value={data.contactName} onChange={event => setData({ ...data, contactName: event.target.value })} /></label><label><span>Correo del enlace privado</span><input required type="email" disabled={!data.editable} value={data.email} onChange={event => setData({ ...data, email: event.target.value })} /></label></div>
-      <GarmentEditor garments={data.garments} onChange={garments => setData({ ...data, garments })} unitPriceCents={data.group.unitPriceCents} disabled={!data.editable || saving} />
+      <GarmentEditor garments={data.garments} onChange={garments => setData({ ...data, garments })} unitPriceCents={data.group.unitPriceCents} model={data.group.garment} disabled={!data.editable || saving} />
       {error && <p className="form-error" role="alert">{error}</p>}
       {saved && <p className="form-success" role="status">Cambios guardados correctamente.</p>}
       {data.editable && <button className="registration-submit" disabled={saving} type="submit"><span>{saving ? "Guardando…" : "Guardar cambios"}<small>Actualiza todas tus prendas</small></span><b>✓</b></button>}
     </form>
+    {data.group.paymentStatus === "open" && data.paymentStatus !== "paid" && <section className="participant-checkout"><p className="flow-eyebrow">Pago individual</p><h2>Tu selección está bloqueada y lista para pagar.</h2><p>El importe incluye todas tus prendas y sus extras. La confirmación solo se produce cuando recibimos una notificación segura del proveedor o validamos manualmente la transferencia.</p><PaymentCheckout scope="participant" credential={token} amountCents={data.amountDueCents} availability={data.paymentAvailability} /></section>}
+    {data.paymentStatus === "paid" && <section className="participant-paid" role="status"><span>✓</span><div><h2>Pago confirmado</h2><p>Tu selección ya forma parte del total pagado del grupo.</p></div></section>}
   </section><FlowFooter /></main>;
 }

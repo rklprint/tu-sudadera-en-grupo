@@ -1,8 +1,11 @@
 import { and, count, eq, sql, sum } from "drizzle-orm";
 import { ensureQuoteSchema, getDb } from "@/db";
 import { groupOrders, orderItems, participants, payments, quoteRequests } from "@/db/schema";
-import { createEditToken, extrasForGarmentCents, normalizeCode, validateGarments } from "@/lib/group-orders";
+import { createEditToken, createEditTokenExpiry, extrasForGarmentCents, hashPrivateToken, normalizeCode, validateGarments } from "@/lib/group-orders";
 import { sendParticipantEditEmail } from "@/lib/participant-email";
+import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, takeRateLimit } from "@/lib/request-security";
+import { paymentAvailability } from "@/lib/payments/availability";
+import { reportServerError } from "@/lib/observability";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
@@ -13,6 +16,7 @@ const demoOrder = {
   phase: "registration" as const,
   groupName: "PROMO 26",
   garment: "Gildan 18500",
+  productType: "hoodie",
   color: "Azul marino",
   estimatedQuantity: 25,
   unitPriceCents: 2600,
@@ -34,9 +38,12 @@ const demoOrder = {
     { size: "XL", quantity: 3 },
     { size: "2XL", quantity: 2 },
   ],
+  paymentAvailability: { card: false, bizum: false, transfer: false },
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const rateLimitError = takeRateLimit(_request, "group-view", { limit: 120, windowMs: 10 * 60_000 });
+  if (rateLimitError) return rateLimitError;
   const { code: rawCode } = await context.params;
   const code = normalizeCode(rawCode);
 
@@ -45,7 +52,7 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     await ensureQuoteSchema();
     const db = getDb();
-    const [group] = await db.select().from(groupOrders).where(eq(groupOrders.accessCode, code)).limit(1);
+    const [group] = await db.select().from(groupOrders).where(and(eq(groupOrders.accessCode, code), eq(groupOrders.privateLinkRevokedAt, ""))).limit(1);
 
     if (group) {
       const [peopleResult] = await db
@@ -89,6 +96,7 @@ export async function GET(_request: Request, context: RouteContext) {
         phase,
         groupName: group.groupName,
         garment: group.garment,
+        productType: group.productType,
         color: group.color,
         estimatedQuantity: group.estimatedQuantity,
         unitPriceCents: group.unitPriceCents,
@@ -104,6 +112,7 @@ export async function GET(_request: Request, context: RouteContext) {
         amountCollectedCents,
         amountOutstandingCents: Math.max(0, registeredValueCents - amountCollectedCents),
         sizeDistribution,
+        paymentAvailability: paymentAvailability(),
       });
     }
 
@@ -137,17 +146,27 @@ export async function GET(_request: Request, context: RouteContext) {
       location: quote.location,
       createdAt: quote.createdAt,
     });
-  } catch {
+  } catch (error) {
+    reportServerError(error, "group");
     return Response.json({ error: "No hemos podido consultar el pedido ahora mismo." }, { status: 500 });
   }
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const originError = rejectCrossOriginMutation(request);
+  if (originError) return originError;
+  const sizeError = rejectOversizedRequest(request, 128 * 1024);
+  if (sizeError) return sizeError;
+  const rateLimitError = takeRateLimit(request, "participant-register", { limit: 20, windowMs: 10 * 60_000 });
+  if (rateLimitError) return rateLimitError;
+
   const { code: rawCode } = await context.params;
   const code = normalizeCode(rawCode);
 
   try {
-    const payload = await request.json() as { contactName?: string; email?: string; garments?: unknown };
+    const body = await readJsonBody<{ contactName?: string; email?: string; garments?: unknown }>(request, 128 * 1024);
+    if ("response" in body) return body.response;
+    const payload = body.data;
     const contactName = String(payload.contactName || "").trim().slice(0, 80);
     const email = String(payload.email || "").trim().toLowerCase().slice(0, 160);
     const validated = validateGarments(payload.garments);
@@ -168,14 +187,17 @@ export async function POST(request: Request, context: RouteContext) {
 
     await ensureQuoteSchema();
     const db = getDb();
-    const [group] = await db.select().from(groupOrders).where(eq(groupOrders.accessCode, code)).limit(1);
+    const [group] = await db.select().from(groupOrders).where(and(eq(groupOrders.accessCode, code), eq(groupOrders.privateLinkRevokedAt, ""))).limit(1);
     if (!group) return Response.json({ error: "No encontramos este grupo." }, { status: 404 });
     if (group.registrationStatus !== "open") return Response.json({ error: "El registro de este grupo ya está cerrado." }, { status: 409 });
 
     const editToken = createEditToken();
+    const editTokenHash = await hashPrivateToken(editToken);
     const [participant] = await db.insert(participants).values({
       groupId: group.id,
-      editToken,
+      editToken: `hashed_${editTokenHash}`,
+      editTokenHash,
+      editTokenExpiresAt: createEditTokenExpiry(),
       email,
       contactName,
     }).returning({ id: participants.id });
@@ -183,6 +205,10 @@ export async function POST(request: Request, context: RouteContext) {
     try {
       await db.insert(orderItems).values(validated.garments.map(garment => ({
         participantId: participant.id,
+        productName: group.productType === "tshirt" ? "Camiseta" : "Sudadera",
+        model: group.garment,
+        color: group.color,
+        quantity: 1,
         printName: garment.printName,
         size: garment.size,
         namePlacement: garment.namePlacement,
@@ -202,7 +228,8 @@ export async function POST(request: Request, context: RouteContext) {
     const emailStatus = await sendParticipantEditEmail({ to: email, contactName, groupName: group.groupName, editUrl });
 
     return Response.json({ ok: true, emailStatus, editUrl, garments: validated.garments.length }, { status: 201 });
-  } catch {
+  } catch (error) {
+    reportServerError(error, "registration");
     return Response.json({ error: "No hemos podido guardar el registro. Inténtalo de nuevo." }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { chatGPTSignOutPath } from "@/app/chatgpt-auth";
 import { requireAdminPage } from "@/lib/admin-auth";
 import { AdminDashboard } from "@/app/admin/admin-dashboard";
+import { readCatalog } from "@/lib/catalog-store";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function AdminPage() {
 
   await ensureQuoteSchema();
   const db = getDb();
-  const [quotes, groups, paymentRows, items] = await Promise.all([
+  const [quotes, groups, paymentRows, items, catalog] = await Promise.all([
     db.select().from(quoteRequests).orderBy(desc(quoteRequests.createdAt)).limit(100),
     db.select().from(groupOrders).orderBy(desc(groupOrders.createdAt)).limit(100),
     db.select().from(payments).orderBy(desc(payments.createdAt)).limit(100),
@@ -34,7 +35,8 @@ export default async function AdminPage() {
       extrasCents: orderItems.extrasCents,
       unitPriceCents: orderItems.unitPriceCents,
     }).from(orderItems).innerJoin(participants, eq(orderItems.participantId, participants.id)).orderBy(desc(orderItems.createdAt)).limit(500),
+    readCatalog(true),
   ]);
 
-  return <AdminDashboard user={{ name: user.displayName, email: user.email }} signOutUrl={chatGPTSignOutPath("/")} initialQuotes={quotes} initialGroups={groups} initialPayments={paymentRows} initialItems={items} />;
+  return <AdminDashboard user={{ name: user.displayName, email: user.email }} signOutUrl={chatGPTSignOutPath("/")} initialQuotes={quotes} initialGroups={groups} initialPayments={paymentRows} initialItems={items} initialCatalog={catalog} />;
 }

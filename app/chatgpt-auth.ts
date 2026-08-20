@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 
 export type ChatGPTUser = {
   displayName: string;
@@ -17,6 +18,10 @@ const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+  // These identity headers are injected by the current private Sites host. They
+  // must never be trusted on a generic Vercel/Cloudflare deployment where a
+  // visitor could send the same header names directly.
+  if (getSiteRuntimeEnv().TRUST_OPENAI_IDENTITY_HEADERS !== "true") return null;
   const requestHeaders = await headers();
   const email = requestHeaders.get(USER_EMAIL_HEADER);
   if (!email) return null;

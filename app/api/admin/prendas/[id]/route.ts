@@ -2,16 +2,23 @@ import { eq } from "drizzle-orm";
 import { ensureQuoteSchema, getDb } from "@/db";
 import { groupOrders, orderItems, participants } from "@/db/schema";
 import { getAdminApiUser } from "@/lib/admin-auth";
+import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest } from "@/lib/request-security";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const originError = rejectCrossOriginMutation(request);
+  if (originError) return originError;
+  const sizeError = rejectOversizedRequest(request, 16 * 1024);
+  if (sizeError) return sizeError;
   if (!await getAdminApiUser()) return Response.json({ error: "Acceso no autorizado." }, { status: 403 });
   const id = Number((await context.params).id);
   if (!Number.isInteger(id) || id < 1) return Response.json({ error: "Prenda no válida." }, { status: 400 });
 
   try {
-    const payload = await request.json() as { extrasCents?: number };
+    const body = await readJsonBody<{ extrasCents?: number }>(request, 16 * 1024);
+    if ("response" in body) return body.response;
+    const payload = body.data;
     const extrasCents = Number(payload.extrasCents);
     if (!Number.isInteger(extrasCents) || extrasCents < 0 || extrasCents > 100000) return Response.json({ error: "Define un importe de extras válido." }, { status: 400 });
     await ensureQuoteSchema();

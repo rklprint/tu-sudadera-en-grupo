@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FlowFooter, FlowHeader } from "@/app/_components/flow-shell";
 import { GarmentEditor, newGarment, type GarmentDraft } from "@/app/_components/garment-editor";
+import { trackProductEvent } from "@/lib/analytics";
+import { PaymentCheckout } from "@/app/_components/payment-checkout";
 
 type SizeCount = { size: string; quantity: number };
 type OrderData = {
@@ -14,6 +16,7 @@ type OrderData = {
   phase?: "registration" | "payment" | "production" | "closed";
   groupName: string;
   garment: string;
+  productType?: "hoodie" | "tshirt";
   color: string;
   estimatedQuantity: number;
   location?: string;
@@ -31,6 +34,7 @@ type OrderData = {
   amountCollectedCents?: number;
   amountOutstandingCents?: number;
   sizeDistribution?: SizeCount[];
+  paymentAvailability?: { card: boolean; bizum: boolean; transfer: boolean };
 };
 
 type RegistrationResult = { ok?: boolean; error?: string; emailStatus?: string; editUrl?: string; garments?: number };
@@ -58,7 +62,10 @@ export default function PrivateOrderPage() {
     .catch(fetchError => setError(fetchError instanceof Error ? fetchError.message : "No encontramos este pedido."));
 
   useEffect(() => {
-    if (code) void loadOrder(code);
+    if (code) {
+      void trackProductEvent("grupo_private_page_viewed", { source: "private_link" });
+      void loadOrder(code);
+    }
   // The route code is stable for the lifetime of this page.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
@@ -76,6 +83,10 @@ export default function PrivateOrderPage() {
       const result = await response.json() as RegistrationResult;
       if (!response.ok) throw new Error(result.error || "No hemos podido guardar el registro.");
       setRegistration(result);
+      void trackProductEvent("participant_registered", {
+        product_type: order?.productType || "hoodie",
+        quantity: garments.length,
+      });
       if (!result.editUrl?.includes("TSG-DEMO")) void loadOrder();
     } catch (registerError) {
       setRegistration({ error: registerError instanceof Error ? registerError.message : "No hemos podido guardar el registro." });
@@ -138,7 +149,7 @@ export default function PrivateOrderPage() {
           {registration?.ok ? <div className="registration-success"><span>✓</span><p className="flow-eyebrow">Registro guardado</p><h2>{registration.garments} {registration.garments === 1 ? "prenda está lista" : "prendas están listas"}.</h2><p>{registration.emailStatus === "sent" ? "Hemos enviado el enlace de edición a tu correo." : registration.emailStatus === "demo" ? "Esta es una demostración: puedes abrir el enlace de edición sin enviar ningún correo real." : "Tu selección está guardada. El correo automático se activará al configurar el servicio de envío."}</p>{registration.editUrl && <a className="primary-flow-action" href={registration.editUrl}>Revisar mis prendas →</a>}<button type="button" onClick={() => { setRegistration(null); setContactName(""); setEmail(""); setGarments([newGarment()]); }}>Registrar otra persona</button></div> : <form onSubmit={register}>
             <header><div><span>Tu selección</span><h2>Datos de contacto</h2></div><strong>No se comparten con el organizador</strong></header>
             <div className="participant-fields"><label><span>Nombre de contacto</span><input required value={contactName} onChange={event => setContactName(event.target.value)} maxLength={80} autoComplete="name" /></label><label><span>Correo para tu enlace privado</span><input required type="email" value={email} onChange={event => setEmail(event.target.value)} maxLength={160} autoComplete="email" /></label></div>
-            <GarmentEditor garments={garments} onChange={setGarments} unitPriceCents={unitPrice} disabled={saving} />
+            <GarmentEditor garments={garments} onChange={setGarments} unitPriceCents={unitPrice} model={order.garment} disabled={saving} />
             {registration?.error && <p className="form-error" role="alert">{registration.error}</p>}
             <button className="registration-submit" disabled={saving} type="submit"><span>{saving ? "Guardando…" : "Guardar mi registro"}<small>Recibirás un enlace para editarlo</small></span><b>↗</b></button>
             <p className="privacy-note">Tus datos se utilizan únicamente para gestionar este pedido. El organizador solo ve totales generales.</p>
@@ -162,7 +173,7 @@ function phaseLabel(phase?: OrderData["phase"]) {
 }
 
 function PaymentPhase({ order }: { order: OrderData }) {
-  return <section className="payment-phase-card"><div><p className="flow-eyebrow">Fase 2 · precio fijado</p><h2>El grupo ya puede pagar.</h2><p>Los pagos individuales y el pago final del organizador pueden convivir. Cada pago queda vinculado a este pedido y el precio se ha calculado con las unidades realmente registradas.</p><div className="payment-method-list"><span>Tarjeta bancaria</span><span>Bizum</span><span>Transferencia</span><span>Saldo del organizador</span></div></div><aside><span>Importe base por prenda</span><strong>{money(order.unitPriceCents)}</strong><p>Los extras individuales se suman en cada selección.</p><button disabled>Pasarela pendiente de activación</button><small>No se realizará ningún cargo hasta conectar y verificar el TPV definitivo.</small></aside></section>;
+  return <section className="payment-phase-card"><div><p className="flow-eyebrow">Fase 2 · precio fijado</p><h2>El grupo ya puede pagar.</h2><p>Los pagos individuales y el pago final del organizador pueden convivir. Para pagar solo tus prendas, abre el enlace personal que recibiste por correo. Desde aquí se puede abonar el saldo pendiente completo.</p><div className="payment-method-list"><span>Tarjeta bancaria</span><span>Bizum</span><span>Transferencia</span><span>Pago final del organizador</span></div></div><aside><PaymentCheckout scope="remaining" credential={order.code} amountCents={order.amountOutstandingCents || 0} availability={order.paymentAvailability || { card: false, bizum: false, transfer: false }} /></aside></section>;
 }
 
 function WaitingPhase() {

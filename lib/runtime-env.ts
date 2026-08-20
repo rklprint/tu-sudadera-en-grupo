@@ -28,6 +28,16 @@ export type SiteRuntimeEnv = {
   QUOTE_TO_EMAIL?: string;
   QUOTE_FROM_EMAIL?: string;
   ADMIN_EMAIL?: string;
+  TURNSTILE_SECRET_KEY?: string;
+  TRUST_OPENAI_IDENTITY_HEADERS?: string;
+  REDSYS_ENVIRONMENT?: string;
+  REDSYS_MERCHANT_CODE?: string;
+  REDSYS_TERMINAL?: string;
+  REDSYS_SIGNING_KEY?: string;
+  REDSYS_BIZUM_ENABLED?: string;
+  BANK_TRANSFER_IBAN?: string;
+  BANK_TRANSFER_ACCOUNT_HOLDER?: string;
+  APP_ENV?: string;
 };
 
 type RuntimeGlobal = typeof globalThis & {

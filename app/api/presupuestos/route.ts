@@ -3,6 +3,17 @@ import { ensureQuoteSchema, getDb } from "@/db";
 import { quoteRequests } from "@/db/schema";
 import { notifyQuoteRequest } from "@/lib/quote-email";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+import { validateDesignFile } from "@/lib/design-files";
+import {
+  rejectCrossOriginMutation,
+  rejectOversizedRequest,
+  readBoundedBody,
+  secureJson,
+  takeRateLimit,
+  verifyTurnstile,
+} from "@/lib/request-security";
+import { trackServerProductEvent } from "@/lib/analytics";
+import { reportServerError } from "@/lib/observability";
 
 const allowedGroupTypes = new Set([
   "Colegio o instituto",
@@ -28,10 +39,10 @@ type QuoteInput = {
   configuration?: Record<string, string>;
   privacyAccepted?: boolean;
   website?: string;
+  turnstileToken?: string;
 };
 
-const MAX_DESIGN_FILE_BYTES = 15 * 1024 * 1024;
-const ALLOWED_DESIGN_EXTENSIONS = new Set(["png", "jpg", "jpeg", "pdf", "ai", "svg"]);
+const MAX_QUOTE_REQUEST_BYTES = 16 * 1024 * 1024;
 
 function trim(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -42,11 +53,6 @@ function createReference() {
   const stamp = `${String(date.getUTCFullYear()).slice(-2)}${String(date.getUTCMonth() + 1).padStart(2, "0")}${String(date.getUTCDate()).padStart(2, "0")}`;
   const random = crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
   return `TSG-${stamp}-${random}`;
-}
-
-function safeFileName(value: string) {
-  const leaf = value.split(/[\\/]/).pop() || "diseno";
-  return leaf.replace(/[^a-zA-Z0-9À-ÿ._ -]/g, "_").slice(0, 120) || "diseno";
 }
 
 async function readPayload(request: Request): Promise<{ payload: QuoteInput; designFile: File | null }> {
@@ -77,17 +83,41 @@ async function readPayload(request: Request): Promise<{ payload: QuoteInput; des
       configuration,
       privacyAccepted: String(formData.get("privacyAccepted")) === "true",
       website: String(formData.get("website") || ""),
+      turnstileToken: String(formData.get("cf-turnstile-response") || formData.get("turnstileToken") || ""),
     },
     designFile: rawFile instanceof File && rawFile.size > 0 ? rawFile : null,
   };
 }
 
 export async function POST(request: Request) {
+  const originError = rejectCrossOriginMutation(request);
+  if (originError) return originError;
+  const sizeError = rejectOversizedRequest(request, MAX_QUOTE_REQUEST_BYTES);
+  if (sizeError) return sizeError;
+  const rateLimitError = takeRateLimit(request, "quote", { limit: 5, windowMs: 10 * 60_000 });
+  if (rateLimitError) return rateLimitError;
+  const contentType = request.headers.get("content-type")?.toLowerCase() || "";
+  if (!contentType.includes("multipart/form-data") && !contentType.includes("application/json")) {
+    return secureJson({ error: "El contenido de la solicitud no es válido." }, { status: 415 });
+  }
+
   try {
-    const { payload, designFile } = await readPayload(request);
+    const bounded = await readBoundedBody(request, MAX_QUOTE_REQUEST_BYTES);
+    if ("response" in bounded) return bounded.response;
+    const parseRequest = new Request(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: bounded.bytes.slice().buffer,
+    });
+    const { payload, designFile } = await readPayload(parseRequest);
 
     if (payload.website) {
-      return Response.json({ error: "No se pudo procesar la solicitud." }, { status: 400 });
+      return secureJson({ error: "No se pudo procesar la solicitud." }, { status: 400 });
+    }
+
+    const turnstile = await verifyTurnstile(request, trim(payload.turnstileToken, 2_048), "quote_request");
+    if (!turnstile.ok) {
+      return secureJson({ error: "No hemos podido verificar que la solicitud sea legítima. Recarga la página e inténtalo otra vez." }, { status: 400 });
     }
 
     const organizerName = trim(payload.organizerName, 80);
@@ -100,11 +130,11 @@ export async function POST(request: Request) {
     const desiredDate = trim(payload.desiredDate, 20);
     const notes = trim(payload.notes, 1200);
     const referenceUrl = trim(payload.referenceUrl, 500);
-    const quantity = Math.max(5, Math.min(500, Math.round(Number(payload.quantity) || 0)));
+    const quantity = Number(payload.quantity);
 
     const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (organizerName.length < 2 || phone.replace(/\D/g, "").length < 9 || groupName.length < 2 || !emailIsValid || !payload.privacyAccepted) {
-      return Response.json({ error: "Revisa los campos obligatorios antes de enviar." }, { status: 400 });
+    if (organizerName.length < 2 || phone.replace(/\D/g, "").length < 9 || groupName.length < 2 || !emailIsValid || !Number.isInteger(quantity) || quantity < 5 || quantity > 500 || !payload.privacyAccepted) {
+      return secureJson({ error: "Revisa los campos obligatorios antes de enviar." }, { status: 400 });
     }
 
     const configuration = Object.fromEntries(
@@ -125,24 +155,19 @@ export async function POST(request: Request) {
 
     let designFileKey = "";
     if (designFile) {
-      const fileName = safeFileName(designFile.name);
-      const extension = fileName.split(".").pop()?.toLowerCase() || "";
-      if (!ALLOWED_DESIGN_EXTENSIONS.has(extension)) {
-        return Response.json({ error: "El diseño debe ser PNG, JPG, PDF, AI o SVG." }, { status: 400 });
-      }
-      if (designFile.size > MAX_DESIGN_FILE_BYTES) {
-        return Response.json({ error: "El archivo de diseño no puede superar 15 MB." }, { status: 413 });
-      }
+      const validation = await validateDesignFile(designFile);
+      if ("error" in validation) return secureJson({ error: validation.error }, { status: validation.status });
+      const validatedFile = validation.file;
       const { BUCKET } = getSiteRuntimeEnv();
-      if (!BUCKET) return Response.json({ error: "La subida de archivos todavía no está disponible." }, { status: 503 });
-      designFileKey = `quote-designs/${code}/${crypto.randomUUID()}-${fileName}`;
-      await BUCKET.put(designFileKey, await designFile.arrayBuffer(), {
-        httpMetadata: { contentType: designFile.type || "application/octet-stream" },
-        customMetadata: { originalName: fileName, quoteCode: code },
+      if (!BUCKET) return secureJson({ error: "La subida de archivos todavía no está disponible." }, { status: 503 });
+      designFileKey = `quote-designs/${code}/${crypto.randomUUID()}-${validatedFile.safeName}`;
+      await BUCKET.put(designFileKey, validatedFile.bytes, {
+        httpMetadata: { contentType: validatedFile.contentType },
+        customMetadata: { originalName: validatedFile.safeName, quoteCode: code },
       });
       configuration.designFileKey = designFileKey;
-      configuration.designFileName = fileName;
-      configuration.designFileType = designFile.type || "application/octet-stream";
+      configuration.designFileName = validatedFile.safeName;
+      configuration.designFileType = validatedFile.contentType;
       configuration.designFileSize = String(designFile.size);
     }
 
@@ -184,12 +209,14 @@ export async function POST(request: Request) {
     if (emailStatus !== "pending") {
       await db.update(quoteRequests).set({ emailStatus }).where(eq(quoteRequests.code, code));
     }
+    await trackServerProductEvent("presupuesto_submitted", { product_type: configuration.product === "Camiseta" ? "tshirt" : "hoodie", quantity, group_type: groupType });
 
-    return Response.json({ code, status: "received", emailStatus }, { status: 201 });
+    return secureJson({ code, status: "received", emailStatus }, { status: 201 });
   } catch (error) {
+    reportServerError(error, "quote");
     const message = error instanceof Error ? error.message : "Error inesperado";
     const isMissingTable = message.includes("no such table") || message.includes("quote_requests");
-    return Response.json(
+    return secureJson(
       { error: isMissingTable ? "El registro de solicitudes todavía se está preparando." : "No hemos podido registrar la solicitud. Inténtalo de nuevo." },
       { status: 500 },
     );

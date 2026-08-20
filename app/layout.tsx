@@ -7,6 +7,7 @@ import {
   SOCIAL_IMAGE,
 } from "@/lib/site";
 import { SiteMotion } from "@/app/_components/site-motion";
+import { Observability } from "@/app/_components/observability";
 import "./globals.css";
 import "./motion.css";
 
@@ -32,7 +33,6 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   publisher: SITE_NAME,
   category: "Personalización textil",
-  other: { "codex-preview": "development" },
   alternates: { canonical: "/" },
   openGraph: {
     title: `Sudaderas personalizadas para colegios y grupos | Precios claros`,
@@ -78,6 +78,9 @@ export const metadata: Metadata = {
     shortcut: "/favicon.svg",
     apple: "/favicon.svg",
   },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export default function RootLayout({
@@ -90,6 +93,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Observability />
         <SiteMotion />
         {children}
       </body>

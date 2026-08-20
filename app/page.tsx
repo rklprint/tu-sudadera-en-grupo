@@ -1,17 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { CORE_COLORS, DEFAULT_CATALOG, unitPriceForQuantity, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
+import { trackProductEvent } from "@/lib/analytics";
 
 type Side = "front" | "back";
 type DesignPath = "template" | "upload" | "studio";
+type ProductType = "hoodie" | "tshirt";
 
-const garmentColors = [
-  { name: "Azul marino", value: "#14223e" }, { name: "Verde botella", value: "#174f42" },
-  { name: "Burdeos", value: "#753247" }, { name: "Gris", value: "#aeb1b5" },
-  { name: "Negro", value: "#202124" }, { name: "Rojo", value: "#a93642" },
-  { name: "Blanco", value: "#f2f1ed" },
-];
+const defaultGarmentColors = CORE_COLORS;
 const printColors = [
   { name: "Blanco roto", value: "#f7f3e9" }, { name: "Blanco", value: "#ffffff" },
   { name: "Azul cielo", value: "#9ed8f4" }, { name: "Amarillo flúor", value: "#e6ff58" },
@@ -33,21 +32,6 @@ const flagOptions = [
   { id: "custom", label: "Logo propio", symbol: "◇" },
 ] as const;
 const chapters = ["Prenda", "Espalda", "Delantera", "Manga"];
-
-const priceTiers = [
-  { min: 5, max: 10, label: "5–10", price: 30 },
-  { min: 11, max: 20, label: "11–20", price: 28 },
-  { min: 21, max: 30, label: "21–30", price: 26 },
-  { min: 31, max: 40, label: "31–40", price: 25 },
-  { min: 41, max: 50, label: "41–50", price: 24 },
-  { min: 51, max: 75, label: "51–75", price: 23 },
-  { min: 76, max: 99, label: "76–99", price: 22 },
-  { min: 100, max: Number.POSITIVE_INFINITY, label: "100+", price: null },
-] as const;
-
-function priceForQuantity(quantity: number) {
-  return priceTiers.find((tier) => quantity >= tier.min && quantity <= tier.max)?.price ?? null;
-}
 
 const faqItems = [
   {
@@ -146,7 +130,11 @@ const structuredData = {
 };
 
 export default function Home() {
-  const [garment, setGarment] = useState(garmentColors[0]);
+  const router = useRouter();
+  const [productType, setProductType] = useState<ProductType>("hoodie");
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([...DEFAULT_CATALOG]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [garment, setGarment] = useState<CatalogColor>(defaultGarmentColors[0]);
   const [print, setPrint] = useState(printColors[0]);
   const [style, setStyle] = useState(styles[0]);
   const [side, setSide] = useState<Side>("back");
@@ -163,6 +151,29 @@ export default function Home() {
   const [quantity, setQuantity] = useState(25);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    fetch("/api/catalogo")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("catalog unavailable");
+        const result = await response.json() as { products?: CatalogProduct[] };
+        if (result.products?.length) setCatalog(result.products);
+      })
+      .catch(() => undefined)
+      .finally(() => setCatalogLoaded(true));
+  }, []);
+
+  const categoryAvailable = (category: ProductType) => !catalogLoaded || catalog.some((product) => product.category === category && product.active);
+  const activeProduct = catalog.find((product) => product.category === productType && product.active)
+    || (!catalogLoaded ? DEFAULT_CATALOG.find((product) => product.category === productType) : undefined)
+    || catalog.find((product) => product.active)
+    || DEFAULT_CATALOG[0];
+  const garmentColors = activeProduct.colors.length ? activeProduct.colors : defaultGarmentColors;
+  const priceTiers = activeProduct.priceTiers.map((tier) => ({
+    ...tier,
+    max: tier.max ?? Number.POSITIVE_INFINITY,
+    price: tier.unitPriceCents === null ? null : tier.unitPriceCents / 100,
+  }));
+
   const designText = useMemo(() => {
     const name = groupName || "VUESTRO GRUPO";
     if (designPath === "upload") return "TU DISEÑO\nSUBIDO";
@@ -178,7 +189,10 @@ export default function Home() {
     return `${name}\nX ANIVERSARIO`;
   }, [designPath, groupName, style]);
 
-  const baseUnitPrice = priceForQuantity(quantity);
+  const basePriceCents = activeProduct.quoteOnly ? null : unitPriceForQuantity(quantity, activeProduct.priceTiers);
+  const baseUnitPrice = basePriceCents === null ? null : basePriceCents / 100;
+  const productName = productType === "hoodie" ? "Sudadera" : "Camiseta";
+  const productModel = activeProduct.model;
   const backDesignLabel = designPath === "template" ? style.label : designPath === "upload" ? "Diseño aportado" : "Diseño a medida";
   const frontDesignLabel = frontOptions.find((item) => item.id === frontType)?.label || "Detalle delantero";
   const selectedFlag = flagOptions.find((item) => item.id === sleeveFlag)?.label || "Sin bandera";
@@ -194,10 +208,32 @@ export default function Home() {
   const chestLogoEmbroiderySelected = frontType === "logo" && frontTechnique === "embroidery";
   const sleeveLogoEmbroiderySelected = sleeveFlag === "custom" && sleeveTechnique === "embroidery";
   const progress = ((openStep + 1) / chapters.length) * 100;
-  const scrollToCustomizer = () => document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth" });
+  const scrollToCustomizer = () => {
+    void trackProductEvent("personalizador_started", { source: "homepage" });
+    document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth" });
+  };
+  const selectProduct = (nextProduct: ProductType) => {
+    if (!categoryAvailable(nextProduct)) return;
+    setProductType(nextProduct);
+    const nextCatalogProduct = catalog.find((product) => product.category === nextProduct && product.active);
+    if (nextCatalogProduct?.colors.length && !nextCatalogProduct.colors.some((color) => color.name === garment.name)) setGarment(nextCatalogProduct.colors[0]);
+    void trackProductEvent("producto_selected", { product_type: nextProduct });
+  };
+  const selectColor = (nextColor: CatalogColor) => {
+    setGarment(nextColor);
+    void trackProductEvent("color_selected", { product_type: productType, color: nextColor.name });
+  };
   const goToQuote = () => {
+    void trackProductEvent("personalizador_completed", {
+      product_type: productType,
+      model: productModel,
+      color: garment.name,
+      quantity,
+      design_path: designPath,
+    });
     const params = new URLSearchParams({
-      model: "Gildan 18500",
+      product: productName,
+      model: productModel,
       color: garment.name,
       printColor: print.name,
       backDesign: designPath === "template" ? style.label : designPath === "upload" ? "Diseño subido" : "Diseño a medida",
@@ -208,7 +244,7 @@ export default function Home() {
       basePrice: baseUnitPrice === null ? "Consultar" : `${baseUnitPrice} € por unidad`,
       configuredPrice: configuredUnitPrice === null ? "Consultar" : `${configuredUnitPrice} € por unidad`,
     });
-    window.location.assign(`/presupuesto?${params.toString()}`);
+    router.push(`/presupuesto?${params.toString()}`);
   };
 
   return <main>
@@ -253,19 +289,19 @@ export default function Home() {
         <div className="customizer-progress"><span style={{width:`${progress}%`}} /><div>{chapters.map((item,index)=><button key={item} className={openStep===index?"active":openStep>index?"done":""} onClick={()=>setOpenStep(index)}><i>{openStep>index?"✓":String(index+1).padStart(2,"0")}</i>{item}</button>)}</div></div>
         <div className="customizer-layout">
           <div className="preview-panel">
-            <div className="preview-toolbar"><span>Vista previa en directo <i>Live</i></span><div className="side-toggle" role="group" aria-label="Vista de la sudadera"><button className={side==="front"?"active":""} onClick={()=>setSide("front")}>Delante</button><button className={side==="back"?"active":""} onClick={()=>setSide("back")}>Espalda</button></div></div>
-            <div className="preview-stage"><span className="preview-model">GILDAN® 18500<br /><small>Heavy Blend</small></span><Hoodie color={garment.value} printColor={print.value} text={designText} side={side} designStyle={style.id} frontType={frontType} frontText={frontText} frontLogo={frontLogo} sleeveFlag={flagOptions.find(item=>item.id===sleeveFlag)?.symbol||""} sleeveTechnique={sleeveTechnique} /><div className="zoom-hint">↗ Vista orientativa</div></div>
-            <div className="preview-summary"><div><span>Base</span><b>Gildan 18500</b></div><div><span>Color</span><b>{garment.name}</b></div><div><span>Diseño</span><b>{designPath==="template"?style.label:designPath==="upload"?"Subido":"A medida"}</b></div></div>
+            <div className="preview-toolbar"><span>Vista previa en directo <i>Live</i></span><div className="side-toggle" role="group" aria-label={`Vista de la ${productName.toLowerCase()}`}><button className={side==="front"?"active":""} onClick={()=>setSide("front")}>Delante</button><button className={side==="back"?"active":""} onClick={()=>setSide("back")}>Espalda</button></div></div>
+            <div className="preview-stage"><span className="preview-model">{productType === "hoodie" ? <>{activeProduct.model.toUpperCase()}<br /><small>Heavy Blend</small></> : <>CAMISETA<br /><small>{activeProduct.model}</small></>}</span>{productType === "hoodie" ? <Hoodie color={garment.value} printColor={print.value} text={designText} side={side} designStyle={style.id} frontType={frontType} frontText={frontText} frontLogo={frontLogo} sleeveFlag={flagOptions.find(item=>item.id===sleeveFlag)?.symbol||""} sleeveTechnique={sleeveTechnique} /> : <TShirt color={garment.value} printColor={print.value} text={designText} side={side} frontType={frontType} frontText={frontText} /> }<div className="zoom-hint">↗ Vista orientativa</div></div>
+            <div className="preview-summary"><div><span>Prenda</span><b>{productName}</b></div><div><span>Color</span><b>{garment.name}</b></div><div><span>Diseño</span><b>{designPath==="template"?style.label:designPath==="upload"?"Subido":"A medida"}</b></div></div>
           </div>
           <div className="controls-panel">
-            {openStep===0&&<div className="step-view"><StepHeader number="01" title="Elegid la base" text="Primero, el color que llevará todo el grupo." /><h3 className="field-title">Color <span>{garment.name}</span></h3><div className="swatches labeled">{garmentColors.map(item=><button key={item.name} className={garment.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>setGarment(item)} aria-label={item.name}><i /><small>{item.name}</small></button>)}</div><ProductStrip /><NextButton onClick={()=>setOpenStep(1)} label="Diseñar la espalda" /></div>}
-            {openStep===1&&<div className="step-view"><StepHeader number="02" title="Diseñad la espalda" text="Elegid cómo queréis empezar. Siempre podréis cambiarlo." /><div className="path-tabs">{([{id:"template",label:"Usar plantilla",icon:"✦"},{id:"upload",label:"Subir diseño",icon:"↑"},{id:"studio",label:"Diseño a medida",icon:"✎"}] as const).map(item=><button key={item.id} className={designPath===item.id?"active":""} onClick={()=>setDesignPath(item.id)}><b>{item.icon}</b><span>{item.label}</span></button>)}</div>{designPath==="template"&&<><h3 className="field-title">Plantillas <span>{style.label}</span></h3><div className="style-options">{styles.map(item=><button key={item.id} className={style.id===item.id?`style-option active ${item.id}`:`style-option ${item.id}`} onClick={()=>{setStyle(item);setSide("back")}}>{item.tag&&<em>{item.tag}</em>}<b>{item.sample}</b><small>{item.label}</small></button>)}</div><label className="text-field"><span>Nombre, año o frase principal</span><input value={groupName} onChange={e=>setGroupName(e.target.value.toUpperCase().slice(0,18))} placeholder="EJ. PROMO 26" /></label><h3 className="field-title compact-title">Color del diseño <span>{print.name}</span></h3><div className="swatches print-swatches">{printColors.map(item=><button key={item.name} className={print.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>setPrint(item)} aria-label={item.name}><i /></button>)}</div></>}{designPath==="upload"&&<UploadDrop title="Adjuntad vuestro diseño al pedir presupuesto" text="Aceptamos PNG, JPG, PDF, AI o SVG hasta 15 MB. Quedará guardado de forma privada con vuestra solicitud." />}{designPath==="studio"&&<div className="studio-card"><span>Diseñado desde cero</span><h3>Mandad una foto, un dibujo o incluso una nota de voz.</h3><p>Podemos ilustrar vuestro pueblo, el grupo, una mascota o cualquier idea que os represente.</p><ul><li>Propuesta visual sin compromiso</li><li>Ajustes con vuestro diseñador</li><li>Preparado para producir</li></ul></div>}<NextButton onClick={()=>{setOpenStep(2);setSide("front")}} label="Personalizar delante" /></div>}
+            {openStep===0&&<div className="step-view"><StepHeader number="01" title="Elegid la prenda" text="La sudadera es la protagonista. También podéis empezar un presupuesto de camisetas." /><div className="product-type-options" role="group" aria-label="Tipo de prenda"><button type="button" disabled={!categoryAvailable("hoodie")} className={productType === "hoodie" ? "active" : ""} aria-pressed={productType === "hoodie"} onClick={() => selectProduct("hoodie")}><b>Sudadera</b><span>{catalog.find(product => product.category === "hoodie")?.model || "Gildan 18500"} · {categoryAvailable("hoodie") ? "precios publicados" : "no disponible"}</span><em>Recomendada</em></button><button type="button" disabled={!categoryAvailable("tshirt")} className={productType === "tshirt" ? "active" : ""} aria-pressed={productType === "tshirt"} onClick={() => selectProduct("tshirt")}><b>Camiseta</b><span>{catalog.find(product => product.category === "tshirt")?.model || "Modelo por confirmar"} · {!categoryAvailable("tshirt") ? "no disponible" : catalog.find(product => product.category === "tshirt")?.quoteOnly !== false ? "tarifa por confirmar" : "precios publicados"}</span><em>Secundaria</em></button></div><h3 className="field-title">Color <span>{garment.name}</span></h3><div className="swatches labeled">{garmentColors.map(item=><button key={item.name} className={garment.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>selectColor(item)} aria-label={item.name}><i /><small>{item.name}</small></button>)}</div><ProductStrip productType={productType} model={activeProduct.model} quoteOnly={activeProduct.quoteOnly} /><NextButton onClick={()=>setOpenStep(1)} label="Diseñar la espalda" /></div>}
+            {openStep===1&&<div className="step-view"><StepHeader number="02" title="Diseñad la espalda" text="Elegid cómo queréis empezar. Siempre podréis cambiarlo." /><div className="path-tabs">{([{id:"template",label:"Usar plantilla",icon:"✦"},{id:"upload",label:"Subir diseño",icon:"↑"},{id:"studio",label:"Diseño a medida",icon:"✎"}] as const).map(item=><button key={item.id} className={designPath===item.id?"active":""} onClick={()=>setDesignPath(item.id)}><b>{item.icon}</b><span>{item.label}</span></button>)}</div>{designPath==="template"&&<><h3 className="field-title">Plantillas <span>{style.label}</span></h3><div className="style-options">{styles.map(item=><button key={item.id} className={style.id===item.id?`style-option active ${item.id}`:`style-option ${item.id}`} onClick={()=>{setStyle(item);setSide("back")}}>{item.tag&&<em>{item.tag}</em>}<b>{item.sample}</b><small>{item.label}</small></button>)}</div><label className="text-field"><span>Nombre, año o frase principal</span><input value={groupName} onChange={e=>setGroupName(e.target.value.toUpperCase().slice(0,18))} placeholder="EJ. PROMO 26" /></label><h3 className="field-title compact-title">Color del diseño <span>{print.name}</span></h3><div className="swatches print-swatches">{printColors.map(item=><button key={item.name} className={print.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>setPrint(item)} aria-label={item.name}><i /></button>)}</div></>}{designPath==="upload"&&<UploadDrop title="Adjuntad vuestro diseño al pedir presupuesto" text="Aceptamos PNG, JPG, PDF o AI hasta 15 MB. Verificamos el formato y lo guardamos de forma privada." />}{designPath==="studio"&&<div className="studio-card"><span>Diseñado desde cero</span><h3>Mandad una foto, un dibujo o incluso una nota de voz.</h3><p>Podemos ilustrar vuestro pueblo, el grupo, una mascota o cualquier idea que os represente.</p><ul><li>Propuesta visual sin compromiso</li><li>Ajustes con vuestro diseñador</li><li>Preparado para producir</li></ul></div>}<NextButton onClick={()=>{setOpenStep(2);setSide("front")}} label="Personalizar delante" /></div>}
             {openStep===2&&<div className="step-view">
               <StepHeader number="03" title="El detalle delantero" text="El DTF hasta A5 está incluido. Solo el bordado puede añadir coste." />
               <div className="front-options">{frontOptions.map(item=><button key={item.id} className={frontType===item.id?"active":""} onClick={()=>{setFrontType(item.id);setSide("front")}}><b>{item.icon}</b><span>{item.label}</span></button>)}</div>
               {frontType==="coordinates"&&<label className="text-field"><span>Coordenadas</span><input value={frontText} onChange={e=>setFrontText(e.target.value.slice(0,28))} placeholder="37°53'N · 4°46'W" /></label>}
               {frontType==="name"&&<label className="text-field"><span>Nombre o mote</span><input value={frontText} onChange={e=>setFrontText(e.target.value.toUpperCase().slice(0,18))} placeholder="NOMBRE" /></label>}
-              {frontType==="logo"&&<label className="upload-control"><input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={e=>{const file=e.target.files?.[0];if(file)setFrontLogo(URL.createObjectURL(file))}} /><b>{frontLogo?"✓":"↑"}</b><span>{frontLogo?"Logo cargado · cambiar":"Subir logo delantero"}</span><small>PNG, JPG o SVG</small></label>}
+              {frontType==="logo"&&<label className="upload-control"><input type="file" accept="image/png,image/jpeg" onChange={e=>{const file=e.target.files?.[0];if(file)setFrontLogo(URL.createObjectURL(file))}} /><b>{frontLogo?"✓":"↑"}</b><span>{frontLogo?"Logo cargado · cambiar":"Subir logo delantero"}</span><small>PNG o JPG</small></label>}
               <h3 className="field-title compact-title">Acabado delantero <span>{frontTechnique === "print" ? "DTF incluido" : frontType === "coordinates" ? "+1 €" : "A consultar"}</span></h3>
               <div className="technique-cards"><button className={frontTechnique==="print"?"active":""} onClick={()=>setFrontTechnique("print")}><b>DTF</b><span>Incluido</span><small>A todo color y hasta A5</small></button><button className={frontTechnique==="embroidery"?"active":""} onClick={()=>setFrontTechnique("embroidery")}><b>✣</b><span>Bordado</span><small>{frontType === "coordinates" ? "Coordenadas · +1 €" : "Logo o texto · a consultar"}</small></button></div>
               <div className="placement-note"><b>Precio transparente</b><p>El nombre individual en DTF puede ir delante o detrás sin cambiar el precio.</p></div>
@@ -324,31 +360,31 @@ export default function Home() {
         <div className="single-order-note"><b>¿Necesitáis de 1 a 4 unidades?</b><span>También las hacemos. Escribidnos por WhatsApp para recibir un precio individual.</span></div>
       </div>
       <div className="price-card">
-        <div className="price-reference-heading"><span>Calculadora transparente</span><strong>Precio por sudadera · IVA incluido</strong></div>
+        <div className="price-reference-heading"><span>Calculadora transparente</span><strong>Precio por {productName.toLowerCase()} · IVA incluido</strong></div>
         <div className="price-reference-product">
-          <div className="price-mini-hoodies" aria-label="Vista de la sudadera de referencia">
-            <div className="price-mini-item"><span>Espalda</span><Hoodie color={garment.value} printColor={print.value} text={designText} side="back" designStyle={style.id} /></div>
-            <div className="price-mini-item"><span>Delante</span><Hoodie color={garment.value} printColor={print.value} text={designText} side="front" frontType={frontType} frontText={frontText} frontLogo={frontLogo} /></div>
+          <div className="price-mini-hoodies" aria-label={`Vista de la ${productName.toLowerCase()} de referencia`}>
+            <div className="price-mini-item"><span>Espalda</span>{productType === "hoodie" ? <Hoodie color={garment.value} printColor={print.value} text={designText} side="back" designStyle={style.id} /> : <TShirt color={garment.value} printColor={print.value} text={designText} side="back" />}</div>
+            <div className="price-mini-item"><span>Delante</span>{productType === "hoodie" ? <Hoodie color={garment.value} printColor={print.value} text={designText} side="front" frontType={frontType} frontText={frontText} frontLogo={frontLogo} /> : <TShirt color={garment.value} printColor={print.value} text={designText} side="front" frontType={frontType} frontText={frontText} />}</div>
           </div>
           <div className="price-product-copy">
-            <small>Sudadera base</small>
-            <h3>Gildan® 18500 Heavy Blend</h3>
-            <p>Con capucha · Unisex · 50% algodón / 50% poliéster · Color {garment.name}</p>
+            <small>{productName} base</small>
+            <h3>{productType === "hoodie" ? "Gildan® 18500 Heavy Blend" : "Camiseta personalizada"}</h3>
+            <p>{productType === "hoodie" ? `Con capucha · Unisex · 50% algodón / 50% poliéster · Color ${garment.name}` : `El modelo y la tarifa se publicarán cuando estén cerrados. Color orientativo: ${garment.name}.`}</p>
           </div>
         </div>
-        <div className="price-top"><span>Número de sudaderas</span><strong>{quantity >= 100 ? `${quantity} · consultar` : `${quantity} unidades`}</strong></div>
-        <input aria-label="Número de sudaderas" type="range" min="5" max="110" value={quantity} onChange={e=>setQuantity(Number(e.target.value))} />
+        <div className="price-top"><span>Número de {productName.toLowerCase()}s</span><strong>{quantity >= 100 ? `${quantity} · consultar` : `${quantity} unidades`}</strong></div>
+        <input aria-label={`Número de ${productName.toLowerCase()}s`} type="range" min="5" max="110" value={quantity} onChange={e=>setQuantity(Number(e.target.value))} />
         <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>100+</span></div>
 
         <div className="price-live-result" aria-live="polite">
-          <div><span>Precio base</span><strong key={`base-${baseUnitPrice}`}>{baseUnitPrice === null ? "Consultar" : <>{baseUnitPrice}<sup>€</sup></>}</strong><small>Sudadera + DTF delante y detrás + nombre</small></div>
+          <div><span>Precio base</span><strong key={`base-${productType}-${baseUnitPrice}`}>{baseUnitPrice === null ? "Consultar" : <>{baseUnitPrice}<sup>€</sup></>}</strong><small>{productType === "hoodie" ? "Sudadera + DTF delante y detrás + nombre" : "Modelo y precio de camiseta pendientes de publicación"}</small></div>
           <div className={configuredUnitPrice === null ? "consult" : ""}><span>Vuestra configuración</span><strong key={`configured-${configuredUnitPrice}-${knownExtras}-${customEmbroidery}`}>{configuredUnitPrice === null ? "Consultar" : <>{configuredUnitPrice}<sup>€</sup></>}</strong><small>{customEmbroidery ? "Incluye un logo bordado pendiente de valorar" : knownExtras ? `Incluye ${knownExtras} € en extras por prenda` : "Sin extras seleccionados"}</small></div>
         </div>
 
-        <div className="price-table" aria-label="Tabla completa de precios base">
+        {productType === "hoodie" ? <div className="price-table" aria-label="Tabla completa de precios base">
           <div className="price-table-head"><span>Unidades</span><span>Precio por unidad</span></div>
           {priceTiers.map((tier) => <div key={tier.label} className={quantity >= tier.min && quantity <= tier.max ? "active" : ""}><span>{tier.label}</span><strong>{tier.price === null ? "Consultar" : `${tier.price} €`}</strong></div>)}
-        </div>
+        </div> : <div className="shirt-price-pending"><b>Tarifa de camisetas pendiente</b><p>Podéis incluir camisetas en la solicitud. Antes de activar pagos publicaremos el modelo, la impresión incluida y todos sus tramos de precio.</p></div>}
 
         <div className="extras-table" aria-label="Seleccionar extras opcionales por prenda">
           <div className="extras-table-head"><span>Extras opcionales por prenda</span><small>Seleccionad · se suman</small></div>
@@ -373,7 +409,7 @@ export default function Home() {
     <section className="reviews-section" aria-labelledby="process-proof-title"><div className="reviews-heading"><p className="eyebrow"><span /> Confianza sin letra pequeña</p><h2 id="process-proof-title">Antes de producir,<br /><em>todo está claro.</em></h2><p className="proof-intro">Las opiniones reales llegarán cuando podamos publicarlas y verificarlas. Mientras tanto, estas son las garantías concretas del proceso.</p></div><div className="review-grid proof-grid"><article className="review-card proof-card"><span>01</span><h3>Veis la maqueta</h3><p>Revisáis diseño, colores, nombres y colocaciones antes de aprobar la producción.</p><strong>Sin producir a ciegas</strong></article><article className="review-card proof-card"><span>02</span><h3>Confirmáis el precio</h3><p>El pago solo se abre después de cerrar cantidades, acabados y precio definitivo.</p><strong>Sin sorpresas</strong></article><article className="review-card proof-card"><span>03</span><h3>Controláis el grupo</h3><p>El pedido privado reúne tallas, personalizaciones y pagos individuales o conjuntos.</p><strong>Todo en un solo sitio</strong></article></div></section>
     <section className="faq-section" id="preguntas"><div className="faq-heading"><p className="eyebrow"><span /> Todo claro</p><h2>Las dudas<br /><em>antes del sí.</em></h2><p>Si vuestra pregunta no está aquí, nos escribís y os respondemos sin bots ni respuestas copiadas.</p></div><div className="faq-list">{faqItems.map((item, index) => <details key={item.question} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
     <section className="final-cta"><div className="cta-orbit"><span>✦</span></div><p>No hace falta tener el diseño perfecto.</p><h2>Solo una idea que<br /><em>merezca llevarse puesta.</em></h2><button onClick={goToQuote}>Pedir presupuesto <span>↗</span></button></section>
-    <footer><div className="footer-top"><a className="brand footer-brand" href="#inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a><p>Sudaderas para grupos con precios claros, diseño incluido y entrega conjunta en toda España.</p><div className="socials" aria-label="Redes sociales pendientes"><span title="Instagram · próximamente">ig</span><span title="TikTok · próximamente">tk</span></div></div><div className="footer-links"><div><strong>Empezar</strong><a href="#personalizador">Personalizador</a><a href="#presupuesto">Precios</a><Link href="/presupuesto">Pedir presupuesto</Link></div><div><strong>Para grupos</strong><Link href="/sudaderas-colegios-institutos">Colegios e institutos</Link><Link href="/sudaderas-fin-de-curso">Fin de curso</Link><Link href="/sudaderas-penas">Peñas</Link><Link href="/sudaderas-equipos-clubes">Equipos y clubes</Link></div><div><strong>Información</strong><Link href="/pedido">Entrar a un pedido</Link><a href="#como-funciona">Cómo funciona</a><a href="#preguntas">Preguntas</a><span>Guía de tallas · próximamente</span></div><div><strong>Contacto</strong><span>WhatsApp · se activará al lanzamiento</span><a href="mailto:pedidos@tusudaderaengrupo.es">pedidos@tusudaderaengrupo.es</a><span>Servicio para toda España</span></div></div><div className="footer-bottom"><small>© 2026 Tu sudadera en grupo</small><span>Hecho para pertenecer ✦</span><div><span>Información legal en preparación</span></div></div></footer>
+    <footer><div className="footer-top"><a className="brand footer-brand" href="#inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a><p>Sudaderas para grupos con precios claros, diseño incluido y entrega conjunta en toda España.</p><div className="socials" aria-label="Redes sociales pendientes"><span title="Instagram · próximamente">ig</span><span title="TikTok · próximamente">tk</span></div></div><div className="footer-links"><div><strong>Empezar</strong><a href="#personalizador">Personalizador</a><a href="#presupuesto">Precios</a><Link href="/presupuesto">Pedir presupuesto</Link><Link href="/camisetas-personalizadas">Camisetas</Link></div><div><strong>Para grupos</strong><Link href="/sudaderas-personalizadas">Sudaderas personalizadas</Link><Link href="/sudaderas-colegios-institutos">Colegios e institutos</Link><Link href="/sudaderas-fin-de-curso">Fin de curso</Link><Link href="/sudaderas-penas">Peñas</Link><Link href="/sudaderas-viaje-estudios">Viajes de estudios</Link><Link href="/sudaderas-equipos-clubes">Equipos y clubes</Link></div><div><strong>Información</strong><Link href="/pedido">Entrar a un pedido</Link><a href="#como-funciona">Cómo funciona</a><a href="#preguntas">Preguntas</a><Link href="/privacidad">Privacidad</Link><Link href="/cookies">Cookies</Link><Link href="/condiciones">Condiciones</Link></div><div><strong>Contacto</strong><span>WhatsApp · se activará al lanzamiento</span><a href="mailto:pedidos@tusudaderaengrupo.es" onClick={() => void trackProductEvent("contact_email_clicked", { source: "footer" })}>pedidos@tusudaderaengrupo.es</a><span>Servicio para toda España</span></div></div><div className="footer-bottom"><small>© 2026 Tu sudadera en grupo</small><span>Hecho para pertenecer ✦</span><div><span>Datos fiscales pendientes antes del lanzamiento</span></div></div></footer>
     <button className="mobile-sticky" onClick={goToQuote}>Pedir presupuesto <span>↗</span></button>
   </main>;
 }
@@ -381,7 +417,8 @@ export default function Home() {
 function BrandMark(){return <span className="brand-mark"><i>T</i><b>S</b><em>G</em></span>}
 function StepHeader({number,title,text}:{number:string;title:string;text:string}){return <div className="step-header"><span>{number}</span><div><h2>{title}</h2><p>{text}</p></div></div>}
 function NextButton({onClick,label}:{onClick:()=>void;label:string}){return <button className="next-button" onClick={onClick}><span><small>Siguiente paso</small>{label}</span><b>→</b></button>}
-function ProductStrip(){return <div className="product-strip"><div><b>Gildan® 18500</b><span>Heavy Blend · Unisex</span></div><div><b>50/50</b><span>Algodón / poliéster</span></div><div><b>S–3XL</b><span>Mismo precio en todas</span></div></div>}
+function ProductStrip({productType,model,quoteOnly}:{productType:ProductType;model:string;quoteOnly:boolean}){return productType === "hoodie" ? <div className="product-strip"><div><b>{model}</b><span>Heavy Blend · Unisex</span></div><div><b>50/50</b><span>Algodón / poliéster</span></div><div><b>S–3XL</b><span>Variantes desde catálogo</span></div></div> : <div className="product-strip quote-only"><div><b>{model}</b><span>Producto secundario</span></div><div><b>S–3XL</b><span>Variantes desde catálogo</span></div><div><b>{quoteOnly ? "Consultar" : "Precio publicado"}</b><span>{quoteOnly ? "Sin inventar tarifa" : "Según cantidad"}</span></div></div>}
 function UploadDrop({title,text}:{title:string;text:string}){return <div className="upload-drop"><b>↑</b><h3>{title}</h3><p>{text}</p><span>El archivo se adjunta en el siguiente paso →</span></div>}
 function Hoodie({color,printColor,text,side,designStyle="default",frontType="name",frontText="PROMO",frontLogo="",sleeveFlag="",sleeveTechnique="print"}:{color:string;printColor:string;text:string;side:Side;designStyle?:string;frontType?:string;frontText?:string;frontLogo?:string;sleeveFlag?:string;sleeveTechnique?:string}){return <div className="hoodie" style={{"--hoodie":color,"--print":printColor} as React.CSSProperties}><div className="hoodie-hood"/><div className="hoodie-left-sleeve"/><div className="hoodie-right-sleeve"/>{sleeveFlag&&<div className={`hoodie-sleeve-design ${sleeveTechnique}`}>{sleeveFlag}</div>}<div className="hoodie-body">{side==="front"&&<><span className="hoodie-string left"/><span className="hoodie-string right"/><span className="hoodie-pocket"/></>}{side==="back"?<div className={`hoodie-design back design-${designStyle}`}>{text.split("\n").map((line,index)=><span key={`${line}-${index}`}>{line}</span>)}</div>:<div className={`front-personalization ${frontType}`}>{frontType==="logo"?(frontLogo?<span className="uploaded-logo" role="img" aria-label="Logo subido" style={{backgroundImage:`url(${frontLogo})`}}/>:<><b>◇</b><span>LOGO</span></>):<span>{frontText||(frontType==="coordinates"?"37°53'N · 4°46'W":"NOMBRE")}</span>}</div>}</div></div>}
+function TShirt({color,printColor,text,side,frontType="name",frontText="PROMO"}:{color:string;printColor:string;text:string;side:Side;frontType?:string;frontText?:string}){return <div className="tshirt" style={{"--hoodie":color,"--print":printColor} as React.CSSProperties}><div className="tshirt-left-sleeve"/><div className="tshirt-right-sleeve"/><div className="tshirt-body"><span className="tshirt-collar"/>{side==="back"?<div className="hoodie-design back design-x">{text.split("\n").map((line,index)=><span key={`${line}-${index}`}>{line}</span>)}</div>:<div className={`front-personalization ${frontType}`}><span>{frontText||(frontType==="coordinates"?"37°53'N · 4°46'W":"NOMBRE")}</span></div>}</div></div>}
 function ShowcaseCard({className="",number,eyebrow,title,text,design,color,print}:{className?:string;number:string;eyebrow:string;title:string;text:string;design:string;color:string;print:string}){return <article className={`showcase-card ${className}`}><div className="showcase-copy"><span>{number} · {eyebrow}</span><h3>{title}</h3><p>{text}</p><button onClick={()=>document.getElementById("personalizador")?.scrollIntoView({behavior:"smooth"})}>Usar como inicio ↗</button></div><div className="showcase-visual"><Hoodie color={color} printColor={print} text={design==="x"?"VUESTRO GRUPO\nX":design==="monument"?"MI PUEBLO\nPUEBLO & FIESTA":design==="group"?"LA PEÑA\nEL GRUPO":design==="collage"?"RECUERDOS\nLOCAL":"MASCOTA\nX ANIVERSARIO"} side="back" designStyle={design}/></div></article>}

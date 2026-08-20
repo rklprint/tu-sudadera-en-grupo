@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const revealSelector = [
   ".quick-benefits > article",
@@ -48,50 +48,60 @@ const loadSelector = [
 ].join(",");
 
 export function SiteMotion() {
+  const progressRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
-    const root = document.documentElement;
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
     if (prefersReducedMotion) {
-      root.classList.add("motion-reduced");
-      return () => root.classList.remove("motion-reduced");
+      return;
     }
-
-    root.classList.add("motion-enabled");
 
     const loadItems = Array.from(
       document.querySelectorAll<HTMLElement>(loadSelector),
     );
     loadItems.forEach((element, index) => {
-      element.classList.add("motion-load-item");
-      element.style.setProperty(
-        "--motion-load-delay",
-        `${Math.min(index, 5) * 85}ms`,
+      element.animate(
+        [
+          { opacity: 0, transform: "translateY(18px)" },
+          { opacity: 1, transform: "translateY(0)" },
+        ],
+        {
+          duration: 520,
+          delay: Math.min(index, 5) * 85,
+          easing: "cubic-bezier(.22,1,.36,1)",
+          fill: "backwards",
+        },
       );
     });
 
     const revealItems = Array.from(
       document.querySelectorAll<HTMLElement>(revealSelector),
     );
-    revealItems.forEach((element) => {
-      element.classList.add("reveal-item");
-      const siblings = element.parentElement
-        ? Array.from(element.parentElement.children)
-        : [];
-      const siblingIndex = Math.max(0, siblings.indexOf(element));
-      element.style.setProperty(
-        "--reveal-delay",
-        `${Math.min(siblingIndex % 4, 3) * 70}ms`,
-      );
-    });
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-          entry.target.classList.add("is-visible");
+          const element = entry.target as HTMLElement;
+          const siblings = element.parentElement
+            ? Array.from(element.parentElement.children)
+            : [];
+          const siblingIndex = Math.max(0, siblings.indexOf(element));
+          element.animate(
+            [
+              { opacity: 0, transform: "translateY(22px) scale(.992)" },
+              { opacity: 1, transform: "translateY(0) scale(1)" },
+            ],
+            {
+              duration: 560,
+              delay: Math.min(siblingIndex % 4, 3) * 70,
+              easing: "cubic-bezier(.22,1,.36,1)",
+              fill: "backwards",
+            },
+          );
           observer.unobserve(entry.target);
         });
       },
@@ -107,11 +117,9 @@ export function SiteMotion() {
         document.documentElement.scrollHeight - window.innerHeight,
       );
       const progress = Math.min(1, Math.max(0, window.scrollY / scrollable));
-      root.style.setProperty("--page-progress", String(progress));
-      root.style.setProperty(
-        "--parallax-y",
-        `${Math.min(window.scrollY * 0.055, 46)}px`,
-      );
+      if (progressRef.current) {
+        progressRef.current.style.transform = `scaleX(${progress})`;
+      }
       document.body.classList.toggle("has-scrolled", window.scrollY > 24);
       frame = 0;
     };
@@ -148,30 +156,23 @@ export function SiteMotion() {
     window.addEventListener("scroll", requestScrollUpdate, { passive: true });
     window.addEventListener("resize", requestScrollUpdate, { passive: true });
     updateScrollState();
-    const loadFrame = window.requestAnimationFrame(() =>
-      root.classList.add("motion-loaded"),
-    );
 
     return () => {
       observer.disconnect();
       window.removeEventListener("scroll", requestScrollUpdate);
       window.removeEventListener("resize", requestScrollUpdate);
-      window.cancelAnimationFrame(loadFrame);
       if (frame) window.cancelAnimationFrame(frame);
       pointerHandlers.forEach(({ stage, move, leave }) => {
         stage.removeEventListener("pointermove", move);
         stage.removeEventListener("pointerleave", leave);
       });
-      root.classList.remove("motion-enabled", "motion-loaded");
-      root.style.removeProperty("--page-progress");
-      root.style.removeProperty("--parallax-y");
       document.body.classList.remove("has-scrolled");
     };
   }, []);
 
   return (
     <div className="site-scroll-progress" aria-hidden="true">
-      <i />
+      <i ref={progressRef} />
     </div>
   );
 }

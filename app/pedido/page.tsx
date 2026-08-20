@@ -2,15 +2,17 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
 
 export default function OrderAccessPage() {
+  const router = useRouter();
   const [code, setCode] = useState("");
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = code.trim().toUpperCase();
-    if (normalized) window.location.assign(`/pedido/${encodeURIComponent(normalized)}`);
+    if (normalized) router.push(`/pedido/${encodeURIComponent(normalized)}`);
   };
 
   return <main className="flow-page order-access-page">

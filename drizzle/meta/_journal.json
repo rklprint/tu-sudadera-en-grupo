@@ -22,6 +22,41 @@
       "when": 1786749119212,
       "tag": "0002_tearful_typhoid_mary",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787231863488,
+      "tag": "0003_tidy_menace",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787231882951,
+      "tag": "0004_mute_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787233281651,
+      "tag": "0005_blushing_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1787234160079,
+      "tag": "0006_first_jigsaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1787235111344,
+      "tag": "0007_magenta_zaladane",
+      "breakpoints": true
     }
   ]
 }

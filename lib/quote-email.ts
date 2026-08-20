@@ -47,6 +47,7 @@ export async function notifyQuoteRequest(payload: QuoteEmailPayload): Promise<Em
     ["Localidad", payload.location],
     ["Cantidad aproximada", String(payload.quantity)],
     ["Fecha deseada", clean(payload.desiredDate)],
+    ["Producto", clean(payload.configuration.product)],
     ["Modelo", clean(payload.configuration.model)],
     ["Color", clean(payload.configuration.color)],
     ["Espalda", clean(payload.configuration.backDesign)],

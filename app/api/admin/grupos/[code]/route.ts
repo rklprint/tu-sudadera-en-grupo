@@ -5,15 +5,23 @@ import { getAdminApiUser } from "@/lib/admin-auth";
 import { normalizeCode, priceForQuantityCents } from "@/lib/group-orders";
 import { sendOrganizerStatusEmail } from "@/lib/order-emails";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest } from "@/lib/request-security";
 
 type RouteContext = { params: Promise<{ code: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  if (!await getAdminApiUser()) return Response.json({ error: "Acceso no autorizado." }, { status: 403 });
+  const originError = rejectCrossOriginMutation(request);
+  if (originError) return originError;
+  const sizeError = rejectOversizedRequest(request, 32 * 1024);
+  if (sizeError) return sizeError;
+  const admin = await getAdminApiUser();
+  if (!admin) return Response.json({ error: "Acceso no autorizado." }, { status: 403 });
   const code = normalizeCode((await context.params).code);
 
   try {
-    const payload = await request.json() as { action?: string; unitPriceCents?: number };
+    const body = await readJsonBody<{ action?: string; unitPriceCents?: number; shippingAddress?: string; shippingRecipient?: string; shippingPostalCode?: string; shippingCity?: string; shippingProvince?: string; shippingCountry?: string; carrier?: string; trackingCode?: string }>(request, 32 * 1024);
+    if ("response" in body) return body.response;
+    const payload = body.data;
     await ensureQuoteSchema();
     const db = getDb();
     const { DB } = getSiteRuntimeEnv();
@@ -56,6 +64,25 @@ export async function PATCH(request: Request, context: RouteContext) {
       if (group.paymentStatus !== "locked") return Response.json({ error: "El precio no puede cambiarse después de abrir pagos." }, { status: 409 });
       changes.unitPriceCents = manual;
     } else if (payload.action === "complete_payment") {
+      const totals = await DB.prepare(`SELECT
+          coalesce((SELECT sum(oi.unit_price_cents + oi.extras_cents)
+            FROM order_items oi
+            INNER JOIN participants p ON p.id = oi.participant_id
+            WHERE p.group_id = ?), 0) AS expected,
+          coalesce((SELECT sum(amount_cents)
+            FROM payments
+            WHERE group_id = ? AND status = 'confirmed'), 0) AS confirmed`)
+        .bind(group.id, group.id)
+        .first<{ expected: number; confirmed: number }>();
+      const expected = Number(totals?.expected || 0);
+      const confirmed = Number(totals?.confirmed || 0);
+      if (expected <= 0 || confirmed !== expected) {
+        return Response.json({
+          error: confirmed > expected
+            ? "Los pagos confirmados superan el total del pedido. Revisa el descuadre antes de continuar."
+            : `Todavía quedan ${((expected - confirmed) / 100).toFixed(2).replace(".", ",")} € por confirmar.`,
+        }, { status: 409 });
+      }
       changes.paymentStatus = "complete";
       changes.productionStatus = "queued";
     } else if (payload.action === "start_production") {
@@ -63,9 +90,29 @@ export async function PATCH(request: Request, context: RouteContext) {
       changes.productionStatus = "in_production";
     } else if (payload.action === "mark_shipped") {
       if (group.productionStatus !== "in_production") return Response.json({ error: "El pedido todavía no figura en producción." }, { status: 409 });
+      const carrier = clean(payload.carrier, 80);
+      const trackingCode = clean(payload.trackingCode, 120);
+      if (!carrier || !trackingCode) return Response.json({ error: "Indica transportista y código de seguimiento antes de marcar el envío." }, { status: 400 });
       changes.productionStatus = "shipped";
+      changes.carrier = carrier;
+      changes.trackingCode = trackingCode;
+      changes.shippedAt = new Date().toISOString();
     } else if (payload.action === "mark_delivered") {
+      if (group.productionStatus !== "shipped") return Response.json({ error: "El pedido debe figurar como enviado antes de marcarlo como entregado." }, { status: 409 });
       changes.productionStatus = "delivered";
+      changes.deliveredAt = new Date().toISOString();
+    } else if (payload.action === "set_shipping") {
+      if (group.productionStatus === "delivered") return Response.json({ error: "No puede cambiarse la dirección de un pedido entregado." }, { status: 409 });
+      const shippingAddress = clean(payload.shippingAddress, 220);
+      const shippingRecipient = clean(payload.shippingRecipient, 100);
+      const shippingPostalCode = clean(payload.shippingPostalCode, 12);
+      const shippingCity = clean(payload.shippingCity, 90);
+      const shippingProvince = clean(payload.shippingProvince, 90);
+      const shippingCountry = clean(payload.shippingCountry, 70) || "España";
+      if (!shippingAddress || !shippingRecipient || !shippingPostalCode || !shippingCity) return Response.json({ error: "Completa destinatario, dirección, código postal y localidad." }, { status: 400 });
+      Object.assign(changes, { shippingAddress, shippingRecipient, shippingPostalCode, shippingCity, shippingProvince, shippingCountry });
+    } else if (payload.action === "revoke_private_link") {
+      changes.privateLinkRevokedAt = new Date().toISOString();
     } else {
       return Response.json({ error: "Acción no válida." }, { status: 400 });
     }
@@ -74,6 +121,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (changes.unitPriceCents) {
       await DB.prepare("UPDATE order_items SET unit_price_cents = ?, updated_at = CURRENT_TIMESTAMP WHERE participant_id IN (SELECT id FROM participants WHERE group_id = ?)").bind(changes.unitPriceCents, group.id).run();
     }
+    await DB.prepare("INSERT INTO audit_logs (actor, action, entity_type, entity_id, metadata_json) VALUES (?, ?, 'group', ?, ?)")
+      .bind(admin.email, payload.action || "unknown", String(group.id), JSON.stringify({ changedFields: Object.keys(changes).filter((key) => key !== "updatedAt") }))
+      .run();
     const notification = statusNotification(payload.action || "");
     const emailStatus = notification ? await sendOrganizerStatusEmail({
       to: updated.organizerEmail,
@@ -86,6 +136,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch {
     return Response.json({ error: "No hemos podido actualizar el grupo." }, { status: 500 });
   }
+}
+
+function clean(value: unknown, maxLength: number) {
+  return String(value || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
 function statusNotification(action: string): { statusLabel: string; detail: string } | null {

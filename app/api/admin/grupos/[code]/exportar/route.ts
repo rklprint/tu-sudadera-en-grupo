@@ -19,6 +19,11 @@ export async function GET(_request: Request, context: RouteContext) {
       contactName: participants.contactName,
       email: participants.email,
       paymentStatus: participants.paymentStatus,
+      paymentMethod: participants.paymentMethod,
+      productName: orderItems.productName,
+      model: orderItems.model,
+      color: orderItems.color,
+      quantity: orderItems.quantity,
       printName: orderItems.printName,
       size: orderItems.size,
       namePlacement: orderItems.namePlacement,
@@ -30,12 +35,47 @@ export async function GET(_request: Request, context: RouteContext) {
       unitPriceCents: orderItems.unitPriceCents,
     }).from(orderItems).innerJoin(participants, eq(orderItems.participantId, participants.id)).where(eq(participants.groupId, group.id));
 
-    const headers = ["Contacto", "Correo", "Estado pago", "Nombre impreso", "Talla", "Nombre en", "Extra pecho", "Detalle pecho", "Extra manga", "Detalle manga", "Precio base", "Extras"];
-    const csv = [headers, ...rows.map(row => [row.contactName, row.email, row.paymentStatus, row.printName, row.size, row.namePlacement, row.frontExtra, row.frontDetail, row.sleeveExtra, row.sleeveDetail, (row.unitPriceCents / 100).toFixed(2), (row.extrasCents / 100).toFixed(2)])]
-      .map(columns => columns.map(value => `"${String(value).replace(/"/g, '""')}"`).join(";"))
-      .join("\n");
-    return new Response(`\uFEFF${csv}`, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${code}-pedido.csv"`, "Cache-Control": "no-store" } });
+    const headers = ["Grupo", "Participante", "Correo", "Producto", "Modelo", "Color", "Talla", "Cantidad", "Nombre personalizado", "Nombre en", "Extra pecho", "Detalle pecho", "Extra manga", "Detalle manga", "Precio base", "Extras", "Total prenda", "Método de pago", "Estado de pago"];
+    const dataRows = rows.map(row => [
+      group.groupName,
+      row.contactName,
+      row.email,
+      row.productName,
+      row.model || group.garment,
+      row.color || group.color,
+      row.size,
+      row.quantity,
+      row.printName,
+      row.namePlacement,
+      row.frontExtra,
+      row.frontDetail,
+      row.sleeveExtra,
+      row.sleeveDetail,
+      row.unitPriceCents / 100,
+      row.extrasCents / 100,
+      (row.unitPriceCents + row.extrasCents) / 100,
+      row.paymentMethod,
+      row.paymentStatus,
+    ]);
+    const totalUnits = rows.reduce((total, row) => total + row.quantity, 0);
+    const totalCents = rows.reduce((total, row) => total + ((row.unitPriceCents + row.extrasCents) * row.quantity), 0);
+    const totals = ["TOTALES", "", "", "", "", "", "", totalUnits, "", "", "", "", "", "", "", "", totalCents / 100, "", ""];
+    const workbook = spreadsheetXml("Pedido", [headers, ...dataRows, totals], new Set([7, 14, 15, 16]));
+    return new Response(workbook, { headers: { "Content-Type": "application/vnd.ms-excel; charset=utf-8", "Content-Disposition": `attachment; filename="${code}-pedido.xls"`, "Cache-Control": "no-store, private" } });
   } catch {
     return Response.json({ error: "No hemos podido exportar el pedido." }, { status: 500 });
   }
+}
+
+function spreadsheetXml(sheetName: string, rows: unknown[][], numericColumns: Set<number>): string {
+  const body = rows.map((row, rowIndex) => `<Row>${row.map((value, columnIndex) => {
+    const numeric = rowIndex > 0 && numericColumns.has(columnIndex) && typeof value === "number";
+    const style = rowIndex === 0 || rowIndex === rows.length - 1 ? ' ss:StyleID="header"' : "";
+    return `<Cell${style}><Data ss:Type="${numeric ? "Number" : "String"}">${xmlCell(value)}</Data></Cell>`;
+  }).join("")}</Row>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="Default"><Alignment ss:Vertical="Bottom"/></Style><Style ss:ID="header"><Font ss:Bold="1"/><Interior ss:Color="#DDEBF7" ss:Pattern="Solid"/></Style></Styles><Worksheet ss:Name="${xmlCell(sheetName)}"><Table>${body}</Table></Worksheet></Workbook>`;
+}
+
+function xmlCell(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[character] || character));
 }

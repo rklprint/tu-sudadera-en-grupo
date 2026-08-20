@@ -60,6 +60,7 @@ export function AudienceLanding({ data }: { data: AudiencePageData }) {
   return (
     <main
       className="flow-page audience-page"
+      data-garment={data.garmentKind || "hoodie"}
       style={
         {
           "--audience-accent": data.accent,

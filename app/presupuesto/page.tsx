@@ -1,9 +1,11 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import Script from "next/script";
 import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
+import { trackProductEvent } from "@/lib/analytics";
 
 const groupTypes = [
   "Colegio o instituto",
@@ -16,6 +18,7 @@ const groupTypes = [
 ];
 
 type Configuration = {
+  product: string;
   model: string;
   color: string;
   printColor: string;
@@ -28,6 +31,7 @@ type Configuration = {
 };
 
 const defaultConfiguration: Configuration = {
+  product: "Sudadera",
   model: "Gildan 18500",
   color: "Por elegir",
   printColor: "Por elegir",
@@ -40,9 +44,12 @@ const defaultConfiguration: Configuration = {
 };
 
 function QuotePageContent() {
+  const router = useRouter();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const query = useSearchParams();
   const queriedGroupType = query.get("groupType");
   const configuration: Configuration = {
+    product: query.get("product") || defaultConfiguration.product,
     model: query.get("model") || defaultConfiguration.model,
     color: query.get("color") || defaultConfiguration.color,
     printColor: query.get("printColor") || defaultConfiguration.printColor,
@@ -73,6 +80,16 @@ function QuotePageContent() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [designFile, setDesignFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    void trackProductEvent("presupuesto_started", {
+      product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie",
+      model: configuration.model,
+      source: query.get("product") ? "personalizador" : "direct",
+    });
+  // This event intentionally runs once per form visit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
     setForm(current => ({ ...current, [key]: value }));
@@ -105,7 +122,12 @@ function QuotePageContent() {
       });
       const result = await response.json() as { code?: string; emailStatus?: string; error?: string };
       if (!response.ok || !result.code) throw new Error(result.error || "No hemos podido enviar la solicitud.");
-      window.location.assign(`/presupuesto/recibido?ref=${encodeURIComponent(result.code)}&mail=${encodeURIComponent(result.emailStatus || "pending")}`);
+      await trackProductEvent("presupuesto_submitted", {
+        product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie",
+        quantity: form.quantity,
+        group_type: form.groupType,
+      });
+      router.push(`/presupuesto/recibido?ref=${encodeURIComponent(result.code)}&mail=${encodeURIComponent(result.emailStatus || "pending")}`);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "No hemos podido enviar la solicitud.");
       setSending(false);
@@ -113,6 +135,7 @@ function QuotePageContent() {
   };
 
   const summary = [
+    ["Producto", configuration.product],
     ["Modelo", configuration.model],
     ["Color", configuration.color],
     ["Espalda", configuration.backDesign],
@@ -157,17 +180,19 @@ function QuotePageContent() {
           <label><span>¿Cuántos sois? *</span><input required type="number" min={5} max={500} value={form.quantity} onChange={event => setField("quantity", Number(event.target.value))} /></label>
           <label><span>Fecha deseada</span><input type="date" value={form.desiredDate} onChange={event => setField("desiredDate", event.target.value)} /></label>
           <label className="wide"><span>Enlace a referencias</span><input type="url" maxLength={500} value={form.referenceUrl} onChange={event => setField("referenceUrl", event.target.value)} placeholder="Drive, Instagram, Pinterest… También podréis enviarlas por WhatsApp" /></label>
-          <label className="wide quote-file-field"><span>Adjuntar diseño o referencia</span><input type="file" accept=".png,.jpg,.jpeg,.pdf,.ai,.svg,image/png,image/jpeg,image/svg+xml,application/pdf,application/postscript" onChange={event => setDesignFile(event.target.files?.[0] || null)} /><small>{designFile ? `${designFile.name} · ${(designFile.size / 1024 / 1024).toFixed(1).replace(".0", "")} MB` : "PNG, JPG, PDF, AI o SVG · máximo 15 MB"}</small></label>
+          <label className="wide quote-file-field"><span>Adjuntar diseño o referencia</span><input type="file" accept=".png,.jpg,.jpeg,.pdf,.ai,image/png,image/jpeg,application/pdf,application/postscript" onChange={event => { const file = event.target.files?.[0] || null; setDesignFile(file); if (file) void trackProductEvent("archivo_uploaded", { product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie" }); }} /><small>{designFile ? `${designFile.name} · ${(designFile.size / 1024 / 1024).toFixed(1).replace(".0", "")} MB` : "PNG, JPG, PDF o AI · máximo 15 MB"}</small></label>
           <label className="wide"><span>Contadnos lo que tenéis en mente</span><textarea maxLength={1200} rows={5} value={form.notes} onChange={event => setField("notes", event.target.value)} placeholder="Nombres individuales, fecha del viaje, dudas, una broma del grupo…" /></label>
           <label className="honeypot" aria-hidden="true"><span>Web</span><input tabIndex={-1} autoComplete="off" value={form.website} onChange={event => setField("website", event.target.value)} /></label>
         </div>
 
-        <label className="consent-field"><input required type="checkbox" checked={form.privacyAccepted} onChange={event => setField("privacyAccepted", event.target.checked)} /><span>Acepto que utilicéis estos datos únicamente para preparar el presupuesto y contactarme sobre este pedido.</span></label>
+        {turnstileSiteKey && <div className="turnstile-field"><div className="cf-turnstile" data-sitekey={turnstileSiteKey} data-action="quote_request" data-theme="light" /></div>}
+        <label className="consent-field"><input required type="checkbox" checked={form.privacyAccepted} onChange={event => setField("privacyAccepted", event.target.checked)} /><span>Acepto que utilicéis estos datos únicamente para preparar el presupuesto y contactarme sobre este pedido. <Link href="/privacidad" target="_blank">Más información sobre privacidad</Link>.</span></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="quote-submit" type="submit" disabled={sending}><span><small>{sending ? "Guardando la solicitud" : "Sin compromiso"}</small>{sending ? "Un momento…" : "Enviar mi idea"}</span><b>{sending ? "···" : "↗"}</b></button>
         <p className="form-destination">La solicitud quedará registrada con una referencia. Recibiréis una confirmación automática y continuaremos por WhatsApp.</p>
       </form>
     </section>
+    {turnstileSiteKey && <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />}
     <FlowFooter />
   </main>;
 }

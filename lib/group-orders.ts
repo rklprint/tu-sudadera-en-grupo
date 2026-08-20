@@ -1,14 +1,7 @@
-export const GROUP_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
+import { CORE_COLORS, CORE_SIZES, unitPriceForQuantity } from "@/lib/catalog";
 
-export const GROUP_COLORS = [
-  "Negro",
-  "Blanco",
-  "Azul marino",
-  "Gris",
-  "Rojo",
-  "Verde botella",
-  "Burdeos",
-] as const;
+export const GROUP_SIZES = CORE_SIZES;
+export const GROUP_COLORS = CORE_COLORS.map(({ name }) => name);
 
 export type GarmentInput = {
   printName: string;
@@ -21,14 +14,7 @@ export type GarmentInput = {
 };
 
 export function priceForQuantityCents(quantity: number): number | null {
-  if (quantity < 5 || quantity >= 100) return null;
-  if (quantity <= 10) return 3000;
-  if (quantity <= 20) return 2800;
-  if (quantity <= 30) return 2600;
-  if (quantity <= 40) return 2500;
-  if (quantity <= 50) return 2400;
-  if (quantity <= 75) return 2300;
-  return 2200;
+  return unitPriceForQuantity(quantity);
 }
 
 export function extrasForGarmentCents(garment: GarmentInput): number | null {
@@ -77,6 +63,17 @@ export function createAccessCode(): string {
 
 export function createEditToken(): string {
   return `edit_${randomHex(24)}`;
+}
+
+export async function hashPrivateToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function createEditTokenExpiry(): string {
+  const expiry = new Date();
+  expiry.setUTCFullYear(expiry.getUTCFullYear() + 1);
+  return expiry.toISOString();
 }
 
 export function normalizeCode(value: string): string {
