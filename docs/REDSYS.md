@@ -40,4 +40,9 @@ La suite contiene el vector oficial de firma. Eso no sustituye una prueba E2E de
 
 ## Paso a producción
 
-Solicitar al banco terminal y descriptor comercial correctos para esta marca, URL HTTPS estable y métodos habilitados. Ejecutar la matriz en test, obtener conformidad, cargar secretos de producción y hacer una operación real de importe pequeño con reconciliación bancaria. Nunca reutilizar claves de test.
+Solicitar al banco FUC/merchant code, terminal, clave de firma, descriptor
+comercial, URL HTTPS estable y métodos habilitados. La preparación de D1/R2 de
+staging y el checklist exacto están en [`STAGING.md`](./STAGING.md). Ejecutar
+la matriz en test, obtener conformidad, cargar secretos de producción y hacer
+una operación real de importe pequeño con reconciliación bancaria. Nunca
+reutilizar claves de test.

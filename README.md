@@ -44,6 +44,7 @@ npm audit --omit=dev
 - [Seguridad](SECURITY.md)
 - [Analítica](docs/ANALYTICS.md)
 - [Redsys](docs/REDSYS.md)
+- [Staging y preparación del TPV](docs/STAGING.md)
 - [Checklist de lanzamiento](docs/LAUNCH-CHECKLIST.md)
 
 ## Datos y precios
@@ -52,4 +53,8 @@ Los productos, variantes y tramos viven en tablas de catálogo. Los valores conf
 
 ## Despliegues
 
-GitHub será la fuente de verdad. Las previews de Vercel requieren primero conectar el repositorio y decidir el almacenamiento compartido de staging; el runtime productivo actual usa D1/R2 en Cloudflare. No promociones un despliegue hasta que CI, QA de navegador y checklist de lanzamiento estén en verde.
+GitHub será la fuente de verdad. Vercel genera previews de compilación; el
+E2E con datos persistentes y callbacks Redsys requiere un Worker de staging con
+D1/R2 separados, tal como se detalla en [Staging y preparación del TPV](docs/STAGING.md).
+No promociones un despliegue hasta que CI, QA de navegador y checklist de
+lanzamiento estén en verde.
