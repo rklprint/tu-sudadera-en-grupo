@@ -419,3 +419,32 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
 .hoodie-sleeve-design.flag-preview::after{
   display:none;
 }
+
+
+/* Final sleeve audit: override the preview-stage rule with enough specificity.
+   The previous rule was losing against .preview-stage .hoodie-real .hoodie-sleeve-design,
+   which left the patch outside the visible sleeve. */
+.preview-stage .hoodie-real .hoodie-sleeve-design.flag-preview{
+  right:23%;
+  top:36%;
+  width:18px;
+  min-height:20px;
+  overflow:hidden;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+.preview-stage .hoodie-real .hoodie-sleeve-design.flag-preview .hoodie-flag{
+  width:34px;
+  height:20px;
+  clip-path:inset(0 50% 0 0 round 3px);
+  transform:none;
+  border:1px solid rgba(255,255,255,.72);
+  border-right:0;
+  border-radius:3px 0 0 3px;
+  box-shadow:0 1px 3px rgba(11,24,48,.24);
+  opacity:.97;
+}
+.preview-stage .hoodie-real .hoodie-sleeve-design.flag-preview::after{
+  display:none;
+}
