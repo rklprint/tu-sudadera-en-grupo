@@ -187,3 +187,10 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
   .preview-stage .hoodie-real .hoodie-design.back.design-number26 span:first-child{font-size:68px}
   .preview-stage .hoodie-real .hoodie-design.back.design-x{transform:translate(-50%,-50%) scale(.86)}
 }
+
+/* Front personalization scale: small, print-realistic chest mark. */
+.preview-stage .hoodie-real .front-personalization:not(.coordinates):not(.logo){font-size:10px;letter-spacing:-.02em}
+.preview-stage .hoodie-real .front-personalization.coordinates{font-size:8px;letter-spacing:-.025em;width:150px}
+.hero-stage .hero-hoodie .hoodie-real{width:370px;height:370px;transform:scale(.96)}
+.hero-stage .hero-hoodie-back .hoodie-real .hoodie-design.back{top:52%;transform:translate(-50%,-50%) scale(.82)}
+.hero-stage .hero-hoodie-front .hoodie-real .front-personalization{top:44%;font-size:10px}
