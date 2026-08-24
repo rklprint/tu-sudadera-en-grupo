@@ -1,6 +1,9 @@
 export type CatalogColor = {
   name: string;
   value: string;
+  slug: string;
+  frontImage?: string;
+  backImage?: string;
 };
 
 export type CatalogPriceTier = {
