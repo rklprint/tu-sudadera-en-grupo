@@ -100,3 +100,43 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
   .preview-stage .hoodie-real .hoodie-design.back{top:57%}
   .preview-stage .hoodie-real .hoodie-design.back.design-x{top:58%}
 }
+
+/* Print placement calibration for the real Gildan 18500 canvas. */
+.preview-stage .hoodie-real .hoodie-design.back{top:52%}
+.preview-stage .hoodie-real .hoodie-design.back.design-x{top:53%}
+.preview-stage .hoodie-real .hoodie-design.back.design-number27,
+.preview-stage .hoodie-real .hoodie-design.back.design-number26{top:51%}
+.preview-stage .hoodie-real .front-personalization{
+  top:44%;
+  left:50%;
+  width:132px;
+  min-height:30px;
+  transform:translate(-50%,-50%);
+  font-family:"Arial Black","Montserrat","Arial",sans-serif;
+  font-weight:900;
+  letter-spacing:-.045em;
+  text-transform:uppercase;
+}
+.preview-stage .hoodie-real .front-personalization.coordinates{
+  width:170px;
+  font-size:13px;
+  letter-spacing:-.035em;
+  white-space:nowrap;
+}
+.preview-stage .hoodie-real .front-personalization:not(.coordinates):not(.logo){
+  font-size:18px;
+}
+.preview-stage .hoodie-real .hoodie-design{
+  font-family:"Arial Black","Montserrat","Arial",sans-serif;
+  font-weight:900;
+}
+.preview-stage .hoodie-real .hoodie-design span:first-child{
+  font-family:"Arial Black","Montserrat","Arial",sans-serif;
+  font-weight:900;
+  letter-spacing:.03em;
+}
+@media (max-width:760px){
+  .preview-stage .hoodie-real .front-personalization{top:44%}
+  .preview-stage .hoodie-real .hoodie-design.back{top:52%}
+  .preview-stage .hoodie-real .hoodie-design.back.design-x{top:53%}
+}
