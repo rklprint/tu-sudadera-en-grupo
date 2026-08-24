@@ -250,3 +250,23 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
   height:24px;
   margin:auto;
 }
+
+/* Sleeve patch calibration: compact, clean and aligned with the garment. */
+.hoodie-sleeve-design.flag-preview{
+  width:38px;
+  min-height:23px;
+  align-items:center;
+  justify-content:center;
+  overflow:visible;
+}
+.hoodie-sleeve-design.flag-preview .hoodie-flag{
+  width:34px;
+  height:21px;
+  border:1px solid rgba(255,255,255,.95);
+  border-radius:3px;
+  box-shadow:0 1px 3px rgba(11,24,48,.28);
+}
+.flag-options .flag-mark{
+  width:36px;
+  height:22px;
+}
