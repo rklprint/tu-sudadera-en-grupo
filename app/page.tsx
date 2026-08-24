@@ -326,7 +326,7 @@ export default function Home() {
         <div className="included-list"><span>✓ {productType === "hoodie" ? "Gildan 18500 incluida" : "Diseño y revisión incluidos"}</span><span>✓ Impresión en pecho y espalda</span><span>✓ Nombre individual incluido</span><span>✓ IVA y envío a Península</span></div>
         <div className="single-order-note"><b>¿Necesitáis de 1 a 4 unidades?</b><span>También las hacemos. Escribidnos por WhatsApp para recibir un precio individual.</span></div>
       </div>
-      <div className="price-card">
+      <div className="price-card"><p className="preview-disclaimer">Previsualización orientativa. Recibirás la propuesta final para aprobación antes de producir.</p>
         <div className="price-reference-heading"><span>Calculadora transparente</span><strong>Precio por {productName.toLowerCase()} · IVA incluido</strong></div>
         <div className="price-reference-product">
           <div className="price-mini-hoodies" aria-label={`Vista de la ${productName.toLowerCase()} de referencia`}>
