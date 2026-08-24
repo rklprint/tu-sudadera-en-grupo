@@ -169,7 +169,7 @@ export default function Home() {
     || (!catalogLoaded ? DEFAULT_CATALOG.find((product) => product.category === productType) : undefined)
     || catalog.find((product) => product.active)
     || DEFAULT_CATALOG[0];
-  const garmentColors = activeProduct.colors.length ? activeProduct.colors : defaultGarmentColors;
+  const garmentColors = productType === "hoodie" ? defaultGarmentColors : (activeProduct.colors.length ? activeProduct.colors : defaultGarmentColors);
   const designText = useMemo(() => {
     const name = groupName || "VUESTRO GRUPO";
     if (designPath === "upload") return "TU DISEÑO\nSUBIDO";
