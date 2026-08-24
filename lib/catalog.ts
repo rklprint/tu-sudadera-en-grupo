@@ -1,7 +1,7 @@
 export type CatalogColor = {
   name: string;
   value: string;
-  slug: string;
+  slug?: string;
   frontImage?: string;
   backImage?: string;
 };
@@ -31,13 +31,15 @@ export type CatalogProduct = {
 export const CORE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 
 export const CORE_COLORS = [
-  { name: "Azul marino", value: "#14223e" },
-  { name: "Verde botella", value: "#174f42" },
-  { name: "Burdeos", value: "#753247" },
-  { name: "Gris", value: "#aeb1b5" },
-  { name: "Negro", value: "#202124" },
-  { name: "Rojo", value: "#a93642" },
-  { name: "Blanco", value: "#f2f1ed" },
+  { name: "Granate", slug: "granate", value: "#4b2235", frontImage: "/products/gildan-18500/color-1/front.webp", backImage: "/products/gildan-18500/color-1/back.webp" },
+  { name: "Azul cielo", slug: "azul-cielo", value: "#8aaed1", frontImage: "/products/gildan-18500/color-2/front.webp", backImage: "/products/gildan-18500/color-2/back.webp" },
+  { name: "Rosa", slug: "rosa", value: "#f0afc6", frontImage: "/products/gildan-18500/color-3/front.webp", backImage: "/products/gildan-18500/color-3/back.webp" },
+  { name: "Azul petróleo", slug: "azul-petroleo", value: "#3d556b", frontImage: "/products/gildan-18500/color-4/front.webp", backImage: "/products/gildan-18500/color-4/back.webp" },
+  { name: "Azul marino", slug: "azul-marino", value: "#172952", frontImage: "/products/gildan-18500/color-5/front.webp", backImage: "/products/gildan-18500/color-5/back.webp" },
+  { name: "Gris", slug: "gris", value: "#585759", frontImage: "/products/gildan-18500/color-6/front.webp", backImage: "/products/gildan-18500/color-6/back.webp" },
+  { name: "Verde oliva", slug: "verde-oliva", value: "#45583d", frontImage: "/products/gildan-18500/color-7/front.webp", backImage: "/products/gildan-18500/color-7/back.webp" },
+  { name: "Verde botella", slug: "verde-botella", value: "#1c331f", frontImage: "/products/gildan-18500/color-8/front.webp", backImage: "/products/gildan-18500/color-8/back.webp" },
+  { name: "Negro", slug: "negro", value: "#212021", frontImage: "/products/gildan-18500/color-9/front.webp", backImage: "/products/gildan-18500/color-9/back.webp" },
 ] as const satisfies readonly CatalogColor[];
 
 export const HOODIE_PRICE_TIERS = [
