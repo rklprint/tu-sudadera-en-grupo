@@ -67,3 +67,21 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
 .preview-stage .hoodie-real-asset{object-fit:contain}
 @media (max-width:760px){.preview-panel{min-height:570px}.preview-stage{min-height:430px}.preview-stage .hoodie-real{width:390px;height:390px;transform:scale(1.06)}}
 @media (max-width:390px){.preview-stage .hoodie-real{width:350px;height:350px;transform:scale(1.04)}}
+
+/* Real garment preview: larger reference-style card and overlays aligned to the same 1:1 canvas. */
+.preview-stage{min-height:560px;padding:28px 12px 46px}
+.preview-stage .hoodie-real{width:min(92vw,520px);height:min(92vw,520px);transform:none}
+.preview-stage .hoodie-real .hoodie-body{left:0;top:0;width:100%;height:100%;overflow:visible;background:transparent}
+.preview-stage .hoodie-real .hoodie-design{left:50%;top:43%;transform:translate(-50%,-50%)}
+.preview-stage .hoodie-real .front-personalization{left:50%;top:35%;transform:translate(-50%,-50%)}
+.preview-stage .hoodie-real .hoodie-sleeve-design{right:18%;top:47%}
+@media (max-width:760px){
+  .preview-panel{min-height:700px}
+  .preview-stage{min-height:560px;padding-top:22px}
+  .preview-stage .hoodie-real{width:min(94vw,520px);height:min(94vw,520px)}
+}
+@media (max-width:390px){
+  .preview-panel{min-height:640px}
+  .preview-stage{min-height:500px}
+  .preview-stage .hoodie-real{width:350px;height:350px}
+}
