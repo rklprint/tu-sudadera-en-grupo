@@ -270,3 +270,21 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
   width:36px;
   height:22px;
 }
+
+/* Garment-only realism: the sleeve wraps over the patch, so only part of the flag is visible. */
+.hoodie-sleeve-design.flag-preview{
+  right:19%;
+  top:47%;
+  width:35px;
+  min-height:23px;
+  overflow:visible;
+}
+.hoodie-sleeve-design.flag-preview .hoodie-flag{
+  width:36px;
+  height:22px;
+  transform:perspective(80px) rotateY(-16deg) rotateZ(-2deg);
+  transform-origin:left center;
+  clip-path:polygon(0 8%,68% 0,74% 12%,72% 88%,62% 100%,0 92%);
+  border-radius:3px;
+  box-shadow:0 1px 3px rgba(11,24,48,.3);
+}
