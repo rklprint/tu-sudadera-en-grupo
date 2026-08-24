@@ -4,6 +4,8 @@ export type CatalogColor = {
   slug?: string;
   frontImage?: string;
   backImage?: string;
+  /** Stable pair identifier for front/back assets of one color. */
+  assetKey?: string;
 };
 
 export type CatalogPriceTier = {
