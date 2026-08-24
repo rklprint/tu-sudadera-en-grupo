@@ -140,3 +140,50 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
   .preview-stage .hoodie-real .hoodie-design.back{top:52%}
   .preview-stage .hoodie-real .hoodie-design.back.design-x{top:53%}
 }
+
+/* Template-specific print proportions. Each preset keeps a readable hierarchy on the real garment. */
+.preview-stage .hoodie-real .hoodie-design.back.design-number27,
+.preview-stage .hoodie-real .hoodie-design.back.design-number26{
+  top:52%;
+  width:180px;
+  height:150px;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+  line-height:.9;
+}
+.preview-stage .hoodie-real .hoodie-design.back.design-number27 span:first-child,
+.preview-stage .hoodie-real .hoodie-design.back.design-number26 span:first-child{
+  order:1;
+  font-family:"Arial Black","Montserrat","Arial",sans-serif;
+  font-size:76px;
+  line-height:.82;
+  letter-spacing:-.08em;
+}
+.preview-stage .hoodie-real .hoodie-design.back.design-number27 span:last-child,
+.preview-stage .hoodie-real .hoodie-design.back.design-number26 span:last-child{
+  order:2;
+  font-family:"Arial Black","Montserrat","Arial",sans-serif;
+  font-size:11px;
+  line-height:1.1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.preview-stage .hoodie-real .hoodie-design.back.design-college{
+  top:53%;
+  width:190px;
+}
+.preview-stage .hoodie-real .hoodie-design.back.design-monument,
+.preview-stage .hoodie-real .hoodie-design.back.design-group,
+.preview-stage .hoodie-real .hoodie-design.back.design-globe{
+  top:53%;
+}
+.preview-stage .hoodie-real .hoodie-design.back.design-x{
+  top:52%;
+  transform:translate(-50%,-50%) scale(.92);
+}
+@media (max-width:760px){
+  .preview-stage .hoodie-real .hoodie-design.back.design-number27 span:first-child,
+  .preview-stage .hoodie-real .hoodie-design.back.design-number26 span:first-child{font-size:68px}
+  .preview-stage .hoodie-real .hoodie-design.back.design-x{transform:translate(-50%,-50%) scale(.86)}
+}
