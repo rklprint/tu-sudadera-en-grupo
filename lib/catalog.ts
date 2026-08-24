@@ -34,14 +34,14 @@ export const CORE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 
 export const CORE_COLORS = [
   { name: "Granate", slug: "granate", value: "#4b2235", frontImage: "/products/gildan-18500/color-1/front.webp", backImage: "/products/gildan-18500/color-1/back.webp", assetKey: "granate" },
-  { name: "Azul cielo", slug: "azul-cielo", value: "#8aaed1", frontImage: "/products/gildan-18500/color-2/front.webp", backImage: "/products/gildan-18500/color-2/back.webp", assetKey: "azul-cielo" },
-  { name: "Rosa", slug: "rosa", value: "#f0afc6", frontImage: "/products/gildan-18500/color-3/front.webp", backImage: "/products/gildan-18500/color-3/back.webp", assetKey: "rosa" },
+  { name: "Azul cielo", slug: "azul-cielo", value: "#8aaed1", frontImage: "/products/gildan-18500/color-2/front.webp", backImage: "/products/gildan-18500/color-9/back.webp", assetKey: "azul-cielo" },
+  { name: "Rosa", slug: "rosa", value: "#f0afc6", frontImage: "/products/gildan-18500/color-3/front.webp", backImage: "/products/gildan-18500/color-8/back.webp", assetKey: "rosa" },
   { name: "Azul petróleo", slug: "azul-petroleo", value: "#3d556b", frontImage: "/products/gildan-18500/color-4/front.webp", backImage: "/products/gildan-18500/color-4/back.webp", assetKey: "azul-petroleo" },
   { name: "Azul marino", slug: "azul-marino", value: "#172952", frontImage: "/products/gildan-18500/color-5/front.webp", backImage: "/products/gildan-18500/color-5/back.webp", assetKey: "azul-marino" },
-  { name: "Gris", slug: "gris", value: "#585759", frontImage: "/products/gildan-18500/color-6/front.webp", backImage: "/products/gildan-18500/color-6/back.webp", assetKey: "gris" },
-  { name: "Verde oliva", slug: "verde-oliva", value: "#45583d", frontImage: "/products/gildan-18500/color-7/front.webp", backImage: "/products/gildan-18500/color-7/back.webp", assetKey: "verde-oliva" },
-  { name: "Verde botella", slug: "verde-botella", value: "#1c331f", frontImage: "/products/gildan-18500/color-8/front.webp", backImage: "/products/gildan-18500/color-8/back.webp", assetKey: "verde-botella" },
-  { name: "Negro", slug: "negro", value: "#212021", frontImage: "/products/gildan-18500/color-9/front.webp", backImage: "/products/gildan-18500/color-9/back.webp", assetKey: "negro" },
+  { name: "Gris", slug: "gris", value: "#585759", frontImage: "/products/gildan-18500/color-6/front.webp", backImage: "/products/gildan-18500/color-7/back.webp", assetKey: "gris" },
+  { name: "Verde oliva", slug: "verde-oliva", value: "#45583d", frontImage: "/products/gildan-18500/color-7/front.webp", backImage: "/products/gildan-18500/color-3/back.webp", assetKey: "verde-oliva" },
+  { name: "Verde botella", slug: "verde-botella", value: "#1c331f", frontImage: "/products/gildan-18500/color-8/front.webp", backImage: "/products/gildan-18500/color-2/back.webp", assetKey: "verde-botella" },
+  { name: "Negro", slug: "negro", value: "#212021", frontImage: "/products/gildan-18500/color-9/front.webp", backImage: "/products/gildan-18500/color-6/back.webp", assetKey: "negro" },
 ] as const satisfies readonly CatalogColor[];
 
 export const HOODIE_PRICE_TIERS = [
