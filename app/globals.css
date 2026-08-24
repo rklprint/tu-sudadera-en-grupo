@@ -369,3 +369,28 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
   background:rgba(255,255,255,.9);
   border-radius:1px;
 }
+
+/* Final garment integration: place the partial patch inside the sleeve, never floating outside it. */
+.hoodie-sleeve-design.flag-preview{
+  right:25%;
+  top:36%;
+  width:14px;
+  min-height:15px;
+  overflow:hidden;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+.hoodie-sleeve-design.flag-preview .hoodie-flag{
+  width:22px;
+  height:13px;
+  clip-path:inset(0 50% 0 0 round 2px);
+  transform:none;
+  border:1px solid rgba(255,255,255,.72);
+  border-radius:2px 0 0 2px;
+  box-shadow:0 1px 2px rgba(11,24,48,.22);
+  opacity:.96;
+}
+.hoodie-sleeve-design.flag-preview::after{
+  display:none;
+}
