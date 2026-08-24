@@ -448,3 +448,23 @@ footer{padding:70px clamp(22px,4.6vw,74px) 28px;background:var(--navy);color:#ff
 .preview-stage .hoodie-real .hoodie-sleeve-design.flag-preview::after{
   display:none;
 }
+
+
+/* Sleeve flag finish: outlined patch edge for small realistic previews. */
+.preview-stage .hoodie-real .hoodie-sleeve-design.flag-preview{
+  height:20px;
+  border:1px solid rgba(11,24,48,.42);
+  border-right:0;
+  border-radius:4px 0 0 4px;
+  background:rgba(255,255,255,.14);
+  box-shadow:
+    0 1px 3px rgba(11,24,48,.28),
+    inset 0 0 0 1px rgba(255,255,255,.42);
+}
+.preview-stage .hoodie-real .hoodie-sleeve-design.flag-preview .hoodie-flag{
+  border-top:1px solid rgba(255,255,255,.92);
+  border-bottom:1px solid rgba(255,255,255,.92);
+  border-left:1px solid rgba(255,255,255,.92);
+  border-right:0;
+  box-shadow:0 0 0 1px rgba(11,24,48,.16);
+}
