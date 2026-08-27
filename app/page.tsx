@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BadgeCheck, ImageIcon, MapPin, PencilLine, Shirt, Sparkles, Upload, UserRound } from "lucide-react";
 import { toast } from "sonner";
-import { CustomizerDrawer } from "@/app/_components/customizer-drawer";
-import { DesignCarousel } from "@/app/_components/design-carousel";
 import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
 import { pricingForSelection } from "@/lib/commercial";
 import { trackProductEvent } from "@/lib/analytics";
@@ -15,6 +14,9 @@ import { trackProductEvent } from "@/lib/analytics";
 type Side = "front" | "back";
 type DesignPath = "template" | "upload" | "studio";
 type ProductType = "hoodie" | "tshirt";
+
+const DesignCarousel = dynamic(() => import("@/app/_components/design-carousel").then((module) => module.DesignCarousel));
+const CustomizerDrawer = dynamic(() => import("@/app/_components/customizer-drawer").then((module) => module.CustomizerDrawer), { ssr: false });
 
 const defaultGarmentColors = CORE_COLORS;
 const printColors = [
