@@ -8,12 +8,16 @@ Vercel compila el artefacto y genera Preview, pero sus funciones Next no reciben
 esas bindings; por tanto el Preview de Vercel no es un staging E2E persistente y
 no se conecta a SQLite efímero para pagos.
 
-Para un staging operativo se necesita una base D1 y un bucket R2 separados de
-producción, con las mismas migraciones y nombres de binding (`DB` y `BUCKET`).
-La aplicación debe desplegarse como un Worker de staging con un hostname HTTPS
-estable (preferiblemente el `workers.dev` asignado por Cloudflare, sin tocar los
-nameservers de Hostinger). Ese origen se registra en Redsys porque el TPV llama
-a `POST /api/pagos/redsys/notificacion` servidor a servidor.
+El entorno persistente y aislado disponible es el Site privado del proyecto:
+
+`https://tu-sudadera-en-grupo.rklprint22.chatgpt.site`
+
+Ejecuta el Worker Vinext con bindings de proyecto `DB` (D1) y `BUCKET` (R2),
+acceso limitado al propietario y `APP_ENV=staging`. No utiliza el dominio
+principal ni requiere modificar sus nameservers. Vercel se conserva como
+Preview visual/build, pero no como entorno E2E porque no recibe estos bindings.
+El origen fijo anterior será el que Redsys use para el callback servidor a
+servidor.
 
 La separación prevista es:
 
@@ -29,20 +33,14 @@ de producción.
 
 ### Estado de recursos
 
-El checkout contiene la configuración y migraciones necesarias, pero no se ha
-creado todavía un D1/R2 remoto nuevo porque este entorno no tiene una sesión de
-Cloudflare autorizada. Crear recursos con nombres o IDs inventados sería peor
-que dejar el paso bloqueado. El procedimiento seguro, una vez disponible el
-acceso de la cuenta, es:
-
-1. Crear `tu-sudadera-staging-db` y `tu-sudadera-staging-uploads` en la cuenta
-   de Cloudflare de staging.
-2. Copiar sus IDs reales en el secreto/entorno de despliegue, nunca en Git.
-3. Aplicar `drizzle/0000`–`drizzle/0008` en orden y verificar constraints,
-   índices y triggers.
-4. Desplegar únicamente el Worker de staging y comprobar su hostname HTTPS.
-5. Configurar `APP_ENV=staging`, `APP_ORIGIN=<hostname HTTPS real>` y
-   `REDSYS_ENVIRONMENT=test`.
+- D1 persistente ligado como `DB`, exclusivo del proyecto privado.
+- R2 privado ligado como `BUCKET`, exclusivo del proyecto privado.
+- Migraciones `drizzle/0000`–`drizzle/0008` como única fuente del esquema;
+  ninguna petición crea o altera tablas en runtime.
+- `APP_ORIGIN` fijado al origen HTTPS anterior, demos desactivadas, Redsys en
+  `test` y Bizum desactivado.
+- FUC, terminal, clave Redsys, IBAN, claves de observabilidad y email siguen
+  ausentes hasta recibir valores reales y autorizados.
 
 No se deben cambiar nameservers ni activar el dominio principal para completar
 este procedimiento.
@@ -54,11 +52,11 @@ consume el código son:
 
 ```text
 APP_ENV=staging
-APP_ORIGIN=https://<hostname-workers-dev-real>
+APP_ORIGIN=https://tu-sudadera-en-grupo.rklprint22.chatgpt.site
 APP_ALLOWED_ORIGINS=
 REDSYS_ENVIRONMENT=test
 REDSYS_MERCHANT_CODE=          # FUC/merchant code asignado por el banco
-REDSYS_TERMINAL=001            # terminal asignado por el banco
+REDSYS_TERMINAL=               # terminal asignado por el banco
 REDSYS_SIGNING_KEY=            # clave de firma asignada por el banco
 REDSYS_BIZUM_ENABLED=false     # true solo tras confirmación del banco
 ```
@@ -69,7 +67,7 @@ REDSYS_BIZUM_ENABLED=false     # true solo tras confirmación del banco
 | --- | --- | --- |
 | development | `http://localhost:3000` | solo localhost si se necesita desarrollo local |
 | test | el origen HTTPS de la fixture | ninguno |
-| staging | el `https://*.workers.dev` asignado al Worker de staging | solo aliases HTTPS controlados |
+| staging | `https://tu-sudadera-en-grupo.rklprint22.chatgpt.site` | ninguno |
 | production | `https://tusudaderaengrupo.es` | únicamente aliases HTTPS aprobados explícitamente |
 
 `APP_ALLOWED_ORIGINS` es una lista separada por comas para validar solicitudes
@@ -90,9 +88,9 @@ La página de resultado nunca marca una operación como pagada.
 
 ## Estado actual de las capacidades críticas
 
-- **Persistencia:** el Worker usa D1 + R2 mediante `DB` y `BUCKET`. Vercel
-  Preview no tiene esas bindings; no se usa como base de datos ni se conecta a
-  SQLite efímero. El staging real será otro Worker con recursos D1/R2 propios.
+- **Persistencia:** el Worker privado usa D1 + R2 mediante `DB` y `BUCKET`.
+  Vercel Preview no tiene esas bindings; no se usa como base de datos ni se
+  conecta a SQLite efímero.
 - **Administración:** el panel valida en servidor la identidad confiable del
   host privado de Sites y una allowlist `ADMIN_EMAIL` separable por comas. En
   Vercel genérico `TRUST_OPENAI_IDENTITY_HEADERS` permanece desactivado. No se

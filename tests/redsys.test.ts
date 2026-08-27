@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createPaymentCancellationToken, decodeMerchantParameters, encodeMerchantParameters, parseAndVerifyRedsysNotification, signRedsysParameters, verifyPaymentCancellationToken } from "../lib/payments/redsys";
+import { createMerchantOrder, createPaymentCancellationToken, decodeMerchantParameters, encodeMerchantParameters, getRedsysConfig, parseAndVerifyRedsysNotification, signRedsysParameters, verifyPaymentCancellationToken } from "../lib/payments/redsys";
+import { setSiteRuntimeEnv } from "../lib/runtime-env";
+
+test("genera referencias Redsys numéricas, válidas y no reutilizadas", () => {
+  const orders = Array.from({ length: 256 }, () => createMerchantOrder());
+  assert.equal(new Set(orders).size, orders.length);
+  for (const order of orders) assert.match(order, /^\d{12}$/);
+});
+
+test("no inventa un terminal cuando el banco todavía no lo ha facilitado", () => {
+  setSiteRuntimeEnv({
+    REDSYS_ENVIRONMENT: "test",
+    REDSYS_MERCHANT_CODE: "999008881",
+    REDSYS_SIGNING_KEY: "sandbox-key-only-for-tests",
+  });
+  assert.equal(getRedsysConfig(), null);
+});
 
 test("firma HMAC_SHA512_V2 igual que el vector oficial de Redsys", async () => {
   const merchantParameters = "eyJEU19NRVJDSEFOVF9BTU9VTlQiOiI5OTkiLCJEU19NRVJDSEFOVF9PUkRFUiI6IjEyMzQ1Njc4OTAiLCJEU19NRVJDSEFOVF9NRVJDSEFOVENPREUiOiI5OTkwMDg4ODEiLCJEU19NRVJDSEFOVF9DVVJSRU5DWSI6Ijk3OCIsIkRTX01FUkNIQU5UX1RSQU5TQUNUSU9OVFlQRSI6IjAiLCJEU19NRVJDSEFOVF9URVJNSU5BTCI6IjEiLCJEU19NRVJDSEFOVF9NRVJDSEFOVFVSTCI6Imh0dHA6XC9cL3d3dy5wcnVlYmEuY29tXC91cmxOb3RpZmljYWNpb24ucGhwIiwiRFNfTUVSQ0hBTlRfVVJMT0siOiJodHRwOlwvXC93d3cucHJ1ZWJhLmNvbVwvdXJsT0sucGhwIiwiRFNfTUVSQ0hBTlRfVVJMS08iOiJodHRwOlwvXC93d3cucHJ1ZWJhLmNvbVwvdXJsS08ucGhwIn0";

@@ -1,6 +1,6 @@
 # Auditoría técnica y de producto
 
-Fecha de corte: 20 de agosto de 2026. Rama: `audit/production-foundation`.
+Fecha de corte: 26 de agosto de 2026. Rama: `audit/production-foundation`.
 
 ## Resumen ejecutivo
 
@@ -13,7 +13,7 @@ Estado: **apto para preview controlada; no apto aún para cobrar en producción*
 | Área | Estado actual | Evidencia / decisión |
 | --- | --- | --- |
 | Framework | Next 16.3.1, React 19.2.8, Vinext 0.0.50, Vite 8.2.2 | lockfile y build verificado |
-| Datos | D1 + Drizzle, migraciones `0000`–`0006` | catálogo, presupuestos, grupos, pagos, facturas, auditoría |
+| Datos | D1 + Drizzle, migraciones `0000`–`0008` | catálogo, presupuestos, grupos, pagos, facturas, auditoría y bloqueos de concurrencia |
 | Archivos | R2 privado | validación por extensión, MIME, firma y límite 15 MB |
 | Catálogo | Administrable | producto, slug, categoría, modelo, estados, colores, tallas, tramos y SEO |
 | Presupuestos | Operativo | contacto obligatorio, configuración, archivo, privacidad, email |
@@ -44,8 +44,6 @@ Estado: **apto para preview controlada; no apto aún para cobrar en producción*
 
 | Prioridad | Riesgo | Condición de cierre |
 | --- | --- | --- |
-| Bloqueante | GitHub no está conectado al repositorio del proyecto | instalar/acceder al repo, abrir PR y activar branch protection |
-| Bloqueante | Vercel no tiene proyecto ni almacenamiento de staging | conectar repo y elegir DB/objetos compartidos para previews |
 | Bloqueante | No hay proveedor de identidad administrativo portable | implantar sesión segura con MFA y RBAC antes de Vercel/producción |
 | Bloqueante | Credenciales reales/test de Redsys y URL de notificación no verificadas por el banco | prueba E2E aprobada con operación aceptada, rechazada y repetida |
 | Bloqueante | Datos fiscales y textos legales definitivos pendientes | revisión jurídica y publicación antes de venta |
@@ -53,9 +51,8 @@ Estado: **apto para preview controlada; no apto aún para cobrar en producción*
 | Alta | Emails no usan outbox/cola duradera | outbox transaccional con reintentos, deduplicación y estado observable |
 | Alta | Falta análisis antimalware real para archivos vectoriales/PDF | integrar escaneo o revisión aislada antes de abrir descargas |
 | Alta | Las tablas de extras son administrables, pero el editor privado aún conserva campos heredados de pecho/manga | migrar la selección a `order_item_extras` y servir todas las opciones compatibles desde catálogo |
-| Media | `ensureQuoteSchema()` comprueba/muta esquema en peticiones | migraciones obligatorias como paso de despliegue, sin DDL en runtime |
 | Media | Vinext mantiene 2 vulnerabilidades altas solo en herramienta de build (`image-size`) y Drizzle 4 moderadas de desarrollo | migrar a runtime Next/OpenNext estable o actualizar cuando upstream lo resuelva |
-| Media | No hay suite E2E con base de datos real | Playwright contra staging con fixtures y limpieza controlada |
+| Media | La suite E2E usa SQLite compatible con D1 y las migraciones reales, no datos remotos del entorno privado | añadir Playwright con fixtures aisladas y limpieza controlada cuando exista un namespace QA automatizable |
 | Media | No existen fotografías/reseñas reales publicables | cargar pruebas sociales con consentimiento y optimización |
 
 `npm audit --omit=dev` devuelve 0 vulnerabilidades. El audit completo informa 6 incidencias en herramientas de desarrollo/build; no forman parte del runtime productivo y los uploads nunca se procesan con `image-size`, pero se mantienen registradas como deuda.

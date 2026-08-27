@@ -30,7 +30,7 @@ export function getRedsysConfig(): RedsysConfig | null {
   const env = getSiteRuntimeEnv();
   const environment = env.REDSYS_ENVIRONMENT === "production" ? "production" : "test";
   const merchantCode = String(env.REDSYS_MERCHANT_CODE || "").trim();
-  const terminal = String(env.REDSYS_TERMINAL || "001").trim();
+  const terminal = String(env.REDSYS_TERMINAL || "").trim();
   const signingKey = String(env.REDSYS_SIGNING_KEY || "").trim();
   if (!/^\d{9}$/.test(merchantCode) || !/^\d{1,3}$/.test(terminal) || !signingKey) return null;
   return { environment, merchantCode, terminal: terminal.padStart(3, "0"), signingKey };
@@ -77,10 +77,12 @@ export function createRedsysProvider(config: RedsysConfig): PaymentProvider {
 }
 
 export function createMerchantOrder() {
-  const tail = String(Date.now()).slice(-8);
-  const random = new Uint32Array(1);
-  crypto.getRandomValues(random);
-  return `${tail}${String(random[0] % 10_000).padStart(4, "0")}`;
+  // Redsys accepts at most 12 alphanumeric characters and requires the first
+  // four to be numeric. Keep the whole value numeric, add a small temporal
+  // prefix for diagnostics and retain ~33 bits of cryptographic randomness.
+  const random = crypto.getRandomValues(new Uint8Array(5));
+  const randomValue = random.reduce((value, byte) => value * 256 + byte, 0) % 10_000_000_000;
+  return `${String(Date.now()).slice(-2)}${String(randomValue).padStart(10, "0")}`;
 }
 
 export async function signRedsysParameters(merchantParameters: string, order: string, signingKey: string) {
