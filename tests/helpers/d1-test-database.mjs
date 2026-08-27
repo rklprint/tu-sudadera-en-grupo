@@ -1,4 +1,23 @@
 import { DatabaseSync } from "node:sqlite";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+
+function applyMigrations(database) {
+  const migrationDirectory = join(repoRoot, "drizzle");
+  const migrations = readdirSync(migrationDirectory)
+    .filter((file) => /^\d+.*\.sql$/.test(file))
+    .sort();
+
+  for (const migration of migrations) {
+    const sql = readFileSync(join(migrationDirectory, migration), "utf8");
+    for (const statement of sql.split("--> statement-breakpoint")) {
+      if (statement.trim()) database.exec(statement);
+    }
+  }
+}
 
 function normalize(value) {
   if (typeof value === "bigint") return Number(value);
@@ -49,6 +68,7 @@ export class D1TestDatabase {
   constructor() {
     this.database = new DatabaseSync(":memory:");
     this.database.exec("PRAGMA foreign_keys = ON");
+    applyMigrations(this.database);
     this.batchQueue = Promise.resolve();
   }
 

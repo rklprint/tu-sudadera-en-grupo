@@ -32,7 +32,7 @@ Las transiciones críticas se validan en servidor. Un pedido no pasa a completo 
 
 ## Persistencia
 
-D1 almacena datos estructurados. R2 almacena diseños privados bajo claves aleatorias; la descarga pasa por un endpoint administrativo. Las migraciones Drizzle son la fuente de esquema. `ensureQuoteSchema()` conserva compatibilidad con el runtime actual, pero debe eliminarse como mutación en petición cuando el pipeline ejecute migraciones antes del despliegue.
+D1 almacena datos estructurados. R2 almacena diseños privados bajo claves aleatorias; la descarga pasa por un endpoint administrativo. Las migraciones Drizzle son la única fuente de esquema. `ensureQuoteSchema()` solo verifica el binding y ejecuta una semilla idempotente del catálogo; no contiene DDL ni conserva I/O en estado global del Worker.
 
 ## Fronteras de confianza
 
