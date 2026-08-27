@@ -1,6 +1,8 @@
 "use client";
 
 import { trackProductEvent } from "@/lib/analytics";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export type GarmentDraft = {
   printName: string;
@@ -51,13 +53,21 @@ export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gil
   };
 
   const remove = (index: number) => {
-    if (garments.length > 1) onChange(garments.filter((_, itemIndex) => itemIndex !== index));
+    if (garments.length > 1) {
+      onChange(garments.filter((_, itemIndex) => itemIndex !== index));
+      toast.success("Prenda eliminada", { description: "El resto de configuraciones no ha cambiado." });
+    }
+  };
+
+  const add = () => {
+    onChange([...garments, newGarment()]);
+    toast.success("Prenda añadida", { description: "Podéis elegir su talla, nombre y extras de forma independiente." });
   };
 
   return <div className="garment-editor">
     <div className="garment-editor-head">
       <div><span>Prendas independientes</span><strong>{garments.length} {garments.length === 1 ? productLabel : `${productLabel}s`}</strong></div>
-      <button type="button" disabled={disabled || garments.length >= 12} onClick={() => onChange([...garments, newGarment()])}>+ Añadir otra</button>
+      <button type="button" disabled={disabled || garments.length >= 12} onClick={add}><Plus aria-hidden="true" /> Añadir otra</button>
     </div>
 
     <div className="garment-list">
@@ -65,7 +75,7 @@ export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gil
         const customPrice = garment.frontExtra === "custom_embroidery" || garment.sleeveExtra === "custom_embroidery";
         const extras = (garment.frontExtra === "coordinates" ? 100 : 0) + (garment.sleeveExtra === "dtf_flag" ? 100 : garment.sleeveExtra === "embroidered_flag" ? 200 : 0);
         return <article className="garment-card" key={index}>
-          <header><div><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{productLabel[0].toUpperCase() + productLabel.slice(1)} {index + 1}</strong><small>{model} · personalización según presupuesto aprobado</small></div></div>{garments.length > 1 && <button type="button" disabled={disabled} onClick={() => remove(index)} aria-label={`Eliminar ${productLabel} ${index + 1}`}>Eliminar</button>}</header>
+          <header><div><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{productLabel[0].toUpperCase() + productLabel.slice(1)} {index + 1}</strong><small>{model} · personalización según presupuesto aprobado</small></div></div>{garments.length > 1 && <button type="button" disabled={disabled} onClick={() => remove(index)} aria-label={`Eliminar ${productLabel} ${index + 1}`}><Trash2 aria-hidden="true" /> Eliminar</button>}</header>
           <div className="garment-fields">
             <label className="wide"><span>Nombre que irá impreso</span><input required disabled={disabled} value={garment.printName} onChange={event => update(index, "printName", event.target.value)} maxLength={40} placeholder="Ej. Lucía" /></label>
             <label><span>Talla</span><select disabled={disabled} value={garment.size} onChange={event => update(index, "size", event.target.value)}>{["S", "M", "L", "XL", "2XL", "3XL"].map(size => <option key={size}>{size}</option>)}</select></label>

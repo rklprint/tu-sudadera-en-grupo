@@ -34,3 +34,13 @@ export function FlowFooter() {
     <span><Link href="/privacidad">Privacidad</Link> · <Link href="/cookies">Cookies</Link> · Hecho para pertenecer ✦</span>
   </footer>;
 }
+
+export function FlowLoadingSkeleton({ label }: { label: string }) {
+  return (
+    <section className="flow-loading-skeleton" aria-busy="true" aria-live="polite">
+      <span className="sr-only">{label}</span>
+      <div className="flow-skeleton-copy" aria-hidden="true"><i /><b /><b /><em /></div>
+      <div className="flow-skeleton-card" aria-hidden="true"><i /><b /><span /><span /><span /></div>
+    </section>
+  );
+}

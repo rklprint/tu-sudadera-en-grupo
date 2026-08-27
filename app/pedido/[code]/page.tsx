@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FlowFooter, FlowHeader } from "@/app/_components/flow-shell";
+import { FlowFooter, FlowHeader, FlowLoadingSkeleton } from "@/app/_components/flow-shell";
 import { GarmentEditor, newGarment, type GarmentDraft } from "@/app/_components/garment-editor";
 import { trackProductEvent } from "@/lib/analytics";
 import { PaymentCheckout } from "@/app/_components/payment-checkout";
@@ -96,7 +96,7 @@ export default function PrivateOrderPage() {
   };
 
   if (error) return <main className="flow-page private-order-page"><FlowHeader current="order" /><section className="order-state-card error-state"><span>?</span><p className="flow-eyebrow">Enlace no encontrado</p><h1>Este acceso no<br /><em>parece correcto.</em></h1><p>{error}</p><div><Link className="primary-flow-action" href="/pedido">Probar otro código</Link><Link href="/presupuesto">Pedir presupuesto</Link></div></section><FlowFooter /></main>;
-  if (!order) return <main className="flow-page private-order-page"><FlowHeader current="order" /><section className="order-loading"><i /><p>Buscando vuestro grupo…</p></section><FlowFooter /></main>;
+  if (!order) return <main className="flow-page private-order-page"><FlowHeader current="order" /><FlowLoadingSkeleton label="Buscando vuestro grupo…" /><FlowFooter /></main>;
 
   if (order.kind === "quote") {
     return <main className="flow-page private-order-page">

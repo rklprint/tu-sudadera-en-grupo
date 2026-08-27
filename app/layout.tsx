@@ -8,6 +8,7 @@ import {
 } from "@/lib/site";
 import { SiteMotion } from "@/app/_components/site-motion";
 import { Observability } from "@/app/_components/observability";
+import { AppToaster } from "@/app/_components/app-toaster";
 import "./globals.css";
 import "./motion.css";
 
@@ -96,6 +97,7 @@ export default function RootLayout({
         <Observability />
         <SiteMotion />
         {children}
+        <AppToaster />
       </body>
     </html>
   );

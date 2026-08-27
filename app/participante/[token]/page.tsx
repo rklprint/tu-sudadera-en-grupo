@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FlowFooter, FlowHeader } from "@/app/_components/flow-shell";
+import { FlowFooter, FlowHeader, FlowLoadingSkeleton } from "@/app/_components/flow-shell";
 import { GarmentEditor, type GarmentDraft } from "@/app/_components/garment-editor";
 import { trackProductEvent } from "@/lib/analytics";
 import { PaymentCheckout } from "@/app/_components/payment-checkout";
@@ -60,7 +60,7 @@ export default function ParticipantPage() {
   };
 
   if (error && !data) return <main className="flow-page"><FlowHeader current="order" /><section className="order-state-card error-state"><span>?</span><p className="flow-eyebrow">Enlace privado</p><h1>No podemos abrir<br /><em>esta selección.</em></h1><p>{error}</p><div><Link className="primary-flow-action" href="/pedido">Volver al pedido</Link></div></section><FlowFooter /></main>;
-  if (!data) return <main className="flow-page"><FlowHeader current="order" /><section className="order-loading"><i /><p>Abriendo tus prendas…</p></section><FlowFooter /></main>;
+  if (!data) return <main className="flow-page"><FlowHeader current="order" /><FlowLoadingSkeleton label="Abriendo tus prendas…" /><FlowFooter /></main>;
 
   return <main className="flow-page participant-page"><FlowHeader current="order" /><section className="participant-shell">
     <header><div><p className="flow-eyebrow">Selección privada · {data.group.name}</p><h1>Tus prendas,<br /><em>bajo control.</em></h1><p>{data.group.garment} · {data.group.color}. Este enlace es personal y permite corregir los datos hasta el pago.</p></div><Link href={`/pedido/${data.group.code}`}>Ver resumen del grupo →</Link></header>
