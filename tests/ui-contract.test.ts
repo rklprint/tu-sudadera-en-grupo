@@ -72,3 +72,17 @@ test("la capa premium cubre los anchos móviles críticos sin tocar precios", as
   assert.match(premium, /prefers-reduced-motion: reduce/);
   assert.match(commercial, /pricingForSelection/);
 });
+
+test("el personalizador móvil une preview, vista y color sin desbordar la página", async () => {
+  const page = await read("app/page.tsx");
+  const mobile = await read("app/customizer-mobile.css");
+
+  assert.match(page, /mobile-preview-controls/);
+  assert.match(page, /mobile-color-rail/);
+  assert.match(page, /aria-label="Color de la prenda"/);
+  assert.match(mobile, /\.customizer-layout,[\s\S]*min-width: 0/);
+  assert.match(mobile, /\.preview-stage[\s\S]*aspect-ratio: 1 \/ 1/);
+  assert.match(mobile, /\.mobile-color-rail[\s\S]*overflow-x: auto/);
+  assert.match(mobile, /\.preview-summary,[\s\S]*\.desktop-product-color[\s\S]*display: none/);
+  assert.doesNotMatch(mobile, /width:\s*100vw/);
+});

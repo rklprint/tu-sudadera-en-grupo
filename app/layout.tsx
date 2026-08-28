@@ -12,6 +12,7 @@ import { AppToaster } from "@/app/_components/app-toaster";
 import "./globals.css";
 import "./motion.css";
 import "./premium.css";
+import "./customizer-mobile.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
