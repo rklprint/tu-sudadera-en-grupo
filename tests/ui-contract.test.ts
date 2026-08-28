@@ -44,3 +44,31 @@ test("carrusel y drawer mantienen contratos táctiles, accesibles y reduced-moti
   assert.match(css, /@media \(max-width: 360px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
+
+test("grupo, checkout y admin comparten estados legibles y accesibles", async () => {
+  const status = await read("app/_components/status-badge.tsx");
+  const group = await read("app/pedido/[code]/page.tsx");
+  const checkout = await read("app/_components/payment-checkout.tsx");
+  const admin = await read("app/admin/admin-dashboard.tsx");
+  const premium = await read("app/premium.css");
+
+  assert.match(status, /Pagado/);
+  assert.match(status, /En producción/);
+  assert.match(group, /role="progressbar"/);
+  assert.match(group, /Siguiente acción/);
+  assert.match(checkout, /ShieldCheck/);
+  assert.match(admin, /<StatusBadge/);
+  assert.match(admin, /aria-current=/);
+  assert.match(premium, /status-badge-success/);
+});
+
+test("la capa premium cubre los anchos móviles críticos sin tocar precios", async () => {
+  const premium = await read("app/premium.css");
+  const commercial = await read("lib/commercial.ts");
+
+  for (const width of [320, 375, 390, 430]) {
+    assert.match(premium, new RegExp(`max-width: ${width}px`));
+  }
+  assert.match(premium, /prefers-reduced-motion: reduce/);
+  assert.match(commercial, /pricingForSelection/);
+});

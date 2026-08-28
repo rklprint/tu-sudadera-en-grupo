@@ -5,7 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BadgeCheck, ImageIcon, MapPin, PencilLine, Shirt, Sparkles, Upload, UserRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, ImageIcon, MapPin, PencilLine, PlayCircle, Shirt, Sparkles, Upload, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
 import { pricingForSelection } from "@/lib/commercial";
@@ -311,11 +311,11 @@ export default function Home() {
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
     />
-    <div className="announcement"><span>Precios claros · IVA incluido</span><i>✦</i><span>Nombre individual incluido</span><i>✦</i><span>Envío gratis a Península</span></div>
+    <div className="announcement"><span>Precios claros · IVA incluido</span><i aria-hidden="true" /><span>Nombre individual incluido</span><i aria-hidden="true" /><span>Envío gratis a Península</span></div>
     <header className="site-header">
       <a className="brand" href="#inicio" aria-label="Tu sudadera en grupo, inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a>
-      <nav className={menuOpen ? "open" : ""} aria-label="Navegación principal"><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseñadla</a><a onClick={() => setMenuOpen(false)} href="#para-grupos">Para grupos</a><a onClick={() => setMenuOpen(false)} href="#inspiracion">Diseños</a><a onClick={() => setMenuOpen(false)} href="#pagos">Pagos</a><a onClick={() => setMenuOpen(false)} href="#como-funciona">Cómo funciona</a><a onClick={() => setMenuOpen(false)} href="#preguntas">Dudas</a></nav>
-      <div className="header-actions"><Link className="ghost-button" href="/pedido">Ya tengo un pedido</Link><button className="header-cta" onClick={goToQuote}>Pedir presupuesto <span>↗</span></button><button className="menu-button" aria-label="Abrir menú" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><span /><span /></button></div>
+      <nav id="site-navigation" className={menuOpen ? "open" : ""} aria-label="Navegación principal"><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseñadla</a><a onClick={() => setMenuOpen(false)} href="#para-grupos">Para grupos</a><a onClick={() => setMenuOpen(false)} href="#inspiracion">Diseños</a><a onClick={() => setMenuOpen(false)} href="#pagos">Pagos</a><a onClick={() => setMenuOpen(false)} href="#como-funciona">Cómo funciona</a><a onClick={() => setMenuOpen(false)} href="#preguntas">Dudas</a></nav>
+      <div className="header-actions"><Link className="ghost-button" href="/pedido">Ya tengo un pedido</Link><button className="header-cta" onClick={goToQuote}>Pedir presupuesto <span>↗</span></button><button className="menu-button" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-controls="site-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><span /><span /></button></div>
     </header>
 
     <section className="hero" id="inicio">
@@ -323,7 +323,7 @@ export default function Home() {
         <div className="hero-kicker"><span className="avatar-stack"><i>J</i><i>M</i><i>L</i></span><span>Creada para grupos que<br />no quieren vestir como todos</span></div>
         <h1>Sudaderas personalizadas<br /><em>para grupos.</em></h1>
         <p className="hero-lead"><strong>No es una sudadera. Es vuestro uniforme.</strong> Diseñad una prenda que cuente vuestra historia, con precios reales desde el principio y sin esperar una respuesta para saber cuánto cuesta.</p>
-        <div className="hero-actions"><button className="primary-button" onClick={scrollToCustomizer}>Empezar a diseñar <span>↗</span></button><a className="play-link" href="#como-funciona"><b>▶</b><span>Así lo hacemos<br /><small>45 segundos</small></span></a></div>
+        <div className="hero-actions"><button className="primary-button" onClick={scrollToCustomizer}>Empezar a diseñar <span>↗</span></button><a className="play-link" href="#como-funciona"><b><PlayCircle aria-hidden="true" /></b><span>Ver cómo funciona<br /><small>4 pasos claros</small></span></a></div>
         <div className="hero-proof"><div><strong>Desde 22 € · IVA incluido</strong><span>Sudadera, DTF delante y detrás y nombre</span></div><div><strong>Envío gratis a Península</strong><span>Un único envío para todo el grupo</span></div></div>
       </div>
       <div className="hero-stage"><div className="stage-grid" /><span className="sticker sticker-one">VUESTRO<br />DISEÑO</span><span className="sticker sticker-two">HECHO<br />JUNTOS</span><div className="hero-hoodie hero-hoodie-back"><Hoodie color={CORE_COLORS[4].value} printColor="#9ed8f4" text={"PROMO 26\nX"} side="back" designStyle="x" /></div><div className="hero-hoodie hero-hoodie-front"><Hoodie color={CORE_COLORS[0].value} printColor="#f7f3e9" text={"PROMO\n26"} side="front" frontType="name" frontText="PROMO 26" sleeveFlag="spain" /></div><div className="stage-note"><span>01</span><p>Dos vistas.<br /><strong>Mil posibilidades.</strong></p></div></div>

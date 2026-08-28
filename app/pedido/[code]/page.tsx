@@ -7,6 +7,8 @@ import { FlowFooter, FlowHeader, FlowLoadingSkeleton } from "@/app/_components/f
 import { GarmentEditor, newGarment, type GarmentDraft } from "@/app/_components/garment-editor";
 import { trackProductEvent } from "@/lib/analytics";
 import { PaymentCheckout } from "@/app/_components/payment-checkout";
+import { StatusBadge } from "@/app/_components/status-badge";
+import { BadgeEuro, Shirt, UsersRound, WalletCards } from "lucide-react";
 
 type SizeCount = { size: string; quantity: number };
 type OrderData = {
@@ -119,8 +121,13 @@ export default function PrivateOrderPage() {
     <section className="group-workspace">
       <header className="group-workspace-head">
         <div><p className="flow-eyebrow">Acceso privado · {order.code}</p><h1>{order.groupName}</h1><p>{order.garment} · {order.color} · Base {money(unitPrice)} / prenda</p></div>
-        <div className="group-workspace-meta">{order.deadline && <span className="deadline-pill"><small>Fecha límite</small><b>{order.deadline}</b></span>}<div className={`phase-pill phase-${order.phase}`}><i />{phaseLabel(order.phase)}</div></div>
+        <div className="group-workspace-meta">{order.deadline && <span className="deadline-pill"><small>Fecha límite</small><b>{order.deadline}</b></span>}<StatusBadge status={order.phase || "registration"} label={phaseLabel(order.phase)} /></div>
       </header>
+
+      <section className={`group-next-action group-next-${order.phase}`} aria-label="Siguiente acción del grupo">
+        <div><span>Siguiente acción</span><strong>{nextActionTitle(order.phase)}</strong><p>{nextActionDescription(order.phase)}</p></div>
+        <StatusBadge status={order.phase || "registration"} label={phaseLabel(order.phase)} />
+      </section>
 
       <div className="group-phase-track" aria-label="Progreso del pedido">
         <div className="done"><span>✓</span><b>Diseño aprobado</b></div>
@@ -130,13 +137,13 @@ export default function PrivateOrderPage() {
       </div>
 
       <section className="aggregate-board" aria-label="Resumen general del grupo">
-        <article><span>Personas registradas</span><strong>{registeredPeople}</strong><small>Solo totales, sin datos personales</small></article>
-        <article><span>Prendas registradas</span><strong>{registeredGarments}</strong><small>Objetivo inicial: {order.estimatedQuantity}</small></article>
-        <article><span>Personas que han pagado</span><strong>{order.paidPeople || 0}</strong><small>El pago aún {order.paymentStatus === "open" ? "está abierto" : "no está abierto"}</small></article>
-        <article><span>Cobrado / pendiente</span><strong>{money(order.amountCollectedCents)} <em>/ {money(order.amountOutstandingCents)}</em></strong><small>Según las prendas registradas</small></article>
+        <article><UsersRound aria-hidden="true" /><span>Personas registradas</span><strong>{registeredPeople}</strong><small>Solo totales, sin datos personales</small></article>
+        <article><Shirt aria-hidden="true" /><span>Prendas registradas</span><strong>{registeredGarments}</strong><small>Objetivo inicial: {order.estimatedQuantity}</small></article>
+        <article><BadgeEuro aria-hidden="true" /><span>Personas que han pagado</span><strong>{order.paidPeople || 0}</strong><small>El pago aún {order.paymentStatus === "open" ? "está abierto" : "no está abierto"}</small></article>
+        <article><WalletCards aria-hidden="true" /><span>Cobrado / pendiente</span><strong>{money(order.amountCollectedCents)} <em>/ {money(order.amountOutstandingCents)}</em></strong><small>Según las prendas registradas</small></article>
       </section>
 
-      <div className="group-capacity"><div><span>Registro actual</span><b>{registeredGarments} de {order.estimatedQuantity} prendas previstas</b></div><div className="large-progress"><i style={{ width: `${progress}%` }} /></div><small>{progress}% de la previsión · el tramo se recalcula al cerrar</small></div>
+      <div className="group-capacity"><div><span>Registro actual</span><b>{registeredGarments} de {order.estimatedQuantity} prendas previstas</b></div><div className="large-progress" role="progressbar" aria-label="Progreso de prendas registradas" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{ width: `${progress}%` }} /></div><small>{progress}% de la previsión · el tramo se recalcula al cerrar</small></div>
 
       {order.phase === "registration" && <section className="registration-layout">
         <aside className="registration-context">
@@ -170,6 +177,20 @@ function phaseLabel(phase?: OrderData["phase"]) {
   if (phase === "production") return "En producción";
   if (phase === "closed") return "Registro cerrado";
   return "Registro abierto";
+}
+
+function nextActionTitle(phase?: OrderData["phase"]) {
+  if (phase === "payment") return "Completar los pagos pendientes";
+  if (phase === "production") return "Seguir la producción y el envío";
+  if (phase === "closed") return "Confirmar cantidad y precio definitivo";
+  return "Registrar las prendas del grupo";
+}
+
+function nextActionDescription(phase?: OrderData["phase"]) {
+  if (phase === "payment") return "Cada participante puede pagar desde su enlace y el organizador puede completar únicamente el saldo restante.";
+  if (phase === "production") return "El pedido ya está pagado. El siguiente cambio visible será la actualización del envío conjunto.";
+  if (phase === "closed") return "Estamos revisando el total real y los extras antes de abrir el pago con el importe fijado.";
+  return "Compartid el enlace privado para que cada persona añada talla, nombre y extras sin realizar ningún pago todavía.";
 }
 
 function PaymentPhase({ order }: { order: OrderData }) {

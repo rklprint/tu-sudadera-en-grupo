@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { trackProductEvent } from "@/lib/analytics";
 import type { HostedPaymentForm, PaymentMethod } from "@/lib/payments/types";
+import { CreditCard, Landmark, LoaderCircle, ShieldCheck, Smartphone } from "lucide-react";
 
 type Availability = { card: boolean; bizum: boolean; transfer: boolean };
 type TransferInstructions = { iban: string; accountHolder: string; concept: string };
@@ -50,13 +51,13 @@ export function PaymentCheckout({ scope, credential, amountCents, availability }
   return <div className="checkout-panel">
     <div className="checkout-total"><span>{scope === "participant" ? "Total de tus prendas" : "Total pendiente del grupo"}</span><strong>{formatMoney(amountCents)}</strong></div>
     <div className="checkout-methods">
-      <button type="button" disabled={!availability.card || !!busy} onClick={() => start("card")}><b>Tarjeta bancaria</b><span>{availability.card ? "Pago seguro en Redsys" : "Pendiente de activar"}</span></button>
-      <button type="button" disabled={!availability.bizum || !!busy} onClick={() => start("bizum")}><b>Bizum</b><span>{availability.bizum ? "A través de Redsys" : "Pendiente del banco"}</span></button>
-      <button type="button" disabled={!availability.transfer || !!busy} onClick={() => start("transfer")}><b>Transferencia</b><span>{availability.transfer ? "Validación manual" : "Pendiente de configurar"}</span></button>
+      <button type="button" disabled={!availability.card || !!busy} onClick={() => start("card")}><CreditCard aria-hidden="true" /><span><b>Tarjeta bancaria</b><small>{availability.card ? "Pago seguro en Redsys" : "Pendiente de activar"}</small></span></button>
+      <button type="button" disabled={!availability.bizum || !!busy} onClick={() => start("bizum")}><Smartphone aria-hidden="true" /><span><b>Bizum</b><small>{availability.bizum ? "A través de Redsys" : "Pendiente del banco"}</small></span></button>
+      <button type="button" disabled={!availability.transfer || !!busy} onClick={() => start("transfer")}><Landmark aria-hidden="true" /><span><b>Transferencia</b><small>{availability.transfer ? "Validación manual" : "Pendiente de configurar"}</small></span></button>
     </div>
-    {busy && <p className="checkout-status" role="status">Preparando {busy === "card" ? "el pago con tarjeta" : busy === "bizum" ? "Bizum" : "la transferencia"}…</p>}
+    {busy && <p className="checkout-status" role="status"><LoaderCircle aria-hidden="true" /> Preparando {busy === "card" ? "el pago con tarjeta" : busy === "bizum" ? "Bizum" : "la transferencia"}…</p>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    <small>No introducimos ni almacenamos datos de tarjeta: el cobro se realiza en la página segura de Redsys.</small>
+    <small className="checkout-security"><ShieldCheck aria-hidden="true" /> No introducimos ni almacenamos datos de tarjeta: el cobro se realiza en la página segura de Redsys.</small>
   </div>;
 }
 

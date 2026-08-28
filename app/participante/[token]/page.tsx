@@ -7,6 +7,7 @@ import { FlowFooter, FlowHeader, FlowLoadingSkeleton } from "@/app/_components/f
 import { GarmentEditor, type GarmentDraft } from "@/app/_components/garment-editor";
 import { trackProductEvent } from "@/lib/analytics";
 import { PaymentCheckout } from "@/app/_components/payment-checkout";
+import { toast } from "sonner";
 
 type ParticipantData = {
   contactName: string;
@@ -50,6 +51,7 @@ export default function ParticipantPage() {
       const result = await response.json() as { ok?: boolean; error?: string };
       if (!response.ok) throw new Error(result.error || "No hemos podido guardar los cambios.");
       setSaved(true);
+      toast.success("Cambios guardados", { description: "Todas tus prendas están actualizadas." });
       void trackProductEvent("participant_edited", {
         product_type: data.group.productType || "hoodie",
         quantity: data.garments.length,
