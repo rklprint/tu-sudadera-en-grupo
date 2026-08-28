@@ -87,14 +87,48 @@ test("el personalizador móvil une preview, vista y color sin desbordar la pági
   assert.doesNotMatch(mobile, /width:\s*100vw/);
 });
 
-test("la vista frontal móvil sube sin desplazar la espalda", async () => {
+test("el producto se elige antes de la preview sin duplicar el selector", async () => {
+  const page = await read("app/page.tsx");
+
+  const selectorIndex = page.indexOf('className="product-selector-top"');
+  const previewIndex = page.indexOf('className="customizer-layout"');
+  assert.ok(selectorIndex > 0 && selectorIndex < previewIndex);
+  assert.equal(page.match(/aria-label="Tipo de prenda"/g)?.length, 1);
+  assert.doesNotMatch(page, /className="product-type-options"/);
+  assert.match(page, /Modelo y tarifa por confirmar/);
+});
+
+test("la calculadora usa un resumen textual fiable y elimina la mini preview", async () => {
+  const page = await read("app/page.tsx");
+
+  assert.match(page, /configuration-text-summary/);
+  for (const label of ["Producto", "Color", "Cantidad", "Personalización", "Extras", "Precio"]) {
+    assert.match(page, new RegExp(`<dt>${label}</dt>`));
+  }
+  assert.doesNotMatch(page, /price-mini-hoodies/);
+  assert.doesNotMatch(page, /price-mini-item/);
+});
+
+test("la vista frontal móvil reduce su caja sin desplazar la espalda", async () => {
   const page = await read("app/page.tsx");
   const mobile = await read("app/customizer-mobile.css");
+  const legibility = await read("app/legibility.css");
 
   assert.match(page, /hoodie-view-\$\{side\}/);
   assert.match(
-    mobile,
-    /\.hoodie-real\.hoodie-view-front\s*\{[\s\S]*?transform:\s*translateY\(-3\.5%\)/,
+    legibility,
+    /\.hoodie-real\.hoodie-view-front\s*\{[\s\S]*?width:\s*100%[\s\S]*?translateY\(-2\.25%\)/,
   );
   assert.doesNotMatch(mobile, /\.hoodie-real\.hoodie-view-back\s*\{[\s\S]*?translateY/);
+  assert.doesNotMatch(legibility, /\.hoodie-real\.hoodie-view-back\s*\{[\s\S]*?translateY/);
+});
+
+test("el indicador rojo se elimina y los overlays quedan sobre la prenda", async () => {
+  const page = await read("app/page.tsx");
+  const legibility = await read("app/legibility.css");
+
+  assert.doesNotMatch(page, /<i>Live<\/i>/);
+  assert.match(page, /Vista previa en directo<\/span>/);
+  assert.match(legibility, /\.preview-stage \.preview-model,[\s\S]*\.preview-stage \.zoom-hint[\s\S]*z-index: 5/);
+  assert.match(page, /preview-guidance/);
 });
