@@ -86,3 +86,15 @@ test("el personalizador móvil une preview, vista y color sin desbordar la pági
   assert.match(mobile, /\.preview-summary,[\s\S]*\.desktop-product-color[\s\S]*display: none/);
   assert.doesNotMatch(mobile, /width:\s*100vw/);
 });
+
+test("la vista frontal móvil sube sin desplazar la espalda", async () => {
+  const page = await read("app/page.tsx");
+  const mobile = await read("app/customizer-mobile.css");
+
+  assert.match(page, /hoodie-view-\$\{side\}/);
+  assert.match(
+    mobile,
+    /\.hoodie-real\.hoodie-view-front\s*\{[\s\S]*?transform:\s*translateY\(-3\.5%\)/,
+  );
+  assert.doesNotMatch(mobile, /\.hoodie-real\.hoodie-view-back\s*\{[\s\S]*?translateY/);
+});

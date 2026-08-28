@@ -139,6 +139,11 @@
     transform: none;
   }
 
+  /* The front master sits lower inside its 1:1 canvas than the back master. */
+  main .preview-stage .hoodie-real.hoodie-view-front {
+    transform: translateY(-3.5%);
+  }
+
   main .preview-stage .tshirt {
     transform: scale(1.04);
   }
