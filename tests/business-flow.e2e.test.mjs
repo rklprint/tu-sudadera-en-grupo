@@ -191,6 +191,7 @@ test("critical 25-garment flow preserves data through production export", async 
     });
     assert.equal(large.response.status, 201, JSON.stringify(large.body));
     assert.equal(large.body.pricing.quotedUnitPriceCents, null);
+    assert.equal((await jsonRequest(`/api/admin/presupuestos/${large.body.code}/aprobar`, "POST", {}, true)).response.status, 400);
   });
 
   const code = flowQuoteCode;
@@ -247,6 +248,7 @@ test("critical 25-garment flow preserves data through production export", async 
   const opened = await jsonRequest(`/api/admin/grupos/${groupCode}`, "PATCH", { action: "open_payment" }, true);
   assert.equal(opened.response.status, 200, JSON.stringify(opened.body));
   assert.equal(opened.body.group.paymentStatus, "open");
+  assert.equal((await jsonRequest(`/api/admin/grupos/${groupCode}`, "PATCH", { action: "close_registration", unitPriceCents: 100 }, true)).response.status, 409);
   const frozenItemsBeforePayment = db.queryAll("SELECT participant_id, product_name, model, color, quantity, print_name, size, name_placement, front_extra, front_detail, sleeve_extra, sleeve_detail, extras_cents, unit_price_cents FROM order_items WHERE participant_id IN (SELECT id FROM participants WHERE group_id = ?) ORDER BY id", groupRow.id);
 
   const attackerStart = await request("/api/pagos/iniciar", {
@@ -278,6 +280,8 @@ test("critical 25-garment flow preserves data through production export", async 
   const browserOk = await request(`/pago/resultado?ref=${encodeURIComponent(p1Payment.reference)}&estado=pendiente`);
   assert.equal(browserOk.response.status, 200);
   assert.equal(db.query("SELECT status FROM payments WHERE id = ?", p1Payment.id).status, "processing");
+  const p1Ko = new URL(decodeParameters(cardStart.body.form.fields.Ds_MerchantParameters).DS_MERCHANT_URLKO);
+  assert.equal((await jsonRequest(`/api/pagos/${p1Payment.reference}/cancelar`, "POST", { token: p1Ko.searchParams.get("token") })).body.status, "processing");
   const simultaneousParticipantCallbacks = await Promise.all([
     redsysNotification(p1Payment, "0000", "AUTH-P1"),
     redsysNotification(p2FailedPayment, "0190", ""),
@@ -295,11 +299,11 @@ test("critical 25-garment flow preserves data through production export", async 
   const cancelUrl = new URL(bizumParams.DS_MERCHANT_URLKO);
   const cancelled = await jsonRequest(`/api/pagos/${bizum.body.reference}/cancelar`, "POST", { token: cancelUrl.searchParams.get("token") });
   assert.equal(cancelled.response.status, 200, JSON.stringify(cancelled.body));
-  assert.equal(cancelled.body.status, "cancelled");
+  assert.equal(cancelled.body.status, "processing");
   const cancelledPayment = db.query("SELECT * FROM payments WHERE reference = ?", bizum.body.reference);
   const collectedBeforeLate = db.query("SELECT coalesce(sum(amount_cents), 0) AS total FROM payments WHERE group_id = ? AND status = 'confirmed'", groupRow.id).total;
-  assert.equal((await redsysNotification(cancelledPayment, "0000", "LATE01")).response.status, 409);
-  assert.equal(db.query("SELECT status FROM payments WHERE id = ?", cancelledPayment.id).status, "cancelled");
+  assert.equal((await redsysNotification(cancelledPayment, "0190", "")).response.status, 200);
+  assert.equal(db.query("SELECT status FROM payments WHERE id = ?", cancelledPayment.id).status, "failed");
   assert.equal(db.query("SELECT coalesce(sum(amount_cents), 0) AS total FROM payments WHERE group_id = ? AND status = 'confirmed'", groupRow.id).total, collectedBeforeLate);
 
   const p2Transfer = await startPayment({ method: "transfer", scope: "participant", participantToken: tokens[1] }, "p2-transfer");
@@ -384,4 +388,22 @@ test("critical 25-garment flow preserves data through production export", async 
   assert.equal(revoked.response.status, 200);
   assert.equal((await request(`/api/pedidos/${groupCode}`)).response.status, 404);
   assert.equal((await request(`/api/participantes/${tokens[0]}`)).response.status, 410);
+});
+
+
+test("catalog edits preserve exact assets and do not reseed removed variants", async () => {
+  const catalog = await request('/api/admin/catalogo', { headers: headers(true) });
+  assert.equal(catalog.response.status, 200);
+  const product = catalog.body.products.find(product => product.slug === 'sudadera-gildan-18500');
+  const color = product.colors.find(color => color.name === 'Azul marino');
+  const edited = { ...product, colors: [color], designs: [] };
+  const update = await jsonRequest('/api/admin/catalogo', 'PATCH', { id: product.numericId, product: edited }, true);
+  assert.equal(update.response.status, 200, JSON.stringify(update.body));
+  const read = await request('/api/catalogo');
+  const actual = read.body.products.find(product => product.slug === edited.slug);
+  assert.equal(actual.colors.length, 1);
+  assert.equal(actual.colors[0].frontImage, color.frontImage);
+  assert.equal(actual.colors[0].backImage, color.backImage);
+  assert.equal((await jsonRequest('/api/admin/catalogo', 'PATCH', { id: product.numericId, product: edited })).response.status, 403);
+  assert.equal((await jsonRequest('/api/admin/catalogo', 'PATCH', { id: product.numericId, product: { ...edited, colors: [{ ...color, frontImage: '/quote-designs/private.png' }] } }, true)).response.status, 400);
 });

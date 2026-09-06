@@ -41,21 +41,13 @@ export async function POST(request: Request, context: RouteContext) {
     if (payment.status === "confirmed") return secureJson({ status: "confirmed" }, { status: 409 });
     if (payment.status === "cancelled") return secureJson({ status: "cancelled", idempotent: true });
 
-    const result = await DB.prepare("UPDATE payments SET status = 'cancelled', active_scope_key = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'processing'")
-      .bind(payment.id)
-      .run() as { meta?: { changes?: number } };
-    const transitioned = Number(result.meta?.changes || 0) > 0;
-    if (transitioned) {
-      await DB.prepare("INSERT OR IGNORE INTO payment_events (payment_id, provider, event_key, event_type, payload_hash) VALUES (?, 'redsys', ?, 'payment_cancelled', '')")
-        .bind(payment.id, `redsys-browser-cancel:${payment.id}`)
-        .run();
-      return secureJson({ status: "cancelled" });
-    }
+    // Browser KO is an observation, not proof of a bank cancellation. Keep the
+    // scope locked until a signed notification or an admin reconciliation.
+    await DB.prepare("INSERT OR IGNORE INTO payment_events (payment_id, provider, event_key, event_type, payload_hash) VALUES (?, 'redsys', ?, 'browser_return_ko', '')")
+      .bind(payment.id, `redsys-browser-ko:${payment.id}`).run();
+    const current = await DB.prepare("SELECT status FROM payments WHERE id = ?").bind(payment.id).first<{ status: string }>();
+    return secureJson({ status: current?.status || payment.status, awaitingNotification: true });
 
-    const current = await DB.prepare("SELECT status FROM payments WHERE id = ?")
-      .bind(payment.id)
-      .first<{ status: string }>();
-    return secureJson({ status: current?.status || payment.status }, { status: 409 });
   } catch {
     return secureJson({ error: "No hemos podido registrar la cancelación." }, { status: 500 });
   }

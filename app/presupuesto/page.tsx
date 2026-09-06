@@ -52,6 +52,7 @@ function QuotePageContent() {
   const query = useSearchParams();
   const queriedGroupType = query.get("groupType");
   const configuration: Configuration = {
+    designFields: (() => { try { return JSON.parse(query.get("designFields") || "{}"); } catch { return {}; } })(),
     productSlug: query.get("productSlug") || defaultConfiguration.productSlug,
     productCategory: query.get("productCategory") === "tshirt" ? "tshirt" : "hoodie",
     product: query.get("product") || defaultConfiguration.product,

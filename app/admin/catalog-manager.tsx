@@ -1,5 +1,7 @@
 "use client";
 
+import type { CatalogColor } from "@/lib/catalog";
+import type { CatalogDesign } from "@/lib/customization-catalog";
 import { useState, type FormEvent } from "react";
 
 export type AdminCatalogProduct = {
@@ -16,7 +18,8 @@ export type AdminCatalogProduct = {
   seoTitle: string;
   seoDescription: string;
   sizes: readonly string[];
-  colors: readonly { name: string; value: string }[];
+  colors: readonly CatalogColor[];
+  designs?: CatalogDesign[];
   priceTiers: readonly { min: number; max: number | null; label: string; unitPriceCents: number | null }[];
 };
 
@@ -36,6 +39,8 @@ type Draft = {
   sizes: string;
   colors: string;
   priceTiers: string;
+  assets: string;
+  designs: string;
 };
 
 const emptyDraft = (): Draft => ({
@@ -54,6 +59,8 @@ const emptyDraft = (): Draft => ({
   sizes: "S, M, L, XL, 2XL, 3XL",
   colors: "Negro: #202124\nBlanco: #f2f1ed",
   priceTiers: "",
+  assets: "[]",
+  designs: "[]",
 });
 
 function productDraft(product: AdminCatalogProduct): Draft {
@@ -70,6 +77,8 @@ function productDraft(product: AdminCatalogProduct): Draft {
     position: product.position,
     seoTitle: product.seoTitle,
     seoDescription: product.seoDescription,
+    assets: JSON.stringify(product.colors, null, 2),
+    designs: JSON.stringify(product.designs ?? [], null, 2),
     sizes: product.sizes.join(", "),
     colors: product.colors.map((color) => `${color.name}: ${color.value}`).join("\n"),
     priceTiers: product.priceTiers.map((tier) => `${tier.min}-${tier.max ?? ""}: ${tier.unitPriceCents === null ? "consultar" : (tier.unitPriceCents / 100).toFixed(2)}`).join("\n"),
@@ -94,16 +103,18 @@ export function CatalogManager({ initialProducts }: { initialProducts: AdminCata
         const separator = line.lastIndexOf(":");
         return { name: line.slice(0, separator).trim(), value: line.slice(separator + 1).trim() };
       }).filter((color) => color.name && color.value);
-      const priceTiers = draft.priceTiers.split("\n").map((line) => {
+      const priceTiers = draft.priceTiers.split("\n").filter(line => line.trim()).map((line) => {
         const [range = "", rawPrice = ""] = line.split(":");
         const [minimum, maximum] = range.trim().split("-");
         const consult = /consultar/i.test(rawPrice);
         return { min: Number(minimum), max: maximum?.trim() ? Number(maximum) : null, label: "", unitPriceCents: consult ? null : Math.round(Number(rawPrice.trim().replace(",", ".")) * 100) };
       }).filter((tier) => Number.isFinite(tier.min));
+      const assets = JSON.parse(draft.assets) as CatalogColor[];
       const product = {
         ...draft,
         sizes: draft.sizes.split(",").map((size) => size.trim()).filter(Boolean),
-        colors,
+        colors: colors.map(color => ({ ...assets.find(asset => asset.name === color.name), ...color })),
+        designs: JSON.parse(draft.designs),
         priceTiers,
       };
       const response = await fetch("/api/admin/catalogo", {
@@ -142,6 +153,8 @@ export function CatalogManager({ initialProducts }: { initialProducts: AdminCata
         <label className="wide"><span>Descripción</span><textarea rows={3} maxLength={700} value={draft.description} onChange={(event) => update("description", event.target.value)} /></label>
         <label className="wide"><span>Tallas separadas por comas</span><input required value={draft.sizes} onChange={(event) => update("sizes", event.target.value)} /></label>
         <label className="wide"><span>Colores · uno por línea: Nombre: #hex</span><textarea required rows={5} value={draft.colors} onChange={(event) => update("colors", event.target.value)} /></label>
+        <label className="wide"><span>Imágenes por color · JSON (name, frontImage, backImage, assetKey)</span><textarea rows={8} value={draft.assets} onChange={event => update("assets", event.target.value)} /><small>Rutas /products/. Solo archivos públicos aprobados. Las imágenes deben corresponder al modelo y color de este producto.</small></label>
+        <label className="wide"><span>Catálogo de diseños · JSON</span><textarea rows={8} value={draft.designs} onChange={event => update("designs", event.target.value)} /><small>id, name, file (/designs/), view, position, size, products, personalizable, fields, active, order. Coordenadas en porcentaje del lienzo.</small></label>
         <label className="wide"><span>Tramos · uno por línea: mínimo-máximo: precio; máximo vacío para “+”</span><textarea rows={6} disabled={draft.quoteOnly} value={draft.priceTiers} onChange={(event) => update("priceTiers", event.target.value)} placeholder={"5-10: 30\n11-20: 28\n101-: consultar"} /></label>
         <label className="wide"><span>Título SEO</span><input maxLength={70} value={draft.seoTitle} onChange={(event) => update("seoTitle", event.target.value)} /></label>
         <label className="wide"><span>Descripción SEO</span><textarea rows={2} maxLength={170} value={draft.seoDescription} onChange={(event) => update("seoDescription", event.target.value)} /></label>

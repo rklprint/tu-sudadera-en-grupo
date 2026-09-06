@@ -36,7 +36,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const configuration = parseStoredQuoteConfiguration(quote.configurationJson);
     const commercialSnapshot = readCommercialSnapshot(configuration.commercialSnapshot);
-    const suggested = commercialSnapshot?.quotedUnitPriceCents ?? priceForQuantityCents(quote.quantity);
+    const suggested = commercialSnapshot ? commercialSnapshot.quotedUnitPriceCents : priceForQuantityCents(quote.quantity);
     const requestedPrice = payload.unitPriceCents === undefined ? suggested : Number(payload.unitPriceCents);
     const unitPriceCents = Number(requestedPrice || 0);
     if (!Number.isInteger(unitPriceCents) || unitPriceCents < 100 || unitPriceCents > 100000) {

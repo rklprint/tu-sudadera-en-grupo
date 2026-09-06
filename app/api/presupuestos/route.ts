@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     const selection = normalizePersonalizerSelection({ ...payload.configuration, groupName });
     const catalog = await readCatalog(false);
     const product = catalog.find((item) => item.slug === selection.productSlug && item.active)
-      || catalog.find((item) => item.category === selection.productCategory && item.active);
+      || (!selection.productSlug ? catalog.find((item) => item.category === selection.productCategory && item.active) : undefined);
     if (!product) return secureJson({ error: "El producto seleccionado ya no está disponible." }, { status: 409 });
     const colorIsSelectable = product.colors.some((color) => color.name === selection.color);
     if (selection.color && selection.color !== "Por elegir" && !colorIsSelectable) {
@@ -163,6 +163,19 @@ export async function POST(request: Request) {
       color: colorIsSelectable ? selection.color : "Por confirmar",
       groupName,
     };
+    const selectedDesign = product.designs?.find(design => design.id === selection.designStyle);
+    if (selection.designPath === "template" && product.designs?.length && !selectedDesign) return secureJson({ error: "Selecciona un diseño vigente del catálogo." }, { status: 409 });
+    if (selectedDesign) {
+      if (!selectedDesign.active || !selectedDesign.products.includes(product.slug)) return secureJson({ error: "El diseño no está disponible para este producto." }, { status: 409 });
+      const fields: Record<string, string> = {};
+      for (const field of selectedDesign.personalizable ? selectedDesign.fields : []) {
+        const text = selection.designFields?.[field.id] || "";
+        if ((field.required && !text) || text.length > field.maxLength) return secureJson({ error: `Revisa el campo ${field.label}.` }, { status: 400 });
+        fields[field.id] = text;
+      }
+      authoritativeSelection.designFields = fields;
+      authoritativeSelection.backDesign = selectedDesign.name;
+    }
     const commercialSnapshot = createCommercialSnapshot(product, quantity, authoritativeSelection);
     const configuration: StoredQuoteConfiguration = {
       ...authoritativeSelection,
@@ -173,6 +186,7 @@ export async function POST(request: Request) {
         ? "Consultar"
         : `${commercialSnapshot.quotedUnitPriceCents / 100} € por unidad`,
       commercialSnapshot,
+      ...(selectedDesign ? { designSnapshot: structuredClone(selectedDesign) } : {}),
     };
     const db = getDb();
     let code = createReference();

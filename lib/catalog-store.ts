@@ -1,6 +1,10 @@
+import { CORE_COLORS } from "@/lib/catalog";
+import { DEFAULT_EXTRAS, publicAssetPath, validateDesigns, type CatalogDesign } from "@/lib/customization-catalog";
 import { ensureQuoteSchema } from "@/db";
 import type { CatalogColor, CatalogPriceTier, CatalogProduct } from "@/lib/catalog";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
+
+type ExtraRow = { product_id: number; slug: string; name: string; price_cents: number | null; quote_only: number; active: number; position: number };
 
 type ProductRow = {
   id: number;
@@ -15,6 +19,8 @@ type ProductRow = {
   position: number;
   seo_title: string;
   seo_description: string;
+  images_json: string;
+  designs_json: string;
 };
 
 export type ManagedCatalogProduct = CatalogProduct & {
@@ -39,6 +45,7 @@ export type CatalogProductInput = {
   sizes: string[];
   colors: CatalogColor[];
   priceTiers: CatalogPriceTier[];
+  designs: CatalogDesign[];
 };
 
 export async function readCatalog(includeInactive = false): Promise<ManagedCatalogProduct[]> {
@@ -48,12 +55,13 @@ export async function readCatalog(includeInactive = false): Promise<ManagedCatal
 
   const where = includeInactive ? "" : "WHERE active = 1";
   const [productResult, colorResult, sizeResult, tierResult] = await Promise.all([
-    DB.prepare(`SELECT id, slug, category, name, model, description, quote_only, active, featured, position, seo_title, seo_description FROM products ${where} ORDER BY position, id`).all<ProductRow>(),
+    DB.prepare(`SELECT id, slug, category, name, model, description, quote_only, active, featured, position, seo_title, seo_description, images_json, designs_json FROM products ${where} ORDER BY position, id`).all<ProductRow>(),
     DB.prepare("SELECT product_id, name, hex FROM product_colors WHERE active = 1 ORDER BY position, id").all<{ product_id: number; name: string; hex: string }>(),
     DB.prepare("SELECT product_id, name FROM product_sizes WHERE active = 1 ORDER BY position, id").all<{ product_id: number; name: string }>(),
     DB.prepare("SELECT product_id, min_quantity, max_quantity, unit_price_cents FROM product_price_tiers ORDER BY position, min_quantity").all<{ product_id: number; min_quantity: number; max_quantity: number | null; unit_price_cents: number | null }>(),
   ]);
 
+  const extraRows = await DB.prepare("SELECT pe.product_id, e.slug, e.name, e.price_cents, e.quote_only, e.active, e.position FROM extras e INNER JOIN product_extras pe ON pe.extra_id = e.id").all<{ product_id: number; slug: string; name: string; price_cents: number | null; quote_only: number; active: number; position: number }>();
   const productRows = (productResult.results || []) as ProductRow[];
   const colorRows = (colorResult.results || []) as { product_id: number; name: string; hex: string }[];
   const sizeRows = (sizeResult.results || []) as { product_id: number; name: string }[];
@@ -69,7 +77,14 @@ export async function readCatalog(includeInactive = false): Promise<ManagedCatal
         unitPriceCents: tier.unit_price_cents,
       }));
 
+    const images = JSON.parse(product.images_json) as CatalogColor[];
+    const designs = validateDesigns(JSON.parse(product.designs_json));
     return {
+      designs: includeInactive ? designs : designs.filter(design => design.active && design.products.includes(product.slug)),
+      extras: ((extraRows.results ?? []) as ExtraRow[]).filter(row => row.product_id === product.id).flatMap(row => {
+        const definition = DEFAULT_EXTRAS.find(extra => extra.id === row.slug);
+        return definition ? [{ ...definition, products: [product.slug], name: row.name, priceCents: row.quote_only ? null : row.price_cents, active: row.active === 1, order: row.position }] : [];
+      }),
       id: String(product.id),
       numericId: product.id,
       slug: product.slug,
@@ -84,7 +99,12 @@ export async function readCatalog(includeInactive = false): Promise<ManagedCatal
       seoTitle: product.seo_title,
       seoDescription: product.seo_description,
       sizes: sizeRows.filter((size: (typeof sizeRows)[number]) => size.product_id === product.id).map((size: (typeof sizeRows)[number]) => size.name),
-      colors: colorRows.filter((color: (typeof colorRows)[number]) => color.product_id === product.id).map((color: (typeof colorRows)[number]) => ({ name: color.name, value: color.hex })),
+      colors: colorRows.filter((color: (typeof colorRows)[number]) => color.product_id === product.id).map((color: (typeof colorRows)[number]) => ({ name: color.name, value: color.hex, ...(() => {
+        const match = images.find(image => image.name === color.name);
+        const original = product.slug === "sudadera-gildan-18500" && product.model === "Gildan 18500" ? CORE_COLORS.find(image => image.name === color.name && image.value === color.hex) : undefined;
+        const image = match ?? original;
+        return image ? { slug: image.slug, assetKey: image.assetKey, frontImage: image.frontImage, backImage: image.backImage } : {};
+      })() })),
       priceTiers,
     };
   });
@@ -105,7 +125,7 @@ export function validateCatalogProduct(input: unknown): CatalogProductInput {
 
   const sizes = Array.isArray(value.sizes) ? [...new Set(value.sizes.map((size) => cleanText(size, 12).toUpperCase()).filter(Boolean))] : [];
   if (!sizes.length || sizes.length > 20) throw new Error("Define entre 1 y 20 tallas.");
-  const colors = Array.isArray(value.colors) ? value.colors.map((color) => ({ name: cleanText(color?.name, 40), value: String(color?.value || "").toLowerCase() })) : [];
+  const colors = Array.isArray(value.colors) ? value.colors.map((color) => ({ name: cleanText(color?.name, 40), value: String(color?.value || "").toLowerCase(), slug: cleanText(color?.slug, 80), assetKey: cleanText(color?.assetKey, 80), frontImage: publicAssetPath(color?.frontImage, "product"), backImage: publicAssetPath(color?.backImage, "product") })) : [];
   if (!colors.length || colors.length > 20 || colors.some((color) => !color.name || !/^#[0-9a-f]{6}$/.test(color.value))) throw new Error("Define colores válidos en formato hexadecimal.");
 
   const priceTiers = Array.isArray(value.priceTiers) ? value.priceTiers.map((tier) => ({
@@ -139,6 +159,7 @@ export function validateCatalogProduct(input: unknown): CatalogProductInput {
     sizes,
     colors,
     priceTiers,
+    designs: validateDesigns(value.designs),
   };
 }
 
@@ -172,6 +193,7 @@ async function replaceVariants(productId: number, input: CatalogProductInput) {
   const { DB } = getSiteRuntimeEnv();
   if (!DB) throw new Error("Catalog database unavailable");
   const statements = [
+    DB.prepare("UPDATE products SET images_json = ?, designs_json = ? WHERE id = ?").bind(JSON.stringify(input.colors), JSON.stringify(input.designs), productId),
     DB.prepare("DELETE FROM product_colors WHERE product_id = ?").bind(productId),
     DB.prepare("DELETE FROM product_sizes WHERE product_id = ?").bind(productId),
     DB.prepare("DELETE FROM product_price_tiers WHERE product_id = ?").bind(productId),

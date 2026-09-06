@@ -1,3 +1,5 @@
+import { DEFAULT_EXTRAS, extraPrice, type CatalogExtra } from "@/lib/customization-catalog";
+import { parseStoredQuoteConfiguration, readCommercialSnapshot } from "@/lib/commercial";
 import { CORE_COLORS, CORE_SIZES, unitPriceForQuantity } from "@/lib/catalog";
 
 export const GROUP_SIZES = CORE_SIZES;
@@ -17,15 +19,26 @@ export function priceForQuantityCents(quantity: number): number | null {
   return unitPriceForQuantity(quantity);
 }
 
-export function extrasForGarmentCents(garment: GarmentInput): number | null {
-  if (garment.frontExtra === "custom_embroidery" || garment.sleeveExtra === "custom_embroidery") return null;
-
-  const front = garment.frontExtra === "coordinates" ? 100 : 0;
-  const sleeve = garment.sleeveExtra === "dtf_flag" ? 100 : garment.sleeveExtra === "embroidered_flag" ? 200 : 0;
-  return front + sleeve;
+export function groupSizes(configurationJson: string): readonly string[] {
+  return readCommercialSnapshot(parseStoredQuoteConfiguration(configurationJson).commercialSnapshot)?.sizes ?? GROUP_SIZES;
 }
 
-export function validateGarments(value: unknown): { garments: GarmentInput[] } | { error: string } {
+export function groupExtras(configurationJson: string): CatalogExtra[] {
+  return readCommercialSnapshot(parseStoredQuoteConfiguration(configurationJson).commercialSnapshot)?.extras ?? DEFAULT_EXTRAS;
+}
+
+export function garmentExtraIds(garment: GarmentInput): string[] {
+  return [garment.frontExtra === "none" ? "" : garment.frontExtra === "coordinates" ? "pecho-coordenadas-bordadas" : "pecho-logo-bordado",
+    garment.sleeveExtra === "none" ? "" : garment.sleeveExtra === "dtf_flag" ? "manga-dtf" : garment.sleeveExtra === "embroidered_flag" ? "manga-bandera-bordada" : "manga-logo-bordado"].filter(Boolean);
+}
+
+export function extrasForGarmentCents(garment: GarmentInput, extras: readonly CatalogExtra[] = DEFAULT_EXTRAS): number | null {
+  const front = garment.frontExtra === "none" ? 0 : extraPrice(garment.frontExtra === "coordinates" ? "pecho-coordenadas-bordadas" : "pecho-logo-bordado", extras);
+  const sleeve = garment.sleeveExtra === "none" ? 0 : extraPrice(garment.sleeveExtra === "dtf_flag" ? "manga-dtf" : garment.sleeveExtra === "embroidered_flag" ? "manga-bandera-bordada" : "manga-logo-bordado", extras);
+  return front === null || sleeve === null ? null : front + sleeve;
+}
+
+export function validateGarments(value: unknown, sizes: readonly string[] = GROUP_SIZES): { garments: GarmentInput[] } | { error: string } {
   if (!Array.isArray(value) || value.length < 1 || value.length > 12) {
     return { error: "Añade entre 1 y 12 prendas en este registro." };
   }
@@ -47,7 +60,7 @@ export function validateGarments(value: unknown): { garments: GarmentInput[] } |
     const sleeveDetail = String(item.sleeveDetail || "").trim().slice(0, 100);
 
     if (!printName) return { error: "Indica el nombre que llevará cada prenda." };
-    if (!GROUP_SIZES.includes(size as (typeof GROUP_SIZES)[number])) return { error: "Selecciona una talla válida entre S y 3XL." };
+    if (!sizes.includes(size)) return { error: "Selecciona una talla válida entre S y 3XL." };
     if (frontExtra !== "none" && !frontDetail) return { error: "Indica las coordenadas o el logotipo del extra de pecho." };
     if (sleeveExtra !== "none" && !sleeveDetail) return { error: "Indica qué bandera o logotipo llevará la manga." };
 

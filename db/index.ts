@@ -27,6 +27,8 @@ export function getDb() {
 }
 
 async function seedCatalog(DB: NonNullable<ReturnType<typeof getSiteRuntimeEnv>["DB"]>) {
+  const existing = await DB.prepare("SELECT id FROM products LIMIT 1").first<{ id: number }>();
+  if (existing) return;
   await DB.batch([
     DB.prepare(`INSERT OR IGNORE INTO products (name, slug, category, model, description, quote_only, active, featured, position)
       VALUES ('Sudadera personalizada', 'sudadera-gildan-18500', 'hoodie', 'Gildan 18500', 'Heavy Blend unisex para grupos.', 0, 1, 1, 1)`),

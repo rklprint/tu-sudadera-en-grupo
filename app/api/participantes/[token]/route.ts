@@ -1,7 +1,7 @@
 import { eq, or, sql } from "drizzle-orm";
 import { ensureQuoteSchema, getDb } from "@/db";
 import { groupOrders, orderItems, participants } from "@/db/schema";
-import { extrasForGarmentCents, hashPrivateToken, validateGarments } from "@/lib/group-orders";
+import { extrasForGarmentCents, groupExtras, groupSizes, garmentExtraIds, hashPrivateToken, validateGarments } from "@/lib/group-orders";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
 import { readJsonBody, rejectCrossOriginMutation, rejectOversizedRequest, takeRateLimit } from "@/lib/request-security";
 import { paymentAvailability } from "@/lib/payments/availability";
@@ -64,6 +64,8 @@ export async function GET(_request: Request, context: RouteContext) {
         productType: group.productType,
         color: group.color,
         unitPriceCents: group.unitPriceCents,
+        extras: groupExtras(group.configurationJson),
+        sizes: groupSizes(group.configurationJson),
         registrationStatus: group.registrationStatus,
         paymentStatus: group.paymentStatus,
       },
@@ -91,7 +93,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     const payload = body.data;
     const contactName = String(payload.contactName || "").trim().slice(0, 80);
     const email = String(payload.email || "").trim().toLowerCase().slice(0, 160);
-    const validated = validateGarments(payload.garments);
+    const candidateSizes = Array.isArray(payload.garments) ? payload.garments.map(item => String(item?.size || "").toUpperCase()) : [];
+    const validated = validateGarments(payload.garments, candidateSizes);
     if (!contactName) return Response.json({ error: "Indica el nombre de contacto." }, { status: 400 });
     if (!/^\S+@\S+\.\S+$/.test(email)) return Response.json({ error: "Indica un correo válido." }, { status: 400 });
     if ("error" in validated) return Response.json({ error: validated.error }, { status: 400 });
@@ -111,13 +114,19 @@ export async function PATCH(request: Request, context: RouteContext) {
       return Response.json({ error: "La selección ya está bloqueada y no puede modificarse." }, { status: 409 });
     }
 
+    const allowed = validateGarments(payload.garments, groupSizes(group.configurationJson));
+    if ("error" in allowed) return Response.json({ error: allowed.error }, { status: 400 });
+    const availableExtras = groupExtras(group.configurationJson);
+    if (allowed.garments.some(garment => garmentExtraIds(garment).some(id => !availableExtras.some(extra => extra.id === id && extra.active && extra.perGarment && !extra.requiresFile)))) {
+      return Response.json({ error: "Hay un extra no disponible para este grupo. Solicita revisión al organizador." }, { status: 409 });
+    }
     const { DB } = getSiteRuntimeEnv();
     if (!DB) throw new Error("Database unavailable");
     const statements = [
       DB.prepare("UPDATE participants SET contact_name = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(contactName, email, participant.id),
       DB.prepare("DELETE FROM order_items WHERE participant_id = ?").bind(participant.id),
       ...validated.garments.map(garment => DB.prepare(`INSERT INTO order_items (participant_id, product_name, model, color, quantity, print_name, size, name_placement, front_extra, front_detail, sleeve_extra, sleeve_detail, extras_cents, unit_price_cents) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(participant.id, group.productType === "tshirt" ? "Camiseta" : "Sudadera", group.garment, group.color, garment.printName, garment.size, garment.namePlacement, garment.frontExtra, garment.frontDetail, garment.sleeveExtra, garment.sleeveDetail, extrasForGarmentCents(garment) ?? 0, group.unitPriceCents)),
+        .bind(participant.id, group.productType === "tshirt" ? "Camiseta" : "Sudadera", group.garment, group.color, garment.printName, garment.size, garment.namePlacement, garment.frontExtra, garment.frontDetail, garment.sleeveExtra, garment.sleeveDetail, extrasForGarmentCents(garment, groupExtras(group.configurationJson)) ?? 0, group.unitPriceCents)),
     ];
     await DB.batch(statements);
     return Response.json({ ok: true });

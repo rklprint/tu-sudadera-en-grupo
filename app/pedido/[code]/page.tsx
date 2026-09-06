@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FlowFooter, FlowHeader, FlowLoadingSkeleton } from "@/app/_components/flow-shell";
+import type { CatalogExtra } from "@/lib/customization-catalog";
 import { GarmentEditor, newGarment, type GarmentDraft } from "@/app/_components/garment-editor";
 import { trackProductEvent } from "@/lib/analytics";
 import { PaymentCheckout } from "@/app/_components/payment-checkout";
@@ -24,6 +25,8 @@ type OrderData = {
   location?: string;
   createdAt?: string;
   unitPriceCents?: number;
+  extras?: CatalogExtra[];
+  sizes?: string[];
   deadline?: string;
   designStatus?: string;
   registrationStatus?: string;
@@ -156,7 +159,7 @@ export default function PrivateOrderPage() {
           {registration?.ok ? <div className="registration-success"><span>✓</span><p className="flow-eyebrow">Registro guardado</p><h2>{registration.garments} {registration.garments === 1 ? "prenda está lista" : "prendas están listas"}.</h2><p>{registration.emailStatus === "sent" ? "Hemos enviado el enlace de edición a tu correo." : registration.emailStatus === "demo" ? "Esta es una demostración: puedes abrir el enlace de edición sin enviar ningún correo real." : "Tu selección está guardada. El correo automático se activará al configurar el servicio de envío."}</p>{registration.editUrl && <a className="primary-flow-action" href={registration.editUrl}>Revisar mis prendas →</a>}<button type="button" onClick={() => { setRegistration(null); setContactName(""); setEmail(""); setGarments([newGarment()]); }}>Registrar otra persona</button></div> : <form onSubmit={register}>
             <header><div><span>Tu selección</span><h2>Datos de contacto</h2></div><strong>No se comparten con el organizador</strong></header>
             <div className="participant-fields"><label><span>Nombre de contacto</span><input required value={contactName} onChange={event => setContactName(event.target.value)} maxLength={80} autoComplete="name" /></label><label><span>Correo para tu enlace privado</span><input required type="email" value={email} onChange={event => setEmail(event.target.value)} maxLength={160} autoComplete="email" /></label></div>
-            <GarmentEditor garments={garments} onChange={setGarments} unitPriceCents={unitPrice} model={order.garment} disabled={saving} />
+            <GarmentEditor garments={garments} onChange={setGarments} unitPriceCents={unitPrice} model={order.garment} extras={order.extras} sizes={order.sizes} disabled={saving} />
             {registration?.error && <p className="form-error" role="alert">{registration.error}</p>}
             <button className="registration-submit" disabled={saving} type="submit"><span>{saving ? "Guardando…" : "Guardar mi registro"}<small>Recibirás un enlace para editarlo</small></span><b>↗</b></button>
             <p className="privacy-note">Tus datos se utilizan únicamente para gestionar este pedido. El organizador solo ve totales generales.</p>

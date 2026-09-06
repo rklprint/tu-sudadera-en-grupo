@@ -37,6 +37,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const changes: Partial<typeof groupOrders.$inferInsert> = { updatedAt: new Date().toISOString() };
     if (payload.action === "close_registration") {
+      if (group.paymentStatus !== "locked") return Response.json({ error: "No puede recalcularse el grupo después de abrir pagos." }, { status: 409 });
       const [result] = await db.select({ total: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` }).from(orderItems).innerJoin(participants, eq(orderItems.participantId, participants.id)).where(eq(participants.groupId, group.id));
       const actualQuantity = Number(result?.total || 0);
       const configuration = parseStoredQuoteConfiguration(group.configurationJson);

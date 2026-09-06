@@ -150,8 +150,8 @@ sustituye la firma Redsys.
 
 Antes de aceptar una notificación se validan firma, versión, pedido, importe,
 moneda, merchant code, terminal y `Ds_MerchantData`. El callback actualiza de
-forma idempotente una operación `processing`; una cancelación de navegador ya
-registrada no puede ser reabierta por una notificación posterior. Callbacks
+forma idempotente una operación `processing`; el retorno KO del navegador se registra como evento informativo y no cancela
+el intento ni libera su bloqueo; una notificación firmada posterior decide el resultado. Callbacks
 repetidos nunca crean otro pago, factura, recibo ni cobro. La URL OK solo
 consulta el estado persistido y abrirla manualmente no cambia el pago.
 

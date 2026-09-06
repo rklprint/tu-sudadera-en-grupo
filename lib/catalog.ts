@@ -1,3 +1,4 @@
+import type { CatalogDesign, CatalogExtra } from "@/lib/customization-catalog";
 export type CatalogColor = {
   name: string;
   value: string;
@@ -28,6 +29,8 @@ export type CatalogProduct = {
   sizes: readonly string[];
   colors: readonly CatalogColor[];
   priceTiers: readonly CatalogPriceTier[];
+  designs?: CatalogDesign[];
+  extras?: CatalogExtra[];
 };
 
 export const CORE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
@@ -81,7 +84,7 @@ export const DEFAULT_CATALOG = [
     featured: false,
     quoteOnly: true,
     sizes: CORE_SIZES,
-    colors: CORE_COLORS,
+    colors: CORE_COLORS.map(({ name, value, slug }) => ({ name, value, slug })),
     priceTiers: [],
   },
 ] as const satisfies readonly CatalogProduct[];

@@ -1,5 +1,8 @@
 "use client";
 
+import { DEFAULT_EXTRAS, extraPrice, type CatalogExtra } from "@/lib/customization-catalog";
+import { CORE_SIZES } from "@/lib/catalog";
+import { extrasForGarmentCents } from "@/lib/group-orders";
 import { trackProductEvent } from "@/lib/analytics";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,10 +32,12 @@ type Props = {
   onChange: (garments: GarmentDraft[]) => void;
   unitPriceCents: number;
   model?: string;
+  extras?: CatalogExtra[];
+  sizes?: readonly string[];
   disabled?: boolean;
 };
 
-export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gildan 18500", disabled = false }: Props) {
+export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gildan 18500", extras: extraCatalog = DEFAULT_EXTRAS, sizes = CORE_SIZES, disabled = false }: Props) {
   const productLabel = /camiseta/i.test(model) || /por confirmar/i.test(model) ? "camiseta" : "sudadera";
   const update = (index: number, field: keyof GarmentDraft, value: string) => {
     onChange(garments.map((garment, itemIndex) => {
@@ -72,16 +77,16 @@ export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gil
 
     <div className="garment-list">
       {garments.map((garment, index) => {
-        const customPrice = garment.frontExtra === "custom_embroidery" || garment.sleeveExtra === "custom_embroidery";
-        const extras = (garment.frontExtra === "coordinates" ? 100 : 0) + (garment.sleeveExtra === "dtf_flag" ? 100 : garment.sleeveExtra === "embroidered_flag" ? 200 : 0);
+        const customPrice = extrasForGarmentCents(garment, extraCatalog) === null;
+        const extras = extrasForGarmentCents(garment, extraCatalog) ?? 0;
         return <article className="garment-card" key={index}>
           <header><div><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{productLabel[0].toUpperCase() + productLabel.slice(1)} {index + 1}</strong><small>{model} · personalización según presupuesto aprobado</small></div></div>{garments.length > 1 && <button type="button" disabled={disabled} onClick={() => remove(index)} aria-label={`Eliminar ${productLabel} ${index + 1}`}><Trash2 aria-hidden="true" /> Eliminar</button>}</header>
           <div className="garment-fields">
             <label className="wide"><span>Nombre que irá impreso</span><input required disabled={disabled} value={garment.printName} onChange={event => update(index, "printName", event.target.value)} maxLength={40} placeholder="Ej. Lucía" /></label>
-            <label><span>Talla</span><select disabled={disabled} value={garment.size} onChange={event => update(index, "size", event.target.value)}>{["S", "M", "L", "XL", "2XL", "3XL"].map(size => <option key={size}>{size}</option>)}</select></label>
+            <label><span>Talla</span><select disabled={disabled} value={garment.size} onChange={event => update(index, "size", event.target.value)}>{sizes.map(size => <option key={size}>{size}</option>)}</select></label>
             <label><span>Nombre colocado en</span><select disabled={disabled} value={garment.namePlacement} onChange={event => update(index, "namePlacement", event.target.value)}><option value="front">Pecho</option><option value="back">Espalda</option></select></label>
-            <label><span>Extra en pecho</span><select disabled={disabled} value={garment.frontExtra} onChange={event => update(index, "frontExtra", event.target.value)}><option value="none">Sin extra</option><option value="coordinates">Coordenadas bordadas · +1 €</option><option value="custom_embroidery">Logo bordado propio · consultar</option></select></label>
-            <label><span>Extra en manga</span><select disabled={disabled} value={garment.sleeveExtra} onChange={event => update(index, "sleeveExtra", event.target.value)}><option value="none">Sin extra</option><option value="dtf_flag">Bandera o logo DTF · +1 €</option><option value="embroidered_flag">Bandera bordada · +2 €</option><option value="custom_embroidery">Logo bordado propio · consultar</option></select></label>
+            <label><span>Extra en pecho</span><select disabled={disabled} value={garment.frontExtra} onChange={event => update(index, "frontExtra", event.target.value)}><option value="none">Sin extra</option><option disabled={!extraCatalog.some(extra => extra.id === "pecho-coordenadas-bordadas" && extra.active && extra.perGarment && !extra.requiresFile)} value="coordinates">Coordenadas bordadas · {extraPrice("pecho-coordenadas-bordadas", extraCatalog) === null ? "consultar" : `+${(extraPrice("pecho-coordenadas-bordadas", extraCatalog) ?? 0) / 100} €`}</option><option disabled={!extraCatalog.some(extra => extra.position === "front" && extra.id === "pecho-logo-bordado" && extra.active)} value="custom_embroidery">Logo bordado propio · consultar</option></select></label>
+            <label><span>Extra en manga</span><select disabled={disabled} value={garment.sleeveExtra} onChange={event => update(index, "sleeveExtra", event.target.value)}><option value="none">Sin extra</option><option disabled={!extraCatalog.some(extra => extra.id === "manga-dtf" && extra.active && extra.perGarment && !extra.requiresFile)} value="dtf_flag">Bandera o logo DTF · {extraPrice("manga-dtf", extraCatalog) === null ? "consultar" : `+${(extraPrice("manga-dtf", extraCatalog) ?? 0) / 100} €`}</option><option disabled={!extraCatalog.some(extra => extra.id === "manga-bandera-bordada" && extra.active && extra.perGarment && !extra.requiresFile)} value="embroidered_flag">Bandera bordada · {extraPrice("manga-bandera-bordada", extraCatalog) === null ? "consultar" : `+${(extraPrice("manga-bandera-bordada", extraCatalog) ?? 0) / 100} €`}</option><option disabled={!extraCatalog.some(extra => extra.position === "sleeve" && extra.id === "manga-logo-bordado" && extra.active)} value="custom_embroidery">Logo bordado propio · consultar</option></select></label>
             {garment.frontExtra !== "none" && <label className="wide"><span>{garment.frontExtra === "coordinates" ? "Coordenadas exactas" : "Qué logotipo irá en el pecho"}</span><input required disabled={disabled} value={garment.frontDetail} onChange={event => update(index, "frontDetail", event.target.value)} maxLength={100} placeholder={garment.frontExtra === "coordinates" ? "Ej. 40°25′N · 3°42′O" : "Describe el logo o su referencia"} /></label>}
             {garment.sleeveExtra !== "none" && <label className="wide"><span>{garment.sleeveExtra === "custom_embroidery" ? "Qué logotipo irá en la manga" : "Bandera o detalle exacto"}</span><input required disabled={disabled} value={garment.sleeveDetail} onChange={event => update(index, "sleeveDetail", event.target.value)} maxLength={100} placeholder={garment.sleeveExtra === "custom_embroidery" ? "Describe el logo o su referencia" : "Ej. España, Madrid, Andalucía, Portugal…"} /></label>}
           </div>

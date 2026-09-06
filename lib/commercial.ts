@@ -1,3 +1,4 @@
+import { DEFAULT_EXTRAS, extraPrice, type CatalogExtra, type CatalogDesign } from "@/lib/customization-catalog";
 import {
   unitPriceForQuantity,
   type CatalogPriceTier,
@@ -23,6 +24,7 @@ export type PersonalizerSelection = {
   printColor: string;
   designPath: DesignPath;
   designStyle: string;
+  designFields?: Record<string, string>;
   backDesign: string;
   groupName: string;
   frontType: FrontType;
@@ -54,6 +56,8 @@ export type CommercialSnapshot = SelectionPricing & {
   color: string;
   quantity: number;
   priceTiers: CatalogPriceTier[];
+  extras?: CatalogExtra[];
+  sizes?: string[];
   createdAt: string;
 };
 
@@ -69,6 +73,7 @@ export type StoredQuoteConfiguration = PersonalizerSelection & {
   configuredPrice: string;
   commercialSnapshot: CommercialSnapshot;
   approvedCommercial?: ApprovedCommercialSnapshot;
+  designSnapshot?: CatalogDesign;
   [key: string]: unknown;
 };
 
@@ -80,20 +85,13 @@ export function pricingForSelection(
   const baseUnitPriceCents = product.quoteOnly
     ? null
     : unitPriceForQuantity(quantity, product.priceTiers);
-  const customPricingRequired =
-    (selection.frontTechnique === "embroidery" && selection.frontType !== "coordinates") ||
-    (selection.sleeveTechnique === "embroidery" && selection.sleeveFlag === "custom");
-  const frontExtrasCents =
-    selection.frontTechnique === "embroidery" && selection.frontType === "coordinates" ? 100 : 0;
-  const sleeveExtrasCents =
-    selection.sleeveFlag === "none"
-      ? 0
-      : selection.sleeveTechnique === "print"
-        ? 100
-        : selection.sleeveFlag === "custom"
-          ? 0
-          : 200;
-  const commonExtrasCents = frontExtrasCents + sleeveExtrasCents;
+  const extras = (product.extras ?? DEFAULT_EXTRAS).filter(extra => extra.products.includes(product.slug));
+  const front = selection.frontTechnique === "embroidery"
+    ? extraPrice(selection.frontType === "coordinates" ? "pecho-coordenadas-bordadas" : "pecho-logo-bordado", extras) : 0;
+  const sleeve = selection.sleeveFlag === "none" ? 0
+    : extraPrice(selection.sleeveTechnique === "print" ? "manga-dtf" : selection.sleeveFlag === "custom" ? "manga-logo-bordado" : "manga-bandera-bordada", extras);
+  const customPricingRequired = front === null || sleeve === null;
+  const commonExtrasCents = (front ?? 0) + (sleeve ?? 0);
   return {
     baseUnitPriceCents,
     commonExtrasCents,
@@ -122,6 +120,8 @@ export function createCommercialSnapshot(
     model: product.model,
     color: selection.color,
     quantity,
+    extras: structuredClone((product.extras ?? DEFAULT_EXTRAS).filter(extra => extra.products.includes(product.slug))),
+    sizes: [...product.sizes],
     priceTiers: product.priceTiers.map((tier) => ({ ...tier })),
     ...pricingForSelection(product, quantity, selection),
     createdAt,
@@ -169,7 +169,9 @@ export function normalizePersonalizerSelection(value: unknown): PersonalizerSele
     color: clean(input.color, 50),
     printColor: clean(input.printColor, 50),
     designPath,
-    designStyle: clean(input.designStyle, 50),
+    designStyle: clean(input.designStyle, 80),
+    designFields: input.designFields && typeof input.designFields === "object" && !Array.isArray(input.designFields)
+      ? Object.fromEntries(Object.entries(input.designFields).slice(0, 10).map(([key, value]) => [clean(key, 80), clean(value, 500)])) : {},
     backDesign: clean(input.backDesign, 160),
     groupName: clean(input.groupName, 90),
     frontType,
