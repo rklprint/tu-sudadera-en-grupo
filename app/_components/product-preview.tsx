@@ -23,3 +23,12 @@ export function ProductPreview({ product, color, side, design, summary, onLoad }
     <span className="sr-only">{summary}</span>
   </div>;
 }
+
+
+/** Catalog artwork only: no synthetic thumbnail when the file is unavailable. */
+export function DesignThumbnail({ design }: { design: CatalogDesign }) {
+  const [failed, setFailed] = useState("");
+  return failed === design.file
+    ? <span className="design-thumbnail-missing">Imagen pendiente</span>
+    : <Image className="design-thumbnail" unoptimized src={design.file} alt={design.name} width={400} height={400} loading="lazy" onError={() => setFailed(design.file)} />;
+}
