@@ -94,3 +94,7 @@ Son pruebas con fixtures de banco preexistentes, sin transacciones reales ni cre
 QA visual: se abrió la página renderizada. Se detectó y corrigió el overflow del ticker. La hidratación de la Preview interna falla al cargar un módulo virtual Vite, incluso tras un reinicio; no se han debilitado CSP ni protecciones para sortearlo. La herramienta no ofrece redimensionamiento de ventana.
 Por tanto NO están certificados los anchos 320, 360, 375, 390, 412, 430, 768, 1024 y desktop interactivo. No se afirma «móvil terminado» ni «listo para producción».
 Quedan pruebas visuales interactivas y transacciones reales de sandbox, además de resolver las decisiones comerciales. El PR se mantiene como borrador, sin merge.
+
+## Corrección del control de dependencias
+
+El control CI detectó vulnerabilidades altas en browserslist y fast-uri del lockfile previo. Se actualizan solo esas dependencias indirectas y sus dependencias necesarias: browserslist 4.28.9 y fast-uri 3.1.7, sin cambiar package.json ni relajar el gate. La auditoría de dependencias de producción vuelve a quedar sin vulnerabilidades reportadas.
