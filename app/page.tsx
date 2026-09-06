@@ -230,6 +230,9 @@ export default function Home() {
     if (style.id === "collage") return `${name}\nRECUERDOS`;
     return `${name}\nX ANIVERSARIO`;
   })();
+  const previewBackLines = selectedDesign?.personalizable
+    ? [selectedDesign.name, ...selectedDesign.fields.map(field => designFields[field.id] || field.label)]
+    : designText.split("\n");
   const previewKey = `${productType}-${garment.name}-${side}`;
   const previewLoaded = !(side === "front" ? selectedVariant?.frontImage : selectedVariant?.backImage) || loadedPreviewKey === previewKey;
 
@@ -414,7 +417,7 @@ export default function Home() {
               <span className="preview-model">{productType === "hoodie" ? <>{activeProduct.model.toUpperCase()}<br /><small>Heavy Blend</small></> : <>CAMISETA<br /><small>{activeProduct.model}</small></>}</span>
               {!previewLoaded && <div className="preview-skeleton" role="status"><span className="sr-only">Cargando vista previa del producto</span><i /><b /><em /></div>}
               <div className="preview-media" key={previewKey}>
-                <ProductPreview product={activeProduct} color={garment} side={side} design={selectedDesign?.personalizable ? undefined : selectedDesign} summary={`${designText}. ${backDesignLabel}. ${frontDesignLabel}: ${frontText}. ${selectedFlag}: ${sleeveDetail}`} onLoad={() => setLoadedPreviewKey(previewKey)} />
+                <ProductPreview product={activeProduct} color={garment} side={side} design={selectedDesign?.personalizable ? undefined : selectedDesign} summary={`${designText}. ${backDesignLabel}. ${frontDesignLabel}: ${frontText}. ${selectedFlag}: ${sleeveDetail}`} overlay={{ frontType, frontText, backLines: previewBackLines, printColor: print.value }} onLoad={() => setLoadedPreviewKey(previewKey)} />
               </div>
               <div className="zoom-hint">Vista orientativa</div>
             </div>
