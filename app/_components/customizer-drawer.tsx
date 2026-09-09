@@ -19,7 +19,7 @@ export function CustomizerDrawer({ product, model, color, design, sleeve, quanti
     <Drawer.Root>
       <Drawer.Trigger asChild>
         <button className="mobile-customizer-trigger" type="button">
-          <span><small>Vuestra configuración</small><strong>{price}</strong></span>
+          <span><strong>{price}</strong></span>
           <b>Ver resumen <ArrowUpRight aria-hidden="true" /></b>
         </button>
       </Drawer.Trigger>
@@ -43,7 +43,7 @@ export function CustomizerDrawer({ product, model, color, design, sleeve, quanti
             <div><Shirt aria-hidden="true" /><span><small>Prenda</small><strong>{product} · {model}</strong></span></div>
             <div><Palette aria-hidden="true" /><span><small>Color</small><strong>{color}</strong></span></div>
             <div><Layers3 aria-hidden="true" /><span><small>Diseño</small><strong>{design}</strong></span></div>
-            <div><Sparkles aria-hidden="true" /><span><small>Manga</small><strong>{sleeve}</strong></span></div>
+            <div><Sparkles aria-hidden="true" /><span><small>Extras</small><strong>{sleeve}</strong></span></div>
           </div>
           <div className="customizer-drawer-total">
             <span><small>{quantity} unidades</small><strong>{price}</strong></span>

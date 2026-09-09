@@ -4,6 +4,30 @@ import test from "node:test";
 
 const read = (path: string) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
+test("el flujo continuo no exige pasos ni duplica color o cantidad", async () => {
+  const page = await read("app/page.tsx");
+  assert.doesNotMatch(page, /openStep|NextButton|type="range"|desktop-product-color|preview-summary/);
+  assert.equal(page.match(/garmentColors\.map/g)?.length, 1);
+  assert.equal(page.match(/id="quantity-input"/g)?.length, 1);
+  assert.ok(page.indexOf('id="presupuesto"') < page.indexOf('className="inspiration-section"'));
+  assert.match(page, /Total estimado:/);
+  assert.match(page, /Continuar al presupuesto/);
+  assert.match(page, /Number\.isInteger\(number\) && number >= 5 && number <= 500/);
+});
+
+test("diseños, delantero y extras conservan selección con divulgación progresiva", async () => {
+  const page = await read("app/page.tsx");
+  const css = await read("app/customizer-simple.css");
+  assert.match(page, /aria-expanded=\{showAllDesigns\}/);
+  assert.match(page, /item\.id === style\.id/);
+  assert.match(page, /<details className="extras-details">/);
+  assert.match(page, /<details className="price-summary">/);
+  assert.match(page, /setFrontText\(frontTexts\[item\.id\]\)/);
+  assert.match(css, /object-fit: contain/);
+  assert.match(css, /position: sticky/);
+  assert.match(css, /min-height: 44px/);
+});
+
 test("la capa visual no duplica animación, zoom, lightbox ni shadcn", async () => {
   const packageJson = JSON.parse(await read("package.json")) as { dependencies: Record<string, string> };
 

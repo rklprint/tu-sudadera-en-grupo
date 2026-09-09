@@ -33,8 +33,8 @@ const styles = [
   { id: "collage", label: "Collage local", sample: "✦ ♜ ◇" }, { id: "mascot", label: "Mascota", sample: "★" },
 ];
 const designPathOptions = [
-  { id: "template", label: "Usar plantilla", Icon: ImageIcon },
-  { id: "upload", label: "Subir diseño", Icon: Upload },
+  { id: "template", label: "Elegir diseño", Icon: ImageIcon },
+  { id: "upload", label: "Subir mi diseño", Icon: Upload },
   { id: "studio", label: "Diseño a medida", Icon: PencilLine },
 ] as const;
 const frontOptions = [
@@ -47,7 +47,6 @@ const flagOptions = [
   { id: "community", label: "Comunidad autónoma", symbol: "community" }, { id: "country", label: "Otro país", symbol: "country" },
   { id: "custom", label: "Logo propio", symbol: "custom" },
 ] as const;
-const chapters = ["Prenda", "Diseño", "Extras"];
 
 const faqItems = [
   {
@@ -171,12 +170,13 @@ export default function Home() {
   const [groupName, setGroupName] = useState("PROMO 26");
   const [frontType, setFrontType] = useState<(typeof frontOptions)[number]["id"]>("coordinates");
   const [frontText, setFrontText] = useState("37°53'N · 4°46'W");
+  const [frontTexts, setFrontTexts] = useState({ coordinates: "37°53'N · 4°46'W", name: "", logo: "" });
   const [frontLogo, setFrontLogo] = useState("");
   const [frontTechnique, setFrontTechnique] = useState<"print" | "embroidery">("print");
   const [sleeveFlag, setSleeveFlag] = useState<(typeof flagOptions)[number]["id"]>("none");
   const [sleeveTechnique, setSleeveTechnique] = useState<"print" | "embroidery">("print");
   const [sleeveDetail, setSleeveDetail] = useState("");
-  const [openStep, setOpenStep] = useState(0);
+  const [showAllDesigns, setShowAllDesigns] = useState(false);
   const [quantity, setQuantity] = useState(25);
   const [quantityDraft, setQuantityDraft] = useState("25");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -208,6 +208,7 @@ export default function Home() {
     ? catalogDesigns.map(design => ({ id: design.id, label: design.name, sample: "", tag: undefined }))
     : styles;
   const style = designChoices.find(item => item.id === requestedStyle.id) || designChoices[0] || { id: "", label: "Ninguna plantilla disponible", sample: "" };
+  const visibleDesignChoices = showAllDesigns ? designChoices : designChoices.filter((item, index) => index < 3 || item.id === style.id || (index === 3 && designChoices.findIndex(choice => choice.id === style.id) < 4));
   const selectedDesign = designPath === "template" ? catalogDesigns.find(design => design.id === style.id) : undefined;
 
   useEffect(() => {
@@ -255,7 +256,6 @@ export default function Home() {
     ? null
     : selectionPricing.quotedUnitPriceCents / 100;
   const hasPriceExtra = knownExtras > 0 || customEmbroidery;
-  const progress = ((openStep + 1) / chapters.length) * 100;
   const updateQuantity = (value: number) => {
     const next = Number.isFinite(value) ? Math.min(500, Math.max(5, Math.round(value))) : 5;
     setQuantity(next);
@@ -265,9 +265,6 @@ export default function Home() {
   const scrollToCustomizer = () => {
     void trackProductEvent("personalizador_started", { source: "homepage" });
     document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth" });
-  };
-  const scrollToCalculator = () => {
-    document.getElementById("presupuesto")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const selectProduct = (nextProduct: ProductType) => {
     if (!categoryAvailable(nextProduct)) return;
@@ -290,7 +287,6 @@ export default function Home() {
   const chooseShowcaseDesign = (designId: string, title: string) => {
     const selectedStyle = designChoices.find((item) => item.id === designId);
     if (!selectedStyle) {
-      setOpenStep(1);
       scrollToCustomizer();
       toast.info("Elegid una plantilla disponible o Diseño a medida");
       return;
@@ -298,7 +294,6 @@ export default function Home() {
     setStyle(selectedStyle);
     setDesignFields({});
     setDesignPath("template");
-    setOpenStep(1);
     setSide("back");
     document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth", block: "start" });
     toast.success("Plantilla aplicada", { description: `${title} ya es vuestro punto de partida.` });
@@ -309,13 +304,11 @@ export default function Home() {
   };
   const goToQuote = () => {
     if (designPath === "template" && !style.id) {
-      setOpenStep(1);
       scrollToCustomizer();
       toast.info("Elegid Subir diseño o Diseño a medida");
       return;
     }
     if (selectedDesign?.personalizable && selectedDesign.fields.some(field => field.required && !designFields[field.id]?.trim())) {
-      setOpenStep(1);
       scrollToCustomizer();
       toast.info("Completad los campos del diseño antes de continuar");
       return;
@@ -391,18 +384,13 @@ export default function Home() {
     </section>
 
     <section className="customizer-section" id="personalizador">
-      <div className="section-heading dark-heading"><div><p className="eyebrow"><span /> Personalizador</p><h2>De cero a<br /><em>“la necesitamos”.</em></h2></div><p>Jugad con las opciones. No hace falta tenerlo claro: guardaremos vuestra idea y la terminaremos juntos.</p></div>
+      <div className="section-heading dark-heading"><div><p className="eyebrow"><span /> Personalizador</p><h2>Personalizad vuestra prenda</h2></div><p>Jugad con las opciones. No hace falta tenerlo claro: guardaremos vuestra idea y la terminaremos juntos.</p></div>
       <div className="customizer-shell">
-        <div className="customizer-progress"><span style={{width:`${progress}%`}} /><div>{chapters.map((item,index)=><button type="button" key={item} className={openStep===index?"active":openStep>index?"done":""} aria-current={openStep===index ? "step" : undefined} onClick={()=>setOpenStep(index)}><i>{openStep>index?"✓":String(index+1).padStart(2,"0")}</i>{item}</button>)}</div></div>
         <div className="product-selector-top">
-          <div className="product-selector-heading">
-            <span>Producto</span>
-            <strong>¿Qué vais a personalizar?</strong>
-          </div>
           <div className="product-segmented-control" role="group" aria-label="Tipo de prenda">
             <button type="button" disabled={!categoryAvailable("hoodie")} className={productType === "hoodie" ? "active" : ""} aria-pressed={productType === "hoodie"} onClick={() => selectProduct("hoodie")}>
               <Shirt aria-hidden="true" />
-              <span><b>Sudadera</b><small>{hoodieProduct?.model || "Gildan 18500"} · Recomendada</small></span>
+              <span><b>Sudadera</b><small>{hoodieProduct?.model || "Gildan 18500"}</small></span>
             </button>
             <button type="button" disabled={!categoryAvailable("tshirt")} className={productType === "tshirt" ? "active" : ""} aria-pressed={productType === "tshirt"} onClick={() => selectProduct("tshirt")}>
               <Shirt aria-hidden="true" />
@@ -411,7 +399,7 @@ export default function Home() {
           </div>
         </div>
         <div className="customizer-layout">
-          <div className="preview-panel">
+          <div className="preview-panel" id="vista-prenda">
             <div className="preview-toolbar"><span>Vista previa en directo</span><div className="side-toggle" role="group" aria-label={`Vista de la ${productName.toLowerCase()}`}><button type="button" aria-pressed={side==="front"} className={side==="front"?"active":""} onClick={()=>setSide("front")}>Delante</button><button type="button" aria-pressed={side==="back"} className={side==="back"?"active":""} onClick={()=>setSide("back")}>Espalda</button></div></div>
             <div className="preview-stage" aria-busy={!previewLoaded}>
               <span className="preview-model">{productType === "hoodie" ? <>{activeProduct.model.toUpperCase()}<br /><small>Heavy Blend</small></> : <>CAMISETA<br /><small>{activeProduct.model}</small></>}</span>
@@ -421,7 +409,6 @@ export default function Home() {
               </div>
               <div className="zoom-hint">Vista orientativa</div>
             </div>
-            <p className="preview-configuration-note">{side === "back" ? `${backDesignLabel} · ${groupName}` : `${frontDesignLabel} · ${frontText || "Por definir"}`}<br />{sleeveFlag !== "none" && `Manga: ${selectedFlag} ${sleeveDetail}. `}{selectedDesign?.personalizable ? selectedDesign.fields.map(field => designFields[field.id]).filter(Boolean).join(" · ") : ""} Personalización pendiente de maqueta aprobada.</p>
             <div className="mobile-preview-controls" aria-label="Color de la prenda">
               <div className="mobile-preview-controls-heading">
                 <span>Color de la prenda</span>
@@ -431,47 +418,32 @@ export default function Home() {
                 {garmentColors.map(item=><button type="button" key={item.name} className={garment.name===item.name?"mobile-color-choice active":"mobile-color-choice"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>selectColor(item)} aria-label={`Color ${item.name}`} aria-pressed={garment.name===item.name}><i /><small>{item.name}</small></button>)}
               </div>
             </div>
-            <p className="preview-guidance">La vista es orientativa. Recibiréis la propuesta final para aprobarla antes de producir.</p>
-            <div className="preview-summary"><div><span>Prenda</span><b>{productName}</b></div><div><span>Color</span><b>{garment.name}</b></div><div><span>Diseño</span><b>{designPath==="template"?style.label:designPath==="upload"?"Subido":"A medida"}</b></div></div>
+            <p className="preview-guidance">Vista orientativa. Aprobaréis la maqueta antes de producir.</p>
           </div>
           <div className="controls-panel">
-            {openStep===0&&<div className="step-view"><StepHeader number="01" title="Elegid el color" text="La prenda ya está elegida arriba. Cambiad el color junto a la vista previa." /><div className="desktop-product-color"><h3 className="field-title">Color <span>{garment.name}</span></h3><div className="swatches labeled">{garmentColors.map(item=><button type="button" key={item.name} className={garment.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>selectColor(item)} aria-label={item.name} aria-pressed={garment.name===item.name}><i /><small>{item.name}</small></button>)}</div></div><p className="config-hint"><b>{activeProduct.model}</b><span>{productType === "hoodie" ? "Incluye impresión en pecho, espalda y nombre." : "Podéis definir el diseño mientras confirmamos modelo y tarifa."}</span></p><NextButton onClick={()=>setOpenStep(1)} label="Continuar con el diseño" /></div>}
-            {openStep===1&&<div className="step-view"><StepHeader number="02" title="Diseñadla a vuestro estilo" text="La espalda y el detalle delantero viven ahora en una misma pantalla." /><div className="path-tabs">{designPathOptions.map(item=><button type="button" key={item.id} className={designPath===item.id?"active":""} aria-pressed={designPath===item.id} onClick={()=>{setDesignPath(item.id);setDesignFields({})}}><b><item.Icon aria-hidden="true" /></b><span>{item.label}</span></button>)}</div>{designPath==="template"&&<><h3 className="field-title">Diseño del catálogo <span>{style.label}</span></h3><div className="style-options">{designChoices.map(item=><button type="button" key={item.id} className={style.id===item.id?`style-option active ${item.id}`:`style-option ${item.id}`} aria-pressed={style.id===item.id} onClick={()=>{setStyle(item);setDesignFields({});setSide(catalogDesigns.find(design => design.id === item.id)?.view || "back")}}>{item.tag&&<em>{item.tag}</em>}{catalogDesigns.find(design => design.id === item.id) ? <DesignThumbnail design={catalogDesigns.find(design => design.id === item.id)!} /> : <b>{item.sample}</b>}<small>{item.label}</small></button>)}</div>{selectedDesign && <details className="design-enlargement" key={selectedDesign.id}><summary>Ampliar {selectedDesign.name}</summary><DesignThumbnail design={selectedDesign} /><p>Archivo del diseño · {selectedDesign.view === "front" ? "Delante" : "Espalda"}. La personalización se revisa en la maqueta.</p></details>}{!designChoices.length && <p role="status">No hay plantillas disponibles para este producto. Podéis subir vuestro diseño o pedir uno a medida.</p>}<label className="text-field"><span>Nombre, año o frase principal</span><input value={groupName} onChange={e=>setGroupName(e.target.value.toUpperCase().slice(0,18))} placeholder="EJ. PROMO 26" /></label><h3 className="field-title compact-title">Color del diseño <span>{print.name}</span></h3><div className="swatches print-swatches">{printColors.map(item=><button type="button" key={item.name} className={print.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>setPrint(item)} aria-label={item.name} aria-pressed={print.name===item.name}><i /></button>)}</div></>}{designPath==="upload"&&<UploadDrop title="Adjuntad vuestro diseño al pedir presupuesto" text="Aceptamos PNG, JPG, PDF o AI hasta 15 MB. Verificamos el formato y lo guardamos de forma privada." />}{designPath==="studio"&&<div className="studio-card"><span>Diseñado desde cero</span><h3>Mandad una foto, un dibujo o incluso una nota de voz.</h3><p>Podemos ilustrar vuestro pueblo, el grupo, una mascota o cualquier idea que os represente.</p><ul><li>Propuesta visual sin compromiso</li><li>Ajustes con vuestro diseñador</li><li>Preparado para producir</li></ul></div>}{selectedDesign?.personalizable && selectedDesign.fields.map(field => <label className="text-field" key={field.id}><span>{field.label}</span><input required={field.required} maxLength={field.maxLength} value={designFields[field.id] || ""} onChange={event => setDesignFields(current => ({ ...current, [field.id]: event.target.value }))} /></label>)}<details className="front-details"><summary><span><small>Opcional · incluido</small>Detalle delantero</span><b>{frontDesignLabel}<i>+</i></b></summary><div className="front-details-body"><div className="front-options">{frontOptions.map(item=><button type="button" key={item.id} className={frontType===item.id?"active":""} aria-pressed={frontType===item.id} onClick={()=>{setFrontType(item.id);setSide("front")}}><b><item.Icon aria-hidden="true" /></b><span>{item.label}</span></button>)}</div>{frontType==="coordinates"&&<label className="text-field"><span>Coordenadas</span><input value={frontText} onChange={e=>setFrontText(e.target.value.slice(0,28))} placeholder="37°53'N · 4°46'W" /></label>}{frontType==="name"&&<label className="text-field"><span>Nombre o mote</span><input value={frontText} onChange={e=>setFrontText(e.target.value.toUpperCase().slice(0,18))} placeholder="NOMBRE" /></label>}{frontType==="logo"&&<label className="upload-control"><input type="file" accept="image/png,image/jpeg" onChange={e=>selectFrontLogo(e.target.files?.[0])} /><b>{frontLogo?<BadgeCheck aria-hidden="true" />:<Upload aria-hidden="true" />}</b><span>{frontLogo?"Seleccionado · adjuntar en presupuesto":"Seleccionar logo delantero"}</span><small>PNG o JPG</small></label>}<h3 className="field-title compact-title">Acabado delantero <span>{frontTechnique === "print" ? "DTF incluido" : frontType === "coordinates" ? "+1 €" : "A consultar"}</span></h3><div className="technique-cards"><button type="button" aria-pressed={frontTechnique==="print"} className={frontTechnique==="print"?"active":""} onClick={()=>setFrontTechnique("print")}><b>DTF</b><span>Incluido</span><small>A todo color y hasta A5</small></button><button type="button" aria-pressed={frontTechnique==="embroidery"} className={frontTechnique==="embroidery"?"active":""} onClick={()=>setFrontTechnique("embroidery")}><b><Sparkles aria-hidden="true" /></b><span>Bordado</span><small>{frontType === "coordinates" ? "Coordenadas · +1 €" : "Logo o texto · a consultar"}</small></button></div></div></details><NextButton onClick={()=>{setOpenStep(2);setSide("front")}} label="Ver extras y precio" /></div>}
-            {openStep===2&&<div className="step-view"><StepHeader number="03" title="Extras y precio" text="La manga es opcional. Cuando acabéis, la calculadora ya tendrá vuestra configuración." /><h3 className="field-title">Personalización de manga <span>{sleeveFlag === "none" ? "Sin extra" : selectedFlag}</span></h3><div className="flag-options">{flagOptions.map(item=><button type="button" key={item.id} className={sleeveFlag===item.id?"active":""} aria-pressed={sleeveFlag===item.id} onClick={()=>selectSleeveFlag(item.id)}><b>{item.symbol ? <FlagMark type={item.symbol} /> : "—"}</b><span>{item.label}</span></button>)}</div>{sleeveFlag!=="none"&&<>{sleeveFlag!=="spain"&&<label className="text-field"><span>{sleeveFlag === "custom" ? "Nombre o referencia del logo" : "¿Cuál?"}</span><input value={sleeveDetail} onChange={e=>setSleeveDetail(e.target.value.slice(0,50))} placeholder={sleeveFlag === "community" ? "Ej. Madrid" : sleeveFlag === "country" ? "Ej. Portugal" : "Ej. escudo del club"} /></label>}<h3 className="field-title compact-title">Acabado <span>{sleeveTechnique === "print" ? "+1 €" : sleeveFlag === "custom" ? "A consultar" : "+2 €"}</span></h3><div className="technique-cards"><button type="button" aria-pressed={sleeveTechnique==="print"} className={sleeveTechnique==="print"?"active":""} onClick={()=>setSleeveTechnique("print")}><b>DTF</b><span>Estampada</span><small>+1 € por prenda</small></button><button type="button" aria-pressed={sleeveTechnique==="embroidery"} className={sleeveTechnique==="embroidery"?"active":""} onClick={()=>setSleeveTechnique("embroidery")}><b><Sparkles aria-hidden="true" /></b><span>Bordada</span><small>{sleeveFlag === "custom" ? "Precio según el logotipo" : "+2 € por prenda"}</small></button></div></>}<button type="button" className="finish-button" onClick={scrollToCalculator}><span><small>{configuredUnitPrice === null ? "Revisión necesaria" : `Desde ${configuredUnitPrice} € / unidad`}</small>Ver mi precio y presupuesto</span><b>↓</b></button><p className="save-note">No pagaréis nada ahora. Primero revisamos el diseño y cerramos la cantidad real.</p></div>}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section className="price-section price-section-linked" id="presupuesto">
-      <div className="price-copy">
-        <p className="eyebrow light"><span /> Calculadora del diseño</p>
-        <h2>Diseño listo.<br /><em>Precio al momento.</em></h2>
-        <p>La cantidad y los extras se actualizan con vuestra prenda, para que podáis decidirlo todo en el mismo recorrido.</p>
-        <div className="included-list"><span>✓ {productType === "hoodie" ? "Gildan 18500 incluida" : "Diseño y revisión incluidos"}</span><span>✓ Impresión en pecho y espalda</span><span>✓ Nombre individual incluido</span><span>✓ IVA y envío a Península</span></div>
-        <div className="single-order-note"><b>¿Necesitáis de 1 a 4 unidades?</b><span>También las hacemos. Escribidnos por WhatsApp para recibir un precio individual.</span></div>
-      </div>
-      <div className="price-card">
-        <div className="price-reference-heading"><span>Calculadora transparente</span><strong>Precio por {productName.toLowerCase()} · IVA incluido</strong></div>
-        <div className="price-reference-product price-reference-text-only"><div className="price-product-copy"><small>{productName} seleccionado</small><h3>{productType === "hoodie" ? "Gildan® 18500 Heavy Blend" : "Camiseta · Modelo por confirmar"}</h3><p>{productType === "hoodie" ? `Con capucha · Unisex · 50% algodón / 50% poliéster · Color ${garment.name}` : "Podéis definir el diseño. Confirmaremos el modelo, los colores y la tarifa antes de activar el pedido."}</p></div></div>
-        <div className="price-top"><label htmlFor="quantity-input">Número de {productName.toLowerCase()}s</label><div className="quantity-input-wrap"><input id="quantity-input" aria-label={`Número de ${productName.toLowerCase()}s`} type="number" inputMode="numeric" min="5" max="500" step="1" value={quantityDraft} onChange={event => setQuantityDraft(event.target.value)} onBlur={commitQuantityDraft} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); commitQuantityDraft(); event.currentTarget.blur(); } }} /><span>unidades</span></div></div>
-        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} aria-valuetext={quantity >= 101 ? "Consultar para 101 o más unidades" : `${quantity} unidades`} type="range" min="5" max="101" value={Math.min(quantity, 101)} onChange={e=>updateQuantity(Number(e.target.value))} />
-        <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>101+ · consultar</span></div>
-        <div className="price-live-result" aria-live="polite"><div><span>Precio base</span><strong key={`base-${productType}-${baseUnitPrice}`}>{baseUnitPrice === null ? "Consultar" : <>{baseUnitPrice}<sup>€</sup></>}</strong><small>{productType === "hoodie" ? "Sudadera + impresión en pecho + espalda + nombre" : "Modelo y precio de camiseta pendientes de publicación"}</small></div><div className={configuredUnitPrice === null ? "consult" : ""}><span>Vuestra configuración</span><strong key={`configured-${configuredUnitPrice}-${knownExtras}-${customEmbroidery}`}>{configuredUnitPrice === null ? "Consultar" : <>{configuredUnitPrice}<sup>€</sup></>}</strong><small>{customEmbroidery ? "Incluye un logo bordado pendiente de valorar" : knownExtras ? `Incluye ${knownExtras} € en extras por prenda` : "Sin extras seleccionados"}</small></div></div>
+            <div className="step-view" id="diseno"><div className="design-heading"><h3 className="customizer-title">Diseño</h3><a href="#vista-prenda">Ver prenda</a></div><div className="path-tabs">{designPathOptions.map(item=><button type="button" key={item.id} className={designPath===item.id?"active":""} aria-pressed={designPath===item.id} onClick={()=>{setDesignPath(item.id);setDesignFields({});setSide("back")}}><b><item.Icon aria-hidden="true" /></b><span>{item.label}</span></button>)}</div>{designPath==="template"&&<><div className="style-options">{visibleDesignChoices.map(item=><button type="button" key={item.id} className={style.id===item.id?`style-option active ${item.id}`:`style-option ${item.id}`} aria-pressed={style.id===item.id} onClick={()=>{setStyle(item);setDesignFields({});setSide(catalogDesigns.find(design => design.id === item.id)?.view || "back")}}>{item.tag&&<em>{item.tag}</em>}{catalogDesigns.find(design => design.id === item.id) ? <DesignThumbnail design={catalogDesigns.find(design => design.id === item.id)!} /> : <b>{item.sample}</b>}<small>{item.label}</small></button>)}</div>{designChoices.length > 4 && <button type="button" className="show-designs" aria-expanded={showAllDesigns} onClick={() => setShowAllDesigns(value => !value)}>{showAllDesigns ? "Ver menos" : `Ver los ${designChoices.length} diseños`}</button>}{selectedDesign?.file && <details className="design-enlargement" key={selectedDesign.id}><summary>Ampliar {selectedDesign.name}</summary><DesignThumbnail design={selectedDesign} /><p>Archivo del diseño · {selectedDesign.view === "front" ? "Delante" : "Espalda"}. La personalización se revisa en la maqueta.</p></details>}{!designChoices.length && <p role="status">No hay plantillas disponibles para este producto. Podéis subir vuestro diseño o pedir uno a medida.</p>}<label className="text-field"><span>Nombre, año o frase principal</span><input value={groupName} onChange={e=>setGroupName(e.target.value.toUpperCase().slice(0,18))} placeholder="EJ. PROMO 26" /></label><h3 className="field-title compact-title">Color del diseño <span>{print.name}</span></h3><div className="swatches print-swatches">{printColors.map(item=><button type="button" key={item.name} className={print.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>setPrint(item)} aria-label={item.name} aria-pressed={print.name===item.name}><i /></button>)}</div></>}{designPath==="upload"&&<UploadDrop title="Adjuntad vuestro diseño al pedir presupuesto" text="PNG, JPG, PDF o AI · Hasta 15 MB · Envío privado." />}{designPath==="studio"&&<p className="config-help">Contadnos vuestra idea al pedir presupuesto. Prepararemos una propuesta para revisarla juntos.</p>}{selectedDesign?.personalizable && selectedDesign.fields.map(field => <label className="text-field" key={field.id}><span>{field.label}</span><input required={field.required} maxLength={field.maxLength} value={designFields[field.id] || ""} onChange={event => setDesignFields(current => ({ ...current, [field.id]: event.target.value }))} /></label>)}<details className="front-details" onToggle={event => { if (event.currentTarget.open) setSide("front"); }}><summary><span><small>Opcional · incluido</small>Detalle delantero</span><b>{frontDesignLabel}<i>+</i></b></summary><div className="front-details-body"><div className="front-options">{frontOptions.map(item=><button type="button" key={item.id} className={frontType===item.id?"active":""} aria-pressed={frontType===item.id} onClick={()=>{setFrontTexts(current => ({ ...current, [frontType]: frontText }));setFrontText(frontTexts[item.id]);setFrontType(item.id);setSide("front")}}><b><item.Icon aria-hidden="true" /></b><span>{item.label}</span></button>)}</div>{frontType==="coordinates"&&<label className="text-field"><span>Coordenadas</span><input value={frontText} onChange={e=>setFrontText(e.target.value.slice(0,28))} placeholder="37°53'N · 4°46'W" /></label>}{frontType==="name"&&<label className="text-field"><span>Nombre o mote</span><input value={frontText} onChange={e=>setFrontText(e.target.value.toUpperCase().slice(0,18))} placeholder="NOMBRE" /></label>}{frontType==="logo"&&<label className="upload-control"><input type="file" accept="image/png,image/jpeg" onChange={e=>selectFrontLogo(e.target.files?.[0])} /><b>{frontLogo?<BadgeCheck aria-hidden="true" />:<Upload aria-hidden="true" />}</b><span>{frontLogo?"Seleccionado · adjuntar en presupuesto":"Seleccionar logo delantero"}</span><small>PNG o JPG</small></label>}<h3 className="field-title compact-title">Acabado delantero <span>{frontTechnique === "print" ? "DTF incluido" : frontType === "coordinates" ? "+1 €" : "A consultar"}</span></h3><div className="technique-cards"><button type="button" aria-pressed={frontTechnique==="print"} className={frontTechnique==="print"?"active":""} onClick={()=>setFrontTechnique("print")}><b>DTF</b><span>Incluido</span><small>A todo color y hasta A5</small></button><button type="button" aria-pressed={frontTechnique==="embroidery"} className={frontTechnique==="embroidery"?"active":""} onClick={()=>setFrontTechnique("embroidery")}><b><Sparkles aria-hidden="true" /></b><span>Bordado</span><small>{frontType === "coordinates" ? "Coordenadas · +1 €" : "Logo o texto · a consultar"}</small></button></div></div></details></div>
+            <details className="extras-details"><summary>Extras de manga <span>{sleeveFlag === "none" ? "Sin extras" : selectedFlag}</span></summary><div className="extras-body"><h3 className="field-title">Personalización de manga <span>{sleeveFlag === "none" ? "Sin extra" : selectedFlag}</span></h3><div className="flag-options">{flagOptions.map(item=><button type="button" key={item.id} className={sleeveFlag===item.id?"active":""} aria-pressed={sleeveFlag===item.id} onClick={()=>selectSleeveFlag(item.id)}><b>{item.symbol ? <FlagMark type={item.symbol} /> : "—"}</b><span>{item.label}</span></button>)}</div>{sleeveFlag!=="none"&&<>{sleeveFlag!=="spain"&&<label className="text-field"><span>{sleeveFlag === "custom" ? "Nombre o referencia del logo" : "¿Cuál?"}</span><input value={sleeveDetail} onChange={e=>setSleeveDetail(e.target.value.slice(0,50))} placeholder={sleeveFlag === "community" ? "Ej. Madrid" : sleeveFlag === "country" ? "Ej. Portugal" : "Ej. escudo del club"} /></label>}<h3 className="field-title compact-title">Acabado <span>{sleeveTechnique === "print" ? "+1 €" : sleeveFlag === "custom" ? "A consultar" : "+2 €"}</span></h3><div className="technique-cards"><button type="button" aria-pressed={sleeveTechnique==="print"} className={sleeveTechnique==="print"?"active":""} onClick={()=>setSleeveTechnique("print")}><b>DTF</b><span>Estampada</span><small>+1 € por prenda</small></button><button type="button" aria-pressed={sleeveTechnique==="embroidery"} className={sleeveTechnique==="embroidery"?"active":""} onClick={()=>setSleeveTechnique("embroidery")}><b><Sparkles aria-hidden="true" /></b><span>Bordada</span><small>{sleeveFlag === "custom" ? "Precio según el logotipo" : "+2 € por prenda"}</small></button></div></>}</div></details>
+            <section className="customizer-price" id="presupuesto" aria-label="Cantidad y precio">
+        <div className="price-top"><label htmlFor="quantity-input">Número de {productName.toLowerCase()}s</label><div className="quantity-input-wrap"><input id="quantity-input" aria-label={`Número de ${productName.toLowerCase()}s`} type="number" inputMode="numeric" min="5" max="500" step="1" value={quantityDraft} onChange={event => { const value = event.target.value; setQuantityDraft(value); const number = Number(value); if (Number.isInteger(number) && number >= 5 && number <= 500) setQuantity(number); }} onBlur={commitQuantityDraft} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); commitQuantityDraft(); event.currentTarget.blur(); } }} /><span>unidades</span></div></div>
+        <div className="simple-price" aria-live="polite"><strong>{configuredUnitPrice === null ? "A consultar" : `${configuredUnitPrice} € / unidad`}</strong><span>{configuredUnitPrice === null ? "Revisaremos vuestra configuración" : `Total estimado: ${(configuredUnitPrice * quantity).toLocaleString("es-ES")} €`}</span></div>
         {productType !== "hoodie" && <div className="shirt-price-pending"><b>Tarifa de camisetas pendiente</b><p>Podéis incluir camisetas en la solicitud. Antes de activar pagos publicaremos el modelo, la impresión incluida y todos sus tramos de precio.</p></div>}
-        <dl className="configuration-text-summary">
+        <details className="price-summary"><summary>Ver resumen y condiciones</summary><dl className="configuration-text-summary">
           <div><dt>Producto</dt><dd>{productName} · {activeProduct.model}</dd></div>
           <div><dt>Color</dt><dd>{garment.name}</dd></div>
           <div><dt>Cantidad</dt><dd>{quantity} unidades</dd></div>
           <div><dt>Personalización</dt><dd>{backDesignLabel} + {frontDesignLabel}</dd></div>
           <div><dt>Extras</dt><dd>{sleeveFlag === "none" ? (hasPriceExtra ? (customEmbroidery ? "Revisión necesaria" : `+${knownExtras} € / unidad`) : "Sin extras") : `${selectedFlag}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}`}</dd></div>
           <div><dt>Precio</dt><dd>{configuredUnitPrice === null ? "A consultar" : `${configuredUnitPrice} € / unidad`}</dd></div>
-        </dl>
+        </dl><p className="config-help">{productType === "hoodie" ? "Incluye pecho, espalda y nombre. IVA y envío a Península incluidos." : "Modelo y tarifa de camiseta pendientes."}</p><p className="config-help">De 1 a 4 unidades: consultad por WhatsApp.</p></details>
         {hasPriceExtra && <div className={customEmbroidery ? "price-extra-notice consult" : "price-extra-notice"}><b>{customEmbroidery ? "Revisión necesaria" : "Extras calculados"}</b><span>{customEmbroidery ? "Un logo bordado se valora según tamaño, puntadas y complejidad. No inventamos un precio automático." : `La configuración añade ${knownExtras} € por cada prenda que lleve esos extras.`}</span></div>}
-        <button className="price-quote-button" onClick={goToQuote}>Pedir mi presupuesto <b>↗</b></button>
+        <button className="price-quote-button" onClick={goToQuote}>Continuar al presupuesto <ArrowRight aria-hidden="true" /></button>
         <small className="price-disclaimer">El precio definitivo se fija al cerrar la cantidad real con el organizador. Para 101 o más unidades y bordados personalizados, preparamos una valoración específica.</small>
+            </section>
+          </div>
+        </div>
       </div>
     </section>
+
 
     <section className="inspiration-section" id="inspiracion"><div className="section-heading"><div><p className="eyebrow"><span /> Diseños con historia</p><h2>Cinco formas de decir<br /><em>“somos nosotros”.</em></h2></div><p>No vendemos dibujos genéricos. Estas rutas son el punto de partida para convertir personas, lugares y bromas internas en una prenda.</p></div><DesignCarousel><ShowcaseCard className="sky" number="01" eyebrow="La más pedida" title="La X de nombres" text="Todos dentro del mismo diseño." design="x" color="#14223e" print="#9ed8f4" onSelect={chooseShowcaseDesign} /><ShowcaseCard number="02" eyebrow="Orgullo local" title="Vuestro pueblo" text="Calles, monumentos y coordenadas." design="monument" color="#ece8dd" print="#14223e" onSelect={chooseShowcaseDesign} /><ShowcaseCard number="03" eyebrow="100% vuestro" title="El grupo ilustrado" text="De una foto a un recuerdo." design="group" color="#753247" print="#f7f3e9" onSelect={chooseShowcaseDesign} /><ShowcaseCard number="04" eyebrow="Muchos recuerdos" title="Collage local" text="Símbolos que solo vosotros entendéis." design="collage" color="#174f42" print="#e6ff58" onSelect={chooseShowcaseDesign} /><ShowcaseCard className="dark" number="05" eyebrow="Peñas y equipos" title="Mascota + aniversario" text="Una identidad que vuelve cada año." design="mascot" color="#14223e" print="#f7f3e9" onSelect={chooseShowcaseDesign} /></DesignCarousel></section>
 
@@ -510,7 +482,7 @@ export default function Home() {
       model={productModel}
       color={garment.name}
       design={`${backDesignLabel} + ${frontDesignLabel}`}
-      sleeve={sleeveFlag === "none" ? "Sin personalización" : `${selectedFlag}${sleeveDetail ? ` · ${sleeveDetail}` : ""}`}
+      sleeve={[frontTechnique === "embroidery" ? `${frontDesignLabel}: bordado` : "", sleeveFlag === "none" ? "" : `${selectedFlag}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}`].filter(Boolean).join("; ") || "Sin extras"}
       quantity={quantity}
       price={configuredUnitPrice === null ? "A consultar" : `${configuredUnitPrice} € / unidad`}
       onQuote={goToQuote}
@@ -521,8 +493,6 @@ export default function Home() {
 function FlagMark({type}:{type:string}){const label=type === "spain" ? "Bandera de España" : type === "community" ? "Bandera de la Comunidad Valenciana (ejemplo)" : type === "country" ? "Bandera de Francia (ejemplo)" : "Marca de manga";return <span className={`flag-mark ${type}`} data-flag={type} role="img" aria-label={label}><FlagIcon type={type} /></span>}
 function FlagIcon({type}:{type:string}){if(type==="spain")return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="120" height="72" fill="#AA151B"/><rect y="18" width="120" height="36" fill="#F1BF00"/></svg>;if(type==="community")return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="120" height="72" fill="#F6CF00"/><rect x="25" width="95" height="7" y="6" fill="#C8202F"/><rect x="25" width="95" height="7" y="20" fill="#C8202F"/><rect x="25" width="95" height="7" y="34" fill="#C8202F"/><rect x="25" width="95" height="7" y="48" fill="#C8202F"/><rect x="25" width="95" height="7" y="62" fill="#C8202F"/><rect width="25" height="72" fill="#19508A"/></svg>;if(type==="country")return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="40" height="72" fill="#1B3B79"/><rect x="40" width="40" height="72" fill="#FFFFFF"/><rect x="80" width="40" height="72" fill="#D52B3F"/></svg>;return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="120" height="72" rx="4" fill="#17233F"/><path d="M12 36h96M60 12v48" stroke="#F1D35A" strokeWidth="7" strokeLinecap="round"/></svg>}
 function BrandMark(){return <span className="brand-mark"><i>T</i><b>S</b><em>G</em></span>}
-function StepHeader({number,title,text}:{number:string;title:string;text:string}){return <div className="step-header"><span>{number}</span><div><h2>{title}</h2><p>{text}</p></div></div>}
-function NextButton({onClick,label}:{onClick:()=>void;label:string}){return <button type="button" className="next-button" onClick={onClick}><span><small>Siguiente paso</small>{label}</span><b><ArrowRight aria-hidden="true" /></b></button>}
 function UploadDrop({title,text}:{title:string;text:string}){return <div className="upload-drop"><b><Upload aria-hidden="true" /></b><h3>{title}</h3><p>{text}</p><span>El archivo se adjunta en el siguiente paso →</span></div>}
 function Hoodie({color,printColor,text,side,designStyle="default",frontType="name",frontText="PROMO",frontLogo="",sleeveFlag="",sleeveTechnique="print",onImageLoad}:{color:string;printColor:string;text:string;side:Side;designStyle?:string;frontType?:string;frontText?:string;frontLogo?:string;sleeveFlag?:string;sleeveTechnique?:string;onImageLoad?:()=>void}){const visual=CORE_COLORS.find(item=>item.value===color);const image=side==="front"?visual?.frontImage:visual?.backImage;return <div className={`hoodie hoodie-real hoodie-view-${side}`} style={{"--hoodie":color,"--print":printColor} as React.CSSProperties}>{image&&<Image unoptimized className="hoodie-real-asset" src={image} alt={visual?.name+" "+(side==="front"?"frontal":"trasera")} width={2000} height={2000} priority={side==="front"} sizes="(max-width: 768px) 94vw, 820px" onLoad={onImageLoad} />}{sleeveFlag&&<div className={`hoodie-sleeve-design ${sleeveTechnique} flag-preview`}><span className={`hoodie-flag ${sleeveFlag}`} data-flag={sleeveFlag} aria-label={sleeveFlag === "spain" ? "Bandera de España" : sleeveFlag === "community" ? "Bandera de la Comunidad Valenciana (ejemplo)" : sleeveFlag === "country" ? "Bandera de Francia (ejemplo)" : "Marca de manga"} aria-hidden="true"><FlagIcon type={sleeveFlag} /></span></div>}<div className="hoodie-body">{side==="back"?<div className={`hoodie-design back design-${designStyle}`}>{text.split("\n").map((line,index)=><span key={line+"-"+index}>{line}</span>)}</div>:<div className={`front-personalization ${frontType}`}>{frontType==="logo"?(frontLogo?<span className="uploaded-logo" role="img" aria-label="Logo subido" style={{backgroundImage:`url(${frontLogo})`}}/>:<><b>◇</b><span>LOGO</span></>):<span>{frontText||(frontType==="coordinates"?"COORDENADAS":"NOMBRE")}</span>}</div>}</div></div>}
 

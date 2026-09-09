@@ -14,6 +14,7 @@ import "./motion.css";
 import "./premium.css";
 import "./customizer-mobile.css";
 import "./legibility.css";
+import "./customizer-simple.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
