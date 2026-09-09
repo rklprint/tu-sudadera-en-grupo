@@ -6,12 +6,15 @@ const read = (path: string) => readFile(new URL(`../${path}`, import.meta.url), 
 
 test("el flujo continuo no exige pasos ni duplica color o cantidad", async () => {
   const page = await read("app/page.tsx");
-  assert.doesNotMatch(page, /openStep|NextButton|type="range"|desktop-product-color|preview-summary/);
+  assert.doesNotMatch(page, /openStep|NextButton|desktop-product-color|preview-summary/);
   assert.equal(page.match(/garmentColors\.map/g)?.length, 1);
   assert.equal(page.match(/id="quantity-input"/g)?.length, 1);
   assert.ok(page.indexOf('id="presupuesto"') < page.indexOf('className="inspiration-section"'));
-  assert.match(page, /Total estimado:/);
-  assert.match(page, /Continuar al presupuesto/);
+  assert.equal(page.match(/type="range"/g)?.length, 1);
+  assert.match(page, /min="5" max="101" value=\{Math\.min\(quantity, 101\)\}/);
+  assert.match(page, /onChange=\{e=>updateQuantity\(Number\(e\.target\.value\)\)\}/);
+  assert.match(page, /className="price-section price-section-linked"/);
+  assert.match(page, /Pedir mi presupuesto/);
   assert.match(page, /Number\.isInteger\(number\) && number >= 5 && number <= 500/);
 });
 

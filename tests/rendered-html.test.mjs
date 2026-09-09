@@ -66,11 +66,13 @@ test("renders every public SEO landing without thin or broken pages", async () =
 test("renders quantity and price with the design, without wizard navigation", async () => {
   const html = await (await fetchPath("/")).text();
   assert.equal((html.match(/id="quantity-input"/g) || []).length, 1);
-  assert.doesNotMatch(html, /class="customizer-progress"|type="range"/);
+  assert.doesNotMatch(html, /class="customizer-progress"/);
+  assert.equal((html.match(/type="range"/g) || []).length, 1);
   assert.match(html, /<details class="extras-details">/);
   assert.match(html, /<details class="price-summary">/);
-  assert.match(html, /Total estimado:/);
-  assert.match(html, /Continuar al presupuesto/);
+  assert.match(html, /Precio base/);
+  assert.match(html, /Vuestra configuración/);
+  assert.match(html, /Pedir mi presupuesto/);
 });
 
 test("publishes sitemap and robots while keeping private flows out of search", async () => {
