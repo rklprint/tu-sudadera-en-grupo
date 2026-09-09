@@ -89,6 +89,46 @@ main .customizer-section .technique-cards small {
 }
 main .customizer-section .technique-cards button > b { display: none; }
 main .customizer-section .config-help { font-size: 15px; line-height: 1.5; color: #526275; }
+/* The original calculator shares the controls column and its existing state. */
+main .customizer-section .price-section-linked { display: block; margin: 20px 0 0; padding: 20px 0 0; border-top: 1px solid var(--line); background: #fff; color: var(--navy); scroll-margin-top: 110px; }
+main .customizer-section .price-card { min-width: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+main .customizer-section .price-top { gap: 8px; }
+main .customizer-section .price-top label { text-transform: none; }
+main .customizer-section .price-card > input[type="range"] { height: 44px; margin: 6px 0 0; cursor: pointer; }
+main .customizer-section .range-labels { margin-top: 0; font-size: 14px; gap: 4px; }
+main .customizer-section .price-live-result { display: block; margin: 16px 0 0; }
+main .customizer-section .price-live-result > div { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 18px; border-radius: 8px; background: #0b1830; color: #fff; }
+main .customizer-section .price-live-result strong { font-size: 32px; line-height: 1.2; animation: none; }
+main .customizer-section .price-live-result strong small { font-size: 16px; color: #fff; font-weight: 500; }
+main .customizer-section .price-live-result span { font-size: 14px; text-transform: none; }
+main .customizer-section .price-live-result p { margin: 0; font-size: 16px; }
+main .customizer-section .price-live-result small { font-size: 14px; color: #c7d4e5; line-height: 1.4; }
+main .customizer-section .price-base-note { margin: 12px 0; font-size: 14px; line-height: 1.5; color: #526275; }
+main .customizer-section .price-summary { margin-bottom: 12px; }
+main .customizer-section .price-extra-notice { margin: 12px 0; padding: 12px; }
+main .customizer-section .design-personalization { margin-top: 8px; }
+main .customizer-section .design-personalization summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 16px; }
+main .customizer-section .flag-options button { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; min-height: 52px; text-align: left; }
+main .customizer-section .flag-options button > b { flex: 0 0 28px; margin: 0; }
+main .customizer-section .flag-options .flag-mark { width: 28px; height: 18px; }
+main .customizer-section .flag-options button span { font-size: 15px; line-height: 1.3; }
+main .customizer-section .technique-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+main .customizer-section .product-segmented-control button { min-height: 60px; align-items: center; }
+main .customizer-section .product-segmented-control small { line-height: 1.2; }
+main .customizer-section .product-preview-frame { position: relative; }
+main .customizer-section .mobile-color-choice.active i::after { content: "✓"; display: grid; place-items: center; width: 18px; height: 18px; margin: -5px 0 0 23px; background: #152137; color: #fff; border-radius: 50%; font-size: 14px; }
+main .customizer-section .path-tabs button:last-child { background: transparent; border-color: transparent; color: #215e91; }
+main .customizer-section .path-tabs button:last-child.active { border-color: #152137; background: #edf7fb; color: #152137; }
+main .customizer-section .preview-media { animation: none; }
+main .customizer-section .preview-guidance { margin: 0; min-height: 80px; }
+main .customizer-section .preview-guidance strong, main .customizer-section .preview-guidance span { display: block; font-size: 14px; line-height: 1.4; }
+main .customizer-section .configuration-text-summary { overflow-wrap: anywhere; }
+main .customizer-section .range-labels span { font-size: 14px; }
+main .customizer-section a:focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
+@media (max-width: 360px) {
+  main .customizer-section .flag-options { grid-template-columns: 1fr; }
+  main .customizer-section .range-labels span:nth-child(2), main .customizer-section .range-labels span:nth-child(4) { display: none; }
+}
 main .customizer-section .customizer-price { margin-top: 20px; scroll-margin-top: 110px; }
 main .customizer-section .price-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
 main .customizer-section .price-top > label { font-size: 16px; }

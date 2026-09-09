@@ -4,6 +4,23 @@ import test from "node:test";
 
 const read = (path: string) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
+test("la calculadora original está integrada y conserva total, slider y cantidad manual", async () => {
+  const page = await read("app/page.tsx");
+  assert.match(page, /Cantidad y precio/);
+  assert.match(page, /configuredUnitPrice \* quantity/);
+  assert.doesNotMatch(page, /Ver calculadora y precio|Diseño listo\.|Calculadora transparente/);
+  assert.match(page, /<details className="design-personalization">/);
+  assert.equal(page.match(/className="price-card"/g)?.length, 1);
+});
+
+test("la preview no inventa un logo ni una composición trasera sin archivo", async () => {
+  const preview = await read("app/_components/product-preview.tsx");
+  const page = await read("app/page.tsx");
+  assert.doesNotMatch(preview, /\? 'LOGO'|className="product-preview-print-mark back"/);
+  assert.match(preview, /side === 'front' && !visibleDesign && overlay.frontType !== 'logo'/);
+  assert.match(page, /no representado sobre la prenda/);
+});
+
 test("el flujo continuo no exige pasos ni duplica color o cantidad", async () => {
   const page = await read("app/page.tsx");
   assert.doesNotMatch(page, /openStep|NextButton|desktop-product-color|preview-summary/);
