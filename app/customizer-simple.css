@@ -120,6 +120,17 @@ main .customizer-section .mobile-color-choice.active i::after { content: "✓"; 
 main .customizer-section .path-tabs button:last-child { background: transparent; border-color: transparent; color: #215e91; }
 main .customizer-section .path-tabs button:last-child.active { border-color: #152137; background: #edf7fb; color: #152137; }
 main .customizer-section .preview-media { animation: none; }
+main .customizer-section .product-preview-frame { transform: scale(1.08); transform-origin: center; }
+main .customizer-section .product-preview-sleeve { position: absolute; z-index: 4; display: block; line-height: 0; pointer-events: none; }
+main .customizer-section .product-preview-sleeve img { display: block; width: 100%; height: auto; object-fit: contain; border-radius: 1px; }
+main .customizer-section .product-preview-sleeve.embroidery { outline: 1px dashed rgba(255,255,255,.65); outline-offset: 1px; }
+main .customizer-section .text-field select { width: 100%; min-width: 0; min-height: 48px; padding: 10px 12px; border: 1px solid #a4afbd; border-radius: 6px; background: #fff; color: #152137; font: inherit; font-size: 16px; }
+main .customizer-section .sleeve-select { margin-top: 0; }
+main .customizer-section .sleeve-montage-link { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 14px; color: #526275; }
+main .customizer-section .sleeve-montage-link a { display: inline-flex; align-items: center; min-height: 44px; color: #215e91; font-size: 15px; }
+main .customizer-section .text-field select:focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
+main .customizer-section .style-options { display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; padding: 4px; scroll-snap-type: x proximity; }
+main .customizer-section .style-option { flex: 0 0 136px; scroll-snap-align: start; }
 main .customizer-section .preview-guidance { margin: 0; min-height: 80px; }
 main .customizer-section .preview-guidance strong, main .customizer-section .preview-guidance span { display: block; font-size: 14px; line-height: 1.4; }
 main .customizer-section .configuration-text-summary { overflow-wrap: anywhere; }
