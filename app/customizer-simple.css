@@ -1,0 +1,179 @@
+/* One continuous configuration flow; legacy presentation stays outside this scope. */
+main .customizer-section *, .customizer-drawer-content *, .mobile-customizer-trigger * { letter-spacing: 0; }
+main .customizer-section .dark-heading h2 { font-size: 32px; line-height: 1.15; }
+main .customizer-section .customizer-shell { overflow: visible; border-radius: 8px; }
+main .customizer-section .product-selector-top { display: block; padding: 12px; border-radius: 8px 8px 0 0; }
+main .customizer-section .product-segmented-control { max-width: 580px; margin: auto; border-radius: 8px; }
+main .customizer-section .product-segmented-control button { padding: 8px; min-height: 52px; border-radius: 6px; }
+main .customizer-section .product-segmented-control b { font-size: 16px; }
+main .customizer-section .product-segmented-control small { font-size: 14px; }
+main .customizer-section .product-segmented-control button > svg { display: none; }
+main .customizer-section .customizer-layout { display: block; min-height: 0; }
+main .customizer-section .preview-panel { min-height: 0; border: 0; }
+main .customizer-section .preview-toolbar { height: auto; padding: 8px 12px; }
+main .customizer-section .preview-toolbar > span, main .customizer-section .preview-model, main .customizer-section .zoom-hint { display: none; }
+main .customizer-section .side-toggle { display: flex; width: 100%; }
+main .customizer-section .side-toggle button { flex: 1; min-height: 44px; font-size: 15px; }
+main .customizer-section .preview-stage { flex: none; width: 100%; min-height: 0; aspect-ratio: 1; padding: 0; background: #e5f1f6; }
+main .customizer-section .preview-stage::before { display: none; }
+main .customizer-section .preview-media { width: 100%; height: 100%; }
+main .customizer-section .product-preview-frame { width: 100%; height: 100%; }
+main .customizer-section .product-preview-frame > img:first-child { object-fit: contain; width: 100%; height: 100%; }
+main .customizer-section .product-preview-orientation { display: none; }
+main .customizer-section .mobile-preview-controls { display: block; width: 100%; padding: 12px; background: #fff; border-block: 1px solid var(--line); }
+main .customizer-section .mobile-preview-controls-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 15px; }
+main .customizer-section .mobile-preview-controls-heading span, main .customizer-section .mobile-preview-controls-heading strong { font-size: 15px; }
+main .customizer-section .mobile-color-rail { display: grid; grid-auto-flow: column; grid-auto-columns: 72px; gap: 6px; overflow-x: auto; overscroll-behavior-inline: contain; padding: 6px 4px; touch-action: pan-x pan-y; }
+main .customizer-section .mobile-color-choice { display: flex; align-items: center; flex-direction: column; gap: 8px; min-width: 44px; min-height: 76px; padding: 0; border: 0; background: transparent; }
+main .customizer-section .mobile-color-choice i { display: block; width: 44px; height: 44px; flex: 0 0 44px; border: 4px solid #fff; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px #a1a8ad; }
+main .customizer-section .mobile-color-choice small { width: 72px; font-size: 14px; line-height: 1.15; }
+main .customizer-section .mobile-color-choice.active i { box-shadow: 0 0 0 3px #152137; }
+main .customizer-section .mobile-color-choice.active small { font-weight: 800; color: #152137; }
+main .customizer-section .preview-guidance { padding: 10px 12px; font-size: 14px; }
+main .customizer-section .controls-panel { min-height: 0; padding: 18px 14px 24px; }
+main .customizer-section .step-view { min-height: 0; }
+main .customizer-section .customizer-title { font-size: 20px; margin: 0 0 12px; }
+main .customizer-section .preview-panel { scroll-margin-top: 100px; }
+main .customizer-section .design-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+main .customizer-section .design-heading a { display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; color: #215e91; }
+main .customizer-section .path-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+main .customizer-section .path-tabs button { min-width: 0; min-height: 48px; padding: 8px; display: flex; flex-direction: row; justify-content: center; gap: 6px; border-radius: 6px; }
+main .customizer-section .path-tabs button:last-child { grid-column: 1 / -1; min-height: 44px; }
+main .customizer-section .path-tabs button b { display: none; }
+main .customizer-section .path-tabs button span { font-size: 15px; }
+main .customizer-section .style-options { max-height: none; overflow: visible; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+main .customizer-section .style-option { transform: none; min-width: 0; min-height: 112px; padding: 10px 8px; border-radius: 6px; }
+main .customizer-section .style-option em { display: none; }
+main .customizer-section .style-option small { font-size: 15px; line-height: 1.3; }
+main .customizer-section .style-option > b { font-size: 24px; }
+main .customizer-section .design-thumbnail { height: 78px; object-fit: contain; }
+main .customizer-section .design-thumbnail-missing { font-size: 14px; }
+main .customizer-section .show-designs { min-height: 44px; padding: 8px; margin: 6px 0 0; color: #215e91; background: none; border: 0; text-decoration: underline; font-size: 15px; }
+main .customizer-section .field-title, main .customizer-section .field-title span, main .customizer-section .text-field span { font-size: 15px; text-transform: none; }
+main .customizer-section .text-field { margin-top: 16px; }
+main .customizer-section .text-field input { width: 100%; min-width: 0; min-height: 48px; font-size: 16px; }
+main .customizer-section .print-swatches { gap: 8px; }
+main .customizer-section .print-swatches .swatch, main .customizer-section .print-swatches .swatch i { width: 44px; height: 44px; }
+main .customizer-section .front-details, main .customizer-section .extras-details { margin-top: 16px; border: 0; border-block: 1px solid var(--line); border-radius: 0; background: #fff; }
+main .customizer-section .front-details summary, main .customizer-section .extras-details summary, main .customizer-section .price-summary summary { min-height: 52px; padding: 12px 0; cursor: pointer; font-size: 16px; }
+main .customizer-section .front-details summary > span, main .customizer-section .front-details summary > b { font-size: 15px; }
+main .customizer-section .front-details summary small { font-size: 14px; text-transform: none; }
+main .customizer-section .extras-details summary span { font-size: 14px; color: #526275; margin-left: 8px; }
+main .customizer-section .front-details-body, main .customizer-section .extras-body { padding: 12px 0; }
+main .customizer-section .front-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+main .customizer-section .front-options button, main .customizer-section .flag-options button { min-width: 0; min-height: 64px; padding: 8px 4px; border-radius: 6px; }
+main .customizer-section .front-options button span, main .customizer-section .flag-options span { font-size: 14px; overflow-wrap: anywhere; }
+main .customizer-section .flag-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+main .customizer-section .technique-cards { gap: 8px; }
+main .customizer-section .technique-cards button {
+  display: flex;
+  min-width: 0;
+  min-height: 76px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 6px;
+}
+main .customizer-section .technique-cards span {
+  display: block;
+  font-size: 16px;
+  line-height: 1.2;
+}
+main .customizer-section .technique-cards small {
+  display: block;
+  color: #627086;
+  font-size: 14px;
+  line-height: 1.3;
+}
+main .customizer-section .technique-cards button > b { display: none; }
+main .customizer-section .config-help { font-size: 15px; line-height: 1.5; color: #526275; }
+/* The original calculator shares the controls column and its existing state. */
+main .customizer-section .price-section-linked { display: block; margin: 20px 0 0; padding: 20px 0 0; border-top: 1px solid var(--line); background: #fff; color: var(--navy); scroll-margin-top: 110px; }
+main .customizer-section .price-card { min-width: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+main .customizer-section .price-top { gap: 8px; }
+main .customizer-section .price-top label { text-transform: none; }
+main .customizer-section .price-card > input[type="range"] { height: 44px; margin: 6px 0 0; cursor: pointer; }
+main .customizer-section .range-labels { margin-top: 0; font-size: 14px; gap: 4px; }
+main .customizer-section .price-live-result { display: block; margin: 16px 0 0; }
+main .customizer-section .price-live-result > div { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 18px; border-radius: 8px; background: #0b1830; color: #fff; }
+main .customizer-section .price-live-result strong { font-size: 32px; line-height: 1.2; animation: none; }
+main .customizer-section .price-live-result strong small { font-size: 16px; color: #fff; font-weight: 500; }
+main .customizer-section .price-live-result span { font-size: 14px; text-transform: none; }
+main .customizer-section .price-live-result p { margin: 0; font-size: 16px; }
+main .customizer-section .price-live-result small { font-size: 14px; color: #c7d4e5; line-height: 1.4; }
+main .customizer-section .price-base-note { margin: 12px 0; font-size: 14px; line-height: 1.5; color: #526275; }
+main .customizer-section .price-summary { margin-bottom: 12px; }
+main .customizer-section .price-extra-notice { margin: 12px 0; padding: 12px; }
+main .customizer-section .design-personalization { margin-top: 8px; }
+main .customizer-section .design-personalization summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 16px; }
+main .customizer-section .flag-options button { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px; min-height: 52px; text-align: left; }
+main .customizer-section .flag-options button > b { flex: 0 0 28px; margin: 0; }
+main .customizer-section .flag-options .flag-mark { width: 28px; height: 18px; }
+main .customizer-section .flag-options button span { font-size: 15px; line-height: 1.3; }
+main .customizer-section .technique-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+main .customizer-section .product-segmented-control button { min-height: 60px; align-items: center; }
+main .customizer-section .product-segmented-control small { line-height: 1.2; }
+main .customizer-section .product-preview-frame { position: relative; }
+main .customizer-section .mobile-color-choice.active i::after { content: "✓"; display: grid; place-items: center; width: 18px; height: 18px; margin: -5px 0 0 23px; background: #152137; color: #fff; border-radius: 50%; font-size: 14px; }
+main .customizer-section .path-tabs button:last-child { background: transparent; border-color: transparent; color: #215e91; }
+main .customizer-section .path-tabs button:last-child.active { border-color: #152137; background: #edf7fb; color: #152137; }
+main .customizer-section .preview-media { animation: none; }
+main .customizer-section .product-preview-frame { transform: scale(1.08); transform-origin: center; }
+main .customizer-section .product-preview-sleeve { position: absolute; z-index: 4; display: block; line-height: 0; pointer-events: none; }
+main .customizer-section .product-preview-sleeve img { display: block; width: 100%; height: auto; object-fit: contain; border-radius: 1px; }
+main .customizer-section .product-preview-sleeve.embroidery { outline: 1px dashed rgba(255,255,255,.65); outline-offset: 1px; }
+main .customizer-section .text-field select { width: 100%; min-width: 0; min-height: 48px; padding: 10px 12px; border: 1px solid #a4afbd; border-radius: 6px; background: #fff; color: #152137; font: inherit; font-size: 16px; }
+main .customizer-section .sleeve-select { margin-top: 0; }
+main .customizer-section .sleeve-montage-link { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 14px; color: #526275; }
+main .customizer-section .sleeve-montage-link a { display: inline-flex; align-items: center; min-height: 44px; color: #215e91; font-size: 15px; }
+main .customizer-section .text-field select:focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
+main .customizer-section .style-options { display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; padding: 4px; scroll-snap-type: x proximity; }
+main .customizer-section .style-option { flex: 0 0 136px; scroll-snap-align: start; }
+main .customizer-section .preview-guidance { margin: 0; min-height: 80px; }
+main .customizer-section .preview-guidance strong, main .customizer-section .preview-guidance span { display: block; font-size: 14px; line-height: 1.4; }
+main .customizer-section .configuration-text-summary { overflow-wrap: anywhere; }
+main .customizer-section .range-labels span { font-size: 14px; }
+main .customizer-section a:focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
+@media (max-width: 360px) {
+  main .customizer-section .flag-options { grid-template-columns: 1fr; }
+  main .customizer-section .range-labels span:nth-child(2), main .customizer-section .range-labels span:nth-child(4) { display: none; }
+}
+main .customizer-section .customizer-price { margin-top: 20px; scroll-margin-top: 110px; }
+main .customizer-section .price-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+main .customizer-section .price-top > label { font-size: 16px; }
+main .customizer-section .quantity-input-wrap { gap: 8px; }
+main .customizer-section .quantity-input-wrap input { width: 88px; min-height: 48px; font-size: 20px; }
+main .customizer-section .quantity-input-wrap > span { font-size: 14px; }
+main .customizer-section .simple-price { display: flex; flex-direction: column; gap: 6px; margin: 18px 0 8px; }
+main .customizer-section .simple-price strong { font-size: 26px; line-height: 1.2; }
+main .customizer-section .simple-price span { font-size: 15px; color: #526275; }
+main .customizer-section .configuration-text-summary { border-radius: 0; }
+main .customizer-section .configuration-text-summary dt, main .customizer-section .configuration-text-summary dd { font-size: 14px; }
+main .customizer-section .price-quote-button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 52px; padding: 12px 16px; border: 0; border-radius: 6px; background: #152137; color: white; font-size: 16px; }
+main .customizer-section .price-quote-button svg { flex: 0 0 20px; width: 20px; }
+main .customizer-section .price-disclaimer, main .customizer-section .price-extra-notice span, main .customizer-section .price-extra-notice b { font-size: 14px; line-height: 1.5; }
+main .customizer-section .price-disclaimer { display: block; margin-top: 12px; }
+main .customizer-section :is(button, input, summary):focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
+.customizer-drawer-content .customizer-drawer-summary strong, .customizer-drawer-content .customizer-drawer-heading p { font-size: 16px; }
+.customizer-drawer-content .customizer-drawer-summary small, .customizer-drawer-content .customizer-drawer-total small { font-size: 14px; }
+.customizer-drawer-content .customizer-drawer-heading button { min-width: 44px; min-height: 44px; }
+@media (min-width: 900px) {
+  main .customizer-section .customizer-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  main .customizer-section .preview-panel { position: sticky; top: 90px; }
+  main .customizer-section .preview-stage { max-width: 500px; margin-inline: auto; }
+  main .customizer-section .controls-panel { padding: 24px; }
+}
+@media (max-width: 899px) {
+  main .customizer-section .customizer-shell { max-width: 650px; margin-inline: auto; }
+}
+@media (max-width: 700px) {
+  main .customizer-section .dark-heading h2 { font-size: 28px; }
+  main.homepage-flow > .customizer-section { padding: 28px 10px; }
+  main .customizer-section .product-segmented-control small { font-size: 14px; }
+  main .customizer-section .product-segmented-control button { align-items: flex-start; }
+  main .mobile-customizer-trigger { min-height: 56px; padding: 10px 12px; border-radius: 8px; }
+  main .mobile-customizer-trigger strong { max-width: none; font-size: 16px; }
+  main .mobile-customizer-trigger b { font-size: 14px; text-transform: none; }
+}
