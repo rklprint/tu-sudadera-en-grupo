@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
@@ -93,6 +93,8 @@ function QuotePageContent() {
   });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
   const [designFile, setDesignFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -152,6 +154,7 @@ function QuotePageContent() {
     ["Producto", configuration.product],
     ["Modelo", configuration.model],
     ["Color", configuration.color],
+    ["Color del diseño", configuration.printColor],
     ["Espalda", configuration.backDesign],
     ["Delantera", configuration.frontDesign],
     ["Manga", configuration.sleeve],
@@ -171,18 +174,20 @@ function QuotePageContent() {
     </section>
 
     <section className="quote-layout">
-      <aside className="idea-summary">
+      <aside className="idea-summary compact-idea-summary">
+        <details><summary>Ver vuestra configuración</summary>
         <div className="idea-summary-top"><span>Vuestra idea</span><Link href="/#personalizador">Editar diseño</Link></div>
-        <div className="summary-hoodie"><span>TSG</span><strong>{form.groupName || "Nombre del grupo"}</strong><small>{configuration.backDesign}</small></div>
+
         <div className="idea-details">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
         <div className="summary-note"><b>Después de enviarla</b><p>Un diseñador revisará composición, acabados y viabilidad. La propuesta final se aprueba con vosotros antes de producir.</p></div>
+        </details>
       </aside>
 
       <form className="quote-form" onSubmit={submit}>
-        <div className="form-heading"><span>01</span><div><h2>Datos del organizador</h2><p>Será nuestra persona de contacto durante el proyecto.</p></div></div>
+        <div className="form-heading"><span>01</span><div><h2>Datos del organizador</h2><p>Los campos con * son obligatorios. El resto es opcional.</p></div></div>
         <div className="form-grid">
           <label className="wide"><span>Nombre y apellidos *</span><input required minLength={2} maxLength={80} autoComplete="name" value={form.organizerName} onChange={event => setField("organizerName", event.target.value)} placeholder="Ej. Lucía Martínez" /></label>
-          <label><span>WhatsApp *</span><input required inputMode="tel" autoComplete="tel" value={form.phone} onChange={event => setField("phone", event.target.value)} placeholder="600 000 000" /></label>
+          <label><span>WhatsApp *</span><input required type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={event => setField("phone", event.target.value)} placeholder="600 000 000" /></label>
           <label><span>Email *</span><input required type="email" autoComplete="email" value={form.email} onChange={event => setField("email", event.target.value)} placeholder="nombre@correo.es" /></label>
           <label className="wide"><span>Nombre del grupo *</span><input required minLength={2} maxLength={90} value={form.groupName} onChange={event => setField("groupName", event.target.value)} placeholder="Ej. Promoción 2026 · IES Las Encinas" /></label>
         </div>
@@ -193,15 +198,19 @@ function QuotePageContent() {
           <label><span>Localidad</span><input maxLength={90} value={form.location} onChange={event => setField("location", event.target.value)} placeholder="Ej. Sevilla" /></label>
           <label><span>¿Cuántos sois? *</span><input required type="number" min={5} max={500} value={form.quantity} onChange={event => setField("quantity", Number(event.target.value))} /></label>
           <label><span>Fecha deseada</span><input type="date" value={form.desiredDate} onChange={event => setField("desiredDate", event.target.value)} /></label>
+          </div>
+        <details className="quote-optional" open={configuration.designPath === "upload"}><summary>Añadir diseño, referencias o comentarios (opcional)</summary><div className="form-grid">
           <label className="wide"><span>Enlace a referencias</span><input type="url" maxLength={500} value={form.referenceUrl} onChange={event => setField("referenceUrl", event.target.value)} placeholder="Drive, Instagram, Pinterest… También podréis enviarlas por WhatsApp" /></label>
           <label className="wide quote-file-field"><span>Adjuntar diseño o referencia</span><input type="file" accept=".png,.jpg,.jpeg,.pdf,.ai,image/png,image/jpeg,application/pdf,application/postscript" onChange={event => { const file = event.target.files?.[0] || null; setDesignFile(file); if (file) void trackProductEvent("archivo_uploaded", { product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie" }); }} /><small>{designFile ? `${designFile.name} · ${(designFile.size / 1024 / 1024).toFixed(1).replace(".0", "")} MB` : "PNG, JPG, PDF o AI · máximo 15 MB"}</small></label>
           <label className="wide"><span>Contadnos lo que tenéis en mente</span><textarea maxLength={1200} rows={5} value={form.notes} onChange={event => setField("notes", event.target.value)} placeholder="Nombres individuales, fecha del viaje, dudas, una broma del grupo…" /></label>
           <label className="honeypot" aria-hidden="true"><span>Web</span><input tabIndex={-1} autoComplete="off" value={form.website} onChange={event => setField("website", event.target.value)} /></label>
         </div>
 
+        </details>
+
         {turnstileSiteKey && <div className="turnstile-field"><div className="cf-turnstile" data-sitekey={turnstileSiteKey} data-action="quote_request" data-theme="light" /></div>}
         <label className="consent-field"><input required type="checkbox" checked={form.privacyAccepted} onChange={event => setField("privacyAccepted", event.target.checked)} /><span>Acepto que utilicéis estos datos únicamente para preparar el presupuesto y contactarme sobre este pedido. <Link href="/privacidad" target="_blank">Más información sobre privacidad</Link>.</span></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <p ref={errorRef} tabIndex={-1} className="form-error" role="alert">{error}</p>}
         <button className="quote-submit" type="submit" disabled={sending}><span><small>{sending ? "Guardando la solicitud" : "Sin compromiso"}</small>{sending ? "Un momento…" : "Enviar mi idea"}</span><b>{sending ? "···" : "↗"}</b></button>
         <p className="form-destination">La solicitud quedará registrada con una referencia. Recibiréis una confirmación automática y continuaremos por WhatsApp.</p>
       </form>

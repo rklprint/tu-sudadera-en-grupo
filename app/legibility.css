@@ -439,3 +439,54 @@ main .style-option .design-thumbnail { width: 100%; height: 88px; object-fit: co
   .product-preview-print-mark.back { font-size: clamp(12px, 4.2vw, 20px); }
   .product-preview-orientation { right: 10px; bottom: 9px; font-size: 8px; }
 }
+
+/* Final public-flow polish: readable support text and compact quote context. */
+.homepage-flow .hero-proof span,
+.homepage-flow .quick-benefits p,
+.homepage-flow .showcase-copy p,
+.homepage-flow .process-timeline p,
+.homepage-flow .proof-card p { font-size: 14px; line-height: 1.6; }
+.homepage-flow .hero-lead,
+.homepage-flow .faq-list details p { font-size: 16px; line-height: 1.65; }
+.homepage-flow .faq-list summary { min-height: 44px; gap: 16px; }
+.homepage-flow .faq-list summary > span { flex-shrink: 0; }
+.showcase-card .showcase-artwork { display: grid; place-items: center; min-height: 150px; padding: 24px; }
+.showcase-artwork .design-thumbnail { width: 100%; height: 180px; object-fit: contain; }
+.showcase-artwork p { margin: 0; font-size: 16px; text-align: center; }
+.showcase-artwork small { display: block; margin-top: 6px; font-size: 14px; }
+.flow-page .form-grid > label { min-width: 0; }
+.flow-page .form-grid label > span,
+.flow-page .form-heading p,
+.flow-page .consent-field,
+.flow-page .form-destination,
+.flow-page .quote-file-field small,
+.flow-page .form-error { font-size: 14px; line-height: 1.5; }
+.flow-page .form-grid :is(input, select, textarea) { min-width: 0; font-size: 16px; }
+.flow-page .form-grid :is(input:not([type="checkbox"]), select) { min-height: 44px; }
+.flow-page .quote-file-field input::file-selector-button { min-height: 44px; font-size: 14px; white-space: normal; }
+.flow-page .consent-field { min-height: 44px; align-items: start; padding-block: 8px; }
+.flow-page .consent-field input { margin-top: 2px; }
+.compact-idea-summary { min-width: 0; box-shadow: none; }
+.compact-idea-summary > details > summary,
+.quote-optional > summary { min-height: 48px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.compact-idea-summary .idea-details > div { align-items: start; flex-wrap: wrap; gap: 6px 16px; }
+.compact-idea-summary .idea-details span,
+.compact-idea-summary .idea-details b,
+.compact-idea-summary .summary-note p { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.compact-idea-summary .idea-summary-top a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
+.compact-idea-summary .idea-details b { margin-left: auto; }
+.quote-optional { margin-top: 24px; border-top: 1px solid var(--line); }
+.quote-optional > summary { padding-inline: 0; }
+.flow-page :is(.quote-optional, .compact-idea-summary) summary:focus-visible,
+.homepage-flow .faq-list summary:focus-visible { outline: 3px solid #2e73ad; outline-offset: 3px; }
+@media (max-width: 1000px) {
+  .flow-page .quote-layout { gap: 20px; }
+  .flow-page .compact-idea-summary { width: 100%; }
+}
+@media (max-width: 580px) {
+  .flow-page .quote-hero { padding-top: 28px; gap: 16px; }
+  .flow-page .flow-steps > div { flex-direction: column; justify-content: center; gap: 5px; height: auto; min-height: 72px; }
+  .flow-page .flow-steps > div > span { font-size: 12px; line-height: 1.2; text-align: center; }
+}
+
+.design-carousel-slide .showcase-card { min-height: 0; }
