@@ -38,5 +38,5 @@ test('all flag artwork exists locally and contains no executable SVG or remote r
 test('the renderer omits flags when the garment or placement is unavailable', async () => {
   const source = await readFile(new URL('../app/_components/product-preview.tsx', import.meta.url), 'utf8');
   assert.match(source, /flag && placement && src && failed !== src && failedFlag !== flag.file/);
-  assert.match(source, /onError=\{\(\) => setFailedFlag\(flag.file\)\}/);
+  assert.match(source, /onError=\{\(\) => \{ setFailedFlag\(flag.file\); onAssetError\(flag.file\); \}\}/);
 });

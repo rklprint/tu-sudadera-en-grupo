@@ -8,13 +8,15 @@ type Props = {
   model: string;
   color: string;
   design: string;
+  personalization: string;
+  total: string | null;
   sleeve: string;
   quantity: number;
   price: string;
   onQuote: () => void;
 };
 
-export function CustomizerDrawer({ product, model, color, design, sleeve, quantity, price, onQuote }: Props) {
+export function CustomizerDrawer({ product, model, color, design, personalization, total, sleeve, quantity, price, onQuote }: Props) {
   return (
     <Drawer.Root>
       <Drawer.Trigger asChild>
@@ -30,7 +32,7 @@ export function CustomizerDrawer({ product, model, color, design, sleeve, quanti
           <div className="customizer-drawer-heading">
             <div>
               <span>Configuración actual</span>
-              <Drawer.Title>Todo listo para revisar</Drawer.Title>
+              <Drawer.Title>Vuestra configuración</Drawer.Title>
               <Drawer.Description id="customizer-drawer-description">
                 El presupuesto conservará estas opciones. No se realizará ningún cobro ahora.
               </Drawer.Description>
@@ -43,11 +45,12 @@ export function CustomizerDrawer({ product, model, color, design, sleeve, quanti
             <div><Shirt aria-hidden="true" /><span><small>Prenda</small><strong>{product} · {model}</strong></span></div>
             <div><Palette aria-hidden="true" /><span><small>Color</small><strong>{color}</strong></span></div>
             <div><Layers3 aria-hidden="true" /><span><small>Diseño</small><strong>{design}</strong></span></div>
+            <div><Layers3 aria-hidden="true" /><span><small>Personalización</small><strong>{personalization}</strong></span></div>
             <div><Sparkles aria-hidden="true" /><span><small>Extras</small><strong>{sleeve}</strong></span></div>
           </div>
           <div className="customizer-drawer-total">
             <span><small>{quantity} unidades</small><strong>{price}</strong></span>
-            <small>Precio por unidad · IVA incluido</small>
+            <small>{total ? `Total estimado: ${total} · IVA incluido` : "Prepararemos un presupuesto a medida"}</small>
           </div>
           <Drawer.Close asChild>
             <button className="customizer-drawer-quote" type="button" onClick={onQuote}>

@@ -120,7 +120,7 @@ main .customizer-section .mobile-color-choice.active i::after { content: "✓"; 
 main .customizer-section .path-tabs button:last-child { background: transparent; border-color: transparent; color: #215e91; }
 main .customizer-section .path-tabs button:last-child.active { border-color: #152137; background: #edf7fb; color: #152137; }
 main .customizer-section .preview-media { animation: none; }
-main .customizer-section .product-preview-frame { transform: scale(1.08); transform-origin: center; }
+main .customizer-section .product-preview-frame[data-calibrated="true"] { transform: scale(1.08); transform-origin: center; }
 main .customizer-section .product-preview-sleeve { position: absolute; z-index: 4; display: block; line-height: 0; pointer-events: none; }
 main .customizer-section .product-preview-sleeve img { display: block; width: 100%; height: auto; object-fit: contain; border-radius: 1px; }
 main .customizer-section .product-preview-sleeve.embroidery { outline: 1px dashed rgba(255,255,255,.65); outline-offset: 1px; }
@@ -131,7 +131,17 @@ main .customizer-section .sleeve-montage-link a { display: inline-flex; align-it
 main .customizer-section .text-field select:focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
 main .customizer-section .style-options { display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; padding: 4px; scroll-snap-type: x proximity; }
 main .customizer-section .style-option { flex: 0 0 136px; scroll-snap-align: start; }
-main .customizer-section .preview-guidance { margin: 0; min-height: 80px; }
+main .customizer-section .style-options[data-expanded="true"] { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); overflow: visible; }
+main .customizer-section .style-option.active::after { content: "✓"; position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #152137; color: #fff; font-size: 16px; }
+main .customizer-section .print-swatches .swatch { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 74px; height: auto; min-height: 78px; }
+main .customizer-section .print-swatches .swatch small { width: 74px; margin: 0; font-size: 14px; line-height: 1.2; }
+main .customizer-section .print-swatches .swatch.active i::after { content: "✓"; display: grid; place-items: center; width: 18px; height: 18px; margin: -5px 0 0 23px; background: #152137; color: #fff; border-radius: 50%; font-size: 14px; }
+main .customizer-section .customizer-price-link { display: inline-flex; align-items: center; min-height: 44px; color: #a5daf1; font-size: 16px; text-decoration: underline; }
+.customizer-drawer-content { max-height: 90svh; overflow-y: auto; overscroll-behavior: contain; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.customizer-drawer-content .customizer-drawer-summary strong { overflow-wrap: anywhere; white-space: normal; overflow: visible; }
+.customizer-drawer-content .customizer-drawer-summary { grid-template-columns: 1fr; }
+.customizer-drawer-content .customizer-drawer-total { flex-wrap: wrap; gap: 12px; }
+main .customizer-section .preview-guidance { margin: 0; min-height: 0; }
 main .customizer-section .preview-guidance strong, main .customizer-section .preview-guidance span { display: block; font-size: 14px; line-height: 1.4; }
 main .customizer-section .configuration-text-summary { overflow-wrap: anywhere; }
 main .customizer-section .range-labels span { font-size: 14px; }
@@ -162,7 +172,7 @@ main .customizer-section :is(button, input, summary):focus-visible { outline: 3p
 @media (min-width: 900px) {
   main .customizer-section .customizer-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
   main .customizer-section .preview-panel { position: sticky; top: 90px; }
-  main .customizer-section .preview-stage { max-width: 500px; margin-inline: auto; }
+  main .customizer-section .preview-stage { max-width: min(500px, max(240px, calc(100svh - 350px))); margin-inline: auto; }
   main .customizer-section .controls-panel { padding: 24px; }
 }
 @media (max-width: 899px) {
