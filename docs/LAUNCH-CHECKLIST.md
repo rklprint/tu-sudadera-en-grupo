@@ -27,7 +27,7 @@
 
 ## Contenido y UX
 
-- [ ] Guía de tallas Gildan oficial y mediciones verificadas.
+- [x] Guía de tallas Gildan 18500 en cm contrastada con catálogo europeo del fabricante; personalizador y registro/edición de prendas. Véase `SIZE-GUIDE.md`.
 - [ ] Estado vacío, carga y error comprobados en catálogo/admin/grupo.
 - [ ] Navegación teclado y lector de pantalla en flujos clave.
 - [ ] 320, 375, 390, 430, tablet, laptop, desktop y ultrawide sin overflow.

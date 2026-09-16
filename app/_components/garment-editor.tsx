@@ -6,6 +6,7 @@ import { extrasForGarmentCents } from "@/lib/group-orders";
 import { trackProductEvent } from "@/lib/analytics";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { SizeGuide } from './size-guide';
 
 export type GarmentDraft = {
   printName: string;
@@ -75,6 +76,7 @@ export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gil
       <button type="button" disabled={disabled || garments.length >= 12} onClick={add}><Plus aria-hidden="true" /> Añadir otra</button>
     </div>
 
+    <SizeGuide model={model} sizes={sizes} />
     <div className="garment-list">
       {garments.map((garment, index) => {
         const customPrice = extrasForGarmentCents(garment, extraCatalog) === null;

@@ -1,0 +1,28 @@
+.guide { margin: 12px 16px; min-width: 0; border: 1px solid #c8d5df; border-radius: 8px; color: #152137; background: #fff; }
+.guide > summary { padding: 14px 16px; min-height: 48px; cursor: pointer; font-size: 16px; font-weight: 650; line-height: 1.4; }
+.guide > summary span { display: inline-block; margin-left: 8px; color: #526275; font-size: 14px; font-weight: 450; }
+.guide > summary:focus-visible, .guide a:focus-visible { outline: 3px solid #247ab5; outline-offset: 3px; }
+.content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; padding: 4px 18px 0; }
+.measurements { min-width: 0; }
+.guide table { width: 100%; border-collapse: collapse; font-size: 16px; font-variant-numeric: tabular-nums; }
+.guide caption { padding: 8px 0 14px; text-align: left; font-weight: 650; font-size: 16px; }
+.guide th, .guide td { padding: 11px 8px; border-bottom: 1px solid #dce4eb; text-align: center; }
+.guide thead { background: #edf7fb; }
+.guide tbody tr:nth-child(even) { background: #f6f8fa; }
+.guide .note, .guide .source { font-size: 14px; line-height: 1.5; color: #526275; }
+.guide .note { margin: 14px 0; }
+.guide .source { margin: 0; padding: 16px 18px; border-top: 1px solid #dce4eb; overflow-wrap: anywhere; }
+.guide a { color: #17669b; text-decoration: underline; text-underline-offset: 3px; }
+.diagram { display: block; width: 100%; max-width: 190px; height: auto; margin: 0 auto 12px; }
+.guide h3 { margin: 0 0 8px; font-size: 17px; }
+.instructions p, .instructions ol { margin: 0 0 14px; font-size: 15px; line-height: 1.6; }
+.instructions ol { padding-left: 22px; }
+.instructions li + li { margin-top: 8px; }
+@media (max-width: 600px) {
+  .guide { margin: 10px; }
+  .guide > summary { padding: 13px 12px; }
+  .guide > summary span { display: block; margin: 4px 0 0 18px; }
+  .content { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 12px; }
+  .guide th, .guide td { padding: 10px 5px; }
+  .guide .source { padding: 14px 12px; }
+}

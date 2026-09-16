@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, BadgeCheck, ImageIcon, MapPin, PencilLine, Shirt, Sparkles, Upload, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { DesignThumbnail, ProductPreview } from "@/app/_components/product-preview";
+import { SizeGuide } from "@/app/_components/size-guide";
 import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
 import { normalizePersonalizerSelection, pricingForSelection } from "@/lib/commercial";
 import { SLEEVE_FLAGS, resolveSleeveFlag, sleevePlacement } from "@/lib/sleeve-preview";
@@ -435,6 +436,7 @@ export default function Home() {
             </button>
           </div>
         </div>
+        <SizeGuide model={activeProduct.model} sizes={activeProduct.sizes} />
         <div className="customizer-layout">
           <div className="preview-panel" id="vista-prenda">
             <div className="preview-toolbar"><span>Vista previa en directo</span><div className="side-toggle" role="group" aria-label={`Vista de la ${productName.toLowerCase()}`}><button type="button" aria-pressed={side==="front"} className={side==="front"?"active":""} onClick={()=>setSide("front")}>Delante</button><button type="button" aria-pressed={side==="back"} className={side==="back"?"active":""} onClick={()=>setSide("back")}>Espalda</button></div></div>
