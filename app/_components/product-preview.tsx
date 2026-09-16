@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import type { CatalogColor, CatalogProduct } from '@/lib/catalog';
 import type { CatalogDesign } from '@/lib/customization-catalog';
+import { canPreviewDesign } from '@/lib/customization-catalog';
 import { resolveSleeveFlag, sleevePlacement, type SleeveSelection } from '@/lib/sleeve-preview';
 
 /** Only exact product/color/view assets; never substitute a different garment. */
@@ -13,6 +14,7 @@ type ProductPreviewOverlay = {
   frontText: string;
   backLines: string[];
   printColor: string;
+  backName?: string;
 };
 
 export function ProductPreview({ product, color, side, design, summary, overlay, sleeve, onLoad, onAssetError }: {
@@ -28,12 +30,16 @@ export function ProductPreview({ product, color, side, design, summary, overlay,
   const flag = sleeve && resolveSleeveFlag(sleeve);
   const placement = sleevePlacement(product.slug, src, side);
   const showFlag = flag && placement && src && failed !== src && failedFlag !== flag.file;
-  const visibleDesign = design?.active && Boolean(design.file) && !design.personalizable && design.view === side && design.products.includes(product.slug) && design.file !== failedDesign;
+  const visibleDesign = design?.active && Boolean(design.file) && canPreviewDesign(design) && design.view === side && design.products.includes(product.slug) && design.file !== failedDesign;
+  const backName = (overlay.backName?.trim() || 'NOMBRE').slice(0, 18).toUpperCase();
   const printStyle = { '--preview-print': overlay.printColor } as CSSProperties;
   return <div className="product-preview-frame" data-calibrated={Boolean(placement)} style={printStyle}>
     {src && failed !== src ? <>
       <Image key={src} unoptimized src={src} alt={`${product.model} · ${color.name} · ${side === 'front' ? 'Delante' : 'Espalda'}`} width={2000} height={2000} loading="eager" sizes="(max-width: 700px) 94vw, 620px" onLoad={onLoad} onError={() => { setFailed(src); onAssetError(src); onLoad(); }} />
-      {visibleDesign && <Image className="product-preview-artwork" unoptimized src={design.file} alt={`${design.name} · diseño de referencia`} width={1000} height={1000} onError={() => { setFailedDesign(design.file); onAssetError(design.file); }} style={{ position: 'absolute', left: `${design.position.x}%`, top: `${design.position.y}%`, width: `${design.size.width}%`, height: `${design.size.height}%`, objectFit: 'contain' }} />}
+      {visibleDesign && <div className="product-preview-artwork" style={{ position: 'absolute', left: `${design.position.x}%`, top: `${design.position.y}%`, width: `${design.size.width}%`, height: `${design.size.height}%` }}>
+        {design.preview?.nameField && <svg className="product-preview-back-name" viewBox="0 0 180 28" role="img" aria-label={`Nombre sobre el diseño: ${backName}`}><text x="90" y="21" textAnchor="middle" fontSize="22" fontWeight="800" fill={overlay.printColor} textLength={backName.length > 11 ? 176 : undefined} lengthAdjust="spacingAndGlyphs">{backName}</text></svg>}
+        <DesignArtwork src={design.file} label={`${design.name} · diseño de referencia`} color={design.preview?.recolorable ? overlay.printColor : undefined} onError={() => { setFailedDesign(design.file); onAssetError(design.file); }} />
+      </div>}
       {side === 'front' && !visibleDesign && overlay.frontType !== 'logo' && overlay.frontText && <div className={`product-preview-print-mark front ${overlay.frontType}`} aria-hidden="true">{overlay.frontText}</div>}
       {showFlag && <span className={`product-preview-sleeve ${sleeve?.technique}`} style={{ left: `${placement.x}%`, top: `${placement.y}%`, width: `${placement.width}%`, transform: `translate(-50%, -50%) rotate(${placement.rotation}deg)` }}>
         <Image unoptimized src={flag.file} alt={`Bandera de ${flag.name} en manga · ${sleeve?.technique === 'embroidery' ? 'bordada' : 'estampada'} · posición orientativa`} width={90} height={60} onError={() => { setFailedFlag(flag.file); onAssetError(flag.file); }} />
@@ -47,10 +53,18 @@ export function ProductPreview({ product, color, side, design, summary, overlay,
 
 
 /** Catalog artwork only: no synthetic thumbnail when the file is unavailable. */
-export function DesignThumbnail({ design, enlarged = false }: { design: CatalogDesign; enlarged?: boolean }) {
+export function DesignThumbnail({ design, enlarged = false, printColor }: { design: CatalogDesign; enlarged?: boolean; printColor?: string }) {
   const [failed, setFailed] = useState("");
   const src = enlarged ? design.file : design.thumbnail || design.file;
   return failed === src
     ? <span className="design-thumbnail-missing">Imagen pendiente</span>
-    : <Image className="design-thumbnail" data-design={design.id} unoptimized src={src} alt={design.name} width={400} height={400} loading="lazy" onError={() => setFailed(src)} />;
+    : <span className="design-thumbnail" data-design={design.id} data-tinted={Boolean(printColor && design.preview?.recolorable)} style={printColor === '#17191d' ? { background: '#eee9dc' } : undefined}><DesignArtwork src={src} label={design.name} color={design.preview?.recolorable ? printColor : undefined} onError={() => setFailed(src)} /></span>;
+}
+
+/** Reuse the supplied alpha channel; original files and their transparency stay intact. */
+function DesignArtwork({ src, label, color, onError }: { src: string; label: string; color?: string; onError: () => void }) {
+  return <span className="design-artwork" role="img" aria-label={label}>
+    {color && <span className="design-artwork-tint" aria-hidden="true" style={{ backgroundColor: color, maskImage: `url("${src}")`, WebkitMaskImage: `url("${src}")` }} />}
+    <Image className={color ? 'design-artwork-source tinted' : 'design-artwork-source'} unoptimized src={src} alt="" aria-hidden="true" width={1000} height={1000} loading="lazy" onError={onError} />
+  </span>;
 }

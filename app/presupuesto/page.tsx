@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
 import { trackProductEvent } from "@/lib/analytics";
-import { pricingForSelection, type PersonalizerSelection } from "@/lib/commercial";
+import { normalizePersonalizerSelection, pricingForSelection, type PersonalizerSelection } from "@/lib/commercial";
 import { DEFAULT_CATALOG, type CatalogProduct } from "@/lib/catalog";
 
 const groupTypes = [
@@ -59,7 +59,7 @@ function QuotePageContent() {
   const query = useSearchParams();
   const queriedGroupType = query.get("groupType");
   const configuration: Configuration = {
-    designFields: (() => { try { return JSON.parse(query.get("designFields") || "{}"); } catch { return {}; } })(),
+    designFields: (() => { try { return normalizePersonalizerSelection({ designFields: JSON.parse(query.get("designFields") || "{}") }).designFields; } catch { return {}; } })(),
     productSlug: query.get("productSlug") || defaultConfiguration.productSlug,
     productCategory: query.get("productCategory") === "tshirt" ? "tshirt" : "hoodie",
     product: query.get("product") || defaultConfiguration.product,
@@ -124,6 +124,7 @@ function QuotePageContent() {
     };
   }, []);
   const product = catalog.find(item => item.slug === configuration.productSlug && item.active);
+  const selectedDesign = configuration.designPath === 'template' ? product?.designs?.find(design => design.id === configuration.designStyle) : undefined;
   const pricing = product ? pricingForSelection(product, form.quantity, configuration) : null;
   const money = (cents: number | null | undefined) => cents == null ? "Consultar" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(cents / 100);
   const editQuery = new URLSearchParams(query.toString());
@@ -188,6 +189,7 @@ function QuotePageContent() {
     ["Color", configuration.color],
     ["Color del diseño", configuration.printColor],
     ["Espalda", configuration.backDesign],
+    ...(selectedDesign?.fields.filter(field => configuration.designFields?.[field.id]).map(field => [field.label, configuration.designFields![field.id]]) || []),
     ["Delantera", configuration.frontDesign],
     ["Manga", configuration.sleeve],
     ["Cantidad", `${form.quantity} prendas`],

@@ -52,7 +52,18 @@ main .customizer-section .design-thumbnail-missing { font-size: 14px; }
 .design-thumbnail[data-design] { background: #19263a; border-radius: 4px; padding: 6px; }
 .design-thumbnail[data-design="tarragona"],
 .design-thumbnail[data-design="torredonjimeno"] { background: #eee9dc; }
+.design-thumbnail[data-tinted="true"] { background: #19263a; }
+.design-thumbnail { display: block; width: 100%; }
+.design-artwork { position: relative; display: block; width: 100%; height: 100%; min-height: 0; }
+.design-artwork-source { display: block; width: 100%; height: 100%; object-fit: contain; }
+.design-artwork-source.tinted { opacity: 0; }
+.design-artwork-tint { position: absolute; inset: 0; mask-size: contain; mask-position: center; mask-repeat: no-repeat; mask-mode: alpha; -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; }
+.product-preview-artwork { display: flex; flex-direction: column; pointer-events: none; }
+.product-preview-artwork .design-artwork { flex: 1; }
+.product-preview-back-name { display: block; flex: 0 0 auto; width: 100%; height: auto; margin-bottom: 2%; }
+.product-preview-back-name + .design-artwork .design-artwork-tint { mask-position: center top; -webkit-mask-position: center top; }
 main .customizer-section .design-enlargement .design-thumbnail { height: auto; max-height: 420px; padding: 16px; }
+main .customizer-section .design-enlargement .design-thumbnail { aspect-ratio: 1; }
 main .customizer-section .show-designs { min-height: 44px; padding: 8px; margin: 6px 0 0; color: #215e91; background: none; border: 0; text-decoration: underline; font-size: 15px; }
 main .customizer-section .field-title, main .customizer-section .field-title span, main .customizer-section .text-field span { font-size: 15px; text-transform: none; }
 main .customizer-section .text-field { margin-top: 16px; }

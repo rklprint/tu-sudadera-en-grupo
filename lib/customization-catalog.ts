@@ -17,6 +17,7 @@ export type CatalogDesign = {
   id: string; name: string; file: string; thumbnail?: string; view: 'front' | 'back';
   position: { x: number; y: number }; size: { width: number; height: number };
   products: string[]; personalizable: boolean;
+  preview?: { recolorable: true; nameField?: string };
   fields: { id: string; label: string; maxLength: number; required: boolean }[];
   active: boolean; order: number;
 };
@@ -49,7 +50,13 @@ export function validateDesigns(value: unknown): CatalogDesign[] {
     if (!Array.isArray(design.fields) || design.fields.length > 10 || design.fields.some(f => !/^[a-z0-9-]+$/.test(f.id) || !f.label || !Number.isInteger(f.maxLength) || f.maxLength < 1 || f.maxLength > 500)) throw new Error('Campos personalizables inválidos.');
     const file = publicAssetPath(design.file, 'design');
     const thumbnail = publicAssetPath(design.thumbnail, 'design');
+    if (design.preview && (design.preview.recolorable !== true || (design.preview.nameField !== undefined && (!design.personalizable || !design.fields.some(field => field.id === design.preview?.nameField))))) throw new Error('Vista personalizable inválida.');
     if (design.active && !file) throw new Error('Un diseño activo necesita archivo.');
     return { ...design, name: design.name.trim().slice(0, 100), file, ...(thumbnail ? { thumbnail } : {}), active: design.active === true, personalizable: design.personalizable === true, order: Number.isInteger(design.order) ? design.order : 0 };
   });
+}
+
+/** Only show editable artwork when every editable field is represented. */
+export function canPreviewDesign(design?: CatalogDesign): boolean {
+  return Boolean(design && (!design.personalizable || (design.preview?.nameField && design.fields.every(field => field.id === design.preview?.nameField))));
 }

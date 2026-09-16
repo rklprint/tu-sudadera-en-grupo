@@ -13,10 +13,15 @@ export const APPROVED_DESIGNS: CatalogDesign[] = [
   file: `/designs/approved/${id}.webp`,
   thumbnail: `/designs/approved/${id}-thumb.webp`,
   view: 'back',
-  position: { x: 33, y: 34 },
-  size: { width: 34, height: 45 },
+  position: { x: 36, y: 35 },
+  size: { width: 28, height: 34 },
   products: ['sudadera-gildan-18500'],
-  personalizable: false, fields: [], active: true, order,
+  preview: { recolorable: true, ...(['x', 'number27', 'number10'].includes(id) ? { nameField: 'name' } : {}) },
+  personalizable: ['x', 'number27', 'number10'].includes(id),
+  fields: ['x', 'number27', 'number10'].includes(id)
+    ? [{ id: 'name', label: 'Nombre sobre el número o la X', maxLength: 18, required: false }]
+    : [],
+  active: true, order,
 }));
 
 /** Existing managed catalogs, including deliberately inactive entries, win. */

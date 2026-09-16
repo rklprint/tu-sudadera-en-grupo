@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEFAULT_EXTRAS, publicAssetPath, validateDesigns } from '../lib/customization-catalog';
+import { canPreviewDesign, DEFAULT_EXTRAS, publicAssetPath, validateDesigns } from '../lib/customization-catalog';
 import { DEFAULT_CATALOG } from '../lib/catalog';
 import { extrasForGarmentCents, groupExtras } from '../lib/group-orders';
 import { createCommercialSnapshot, normalizePersonalizerSelection } from '../lib/commercial';
@@ -43,6 +43,21 @@ test('individual extras remain frozen when current catalog changes', () => {
   const garment = { printName: 'Test', size: 'M', namePlacement: 'front' as const, frontExtra: 'coordinates' as const, frontDetail: 'Test', sleeveExtra: 'none' as const, sleeveDetail: '' };
   assert.equal(extrasForGarmentCents(garment, groupExtras(JSON.stringify({ commercialSnapshot: snapshot }))), 100);
   assert.equal(extrasForGarmentCents(garment, []), null);
+});
+
+test('live name previews preserve editable fields and hide unsupported personalized artwork', () => {
+  const design = APPROVED_DESIGNS.find(item => item.id === 'number27')!;
+  assert.equal(canPreviewDesign(validateDesigns([design])[0]), true);
+  assert.equal(canPreviewDesign({ ...design, preview: undefined }), false);
+  assert.equal(canPreviewDesign({ ...design, fields: [...design.fields, { id: 'other', label: 'Otro texto', maxLength: 18, required: false }] }), false);
+  assert.throws(() => validateDesigns([{ ...design, preview: { recolorable: true, nameField: 'missing' } }]));
+  for (const printColor of ['Amarillo fosforito', 'Rosa fosforito', 'Negro', 'Blanco', 'Azul claro']) {
+    const saved = normalizePersonalizerSelection({ designStyle: design.id, designFields: { name: 'LUCÍA' }, printColor });
+    const restored = normalizePersonalizerSelection(JSON.parse(JSON.stringify(saved)));
+    assert.deepEqual(restored.designFields, { name: 'LUCÍA' });
+    assert.equal(restored.printColor, printColor);
+    assert.equal(restored.designStyle, 'number27');
+  }
 });
 
 test('pending t-shirt never inherits hoodie photography', () => {

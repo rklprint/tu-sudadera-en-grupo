@@ -9,7 +9,7 @@ test("la calculadora original está integrada y conserva total, slider y cantida
   assert.match(page, /Cantidad y precio/);
   assert.match(page, /configuredUnitPrice \* quantity/);
   assert.doesNotMatch(page, /Ver calculadora y precio|Diseño listo\.|Calculadora transparente/);
-  assert.match(page, /<details className="design-personalization">/);
+  assert.match(page, /<details className="design-personalization" open>/);
   assert.equal(page.match(/className="price-card"/g)?.length, 1);
 });
 
