@@ -33,7 +33,7 @@ export function ProductPreview({ product, color, side, design, summary, overlay,
   return <div className="product-preview-frame" data-calibrated={Boolean(placement)} style={printStyle}>
     {src && failed !== src ? <>
       <Image key={src} unoptimized src={src} alt={`${product.model} · ${color.name} · ${side === 'front' ? 'Delante' : 'Espalda'}`} width={2000} height={2000} loading="eager" sizes="(max-width: 700px) 94vw, 620px" onLoad={onLoad} onError={() => { setFailed(src); onAssetError(src); onLoad(); }} />
-      {visibleDesign && <Image unoptimized src={design.file} alt={design.name} width={1000} height={1000} onError={() => { setFailedDesign(design.file); onAssetError(design.file); }} style={{ position: 'absolute', left: `${design.position.x}%`, top: `${design.position.y}%`, width: `${design.size.width}%`, height: `${design.size.height}%`, objectFit: 'contain' }} />}
+      {visibleDesign && <Image className="product-preview-artwork" unoptimized src={design.file} alt={`${design.name} · diseño de referencia`} width={1000} height={1000} onError={() => { setFailedDesign(design.file); onAssetError(design.file); }} style={{ position: 'absolute', left: `${design.position.x}%`, top: `${design.position.y}%`, width: `${design.size.width}%`, height: `${design.size.height}%`, objectFit: 'contain' }} />}
       {side === 'front' && !visibleDesign && overlay.frontType !== 'logo' && overlay.frontText && <div className={`product-preview-print-mark front ${overlay.frontType}`} aria-hidden="true">{overlay.frontText}</div>}
       {showFlag && <span className={`product-preview-sleeve ${sleeve?.technique}`} style={{ left: `${placement.x}%`, top: `${placement.y}%`, width: `${placement.width}%`, transform: `translate(-50%, -50%) rotate(${placement.rotation}deg)` }}>
         <Image unoptimized src={flag.file} alt={`Bandera de ${flag.name} en manga · ${sleeve?.technique === 'embroidery' ? 'bordada' : 'estampada'} · posición orientativa`} width={90} height={60} onError={() => { setFailedFlag(flag.file); onAssetError(flag.file); }} />
@@ -47,9 +47,10 @@ export function ProductPreview({ product, color, side, design, summary, overlay,
 
 
 /** Catalog artwork only: no synthetic thumbnail when the file is unavailable. */
-export function DesignThumbnail({ design }: { design: CatalogDesign }) {
+export function DesignThumbnail({ design, enlarged = false }: { design: CatalogDesign; enlarged?: boolean }) {
   const [failed, setFailed] = useState("");
-  return failed === design.file
+  const src = enlarged ? design.file : design.thumbnail || design.file;
+  return failed === src
     ? <span className="design-thumbnail-missing">Imagen pendiente</span>
-    : <Image className="design-thumbnail" unoptimized src={design.file} alt={design.name} width={400} height={400} loading="lazy" onError={() => setFailed(design.file)} />;
+    : <Image className="design-thumbnail" data-design={design.id} unoptimized src={src} alt={design.name} width={400} height={400} loading="lazy" onError={() => setFailed(src)} />;
 }

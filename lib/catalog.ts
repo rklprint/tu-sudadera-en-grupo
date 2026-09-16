@@ -1,4 +1,5 @@
 import type { CatalogDesign, CatalogExtra } from "@/lib/customization-catalog";
+import { APPROVED_DESIGNS } from "@/lib/approved-designs";
 export type CatalogColor = {
   name: string;
   value: string;
@@ -72,6 +73,7 @@ export const DEFAULT_CATALOG = [
     sizes: CORE_SIZES,
     colors: CORE_COLORS,
     priceTiers: HOODIE_PRICE_TIERS,
+    designs: APPROVED_DESIGNS,
   },
   {
     id: "tshirt-pending",

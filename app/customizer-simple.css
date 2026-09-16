@@ -48,6 +48,11 @@ main .customizer-section .style-option small { font-size: 15px; line-height: 1.3
 main .customizer-section .style-option > b { font-size: 24px; }
 main .customizer-section .design-thumbnail { height: 78px; object-fit: contain; }
 main .customizer-section .design-thumbnail-missing { font-size: 14px; }
+/* Neutral surfaces keep the supplied yellow/red artwork readable. */
+.design-thumbnail[data-design] { background: #19263a; border-radius: 4px; padding: 6px; }
+.design-thumbnail[data-design="tarragona"],
+.design-thumbnail[data-design="torredonjimeno"] { background: #eee9dc; }
+main .customizer-section .design-enlargement .design-thumbnail { height: auto; max-height: 420px; padding: 16px; }
 main .customizer-section .show-designs { min-height: 44px; padding: 8px; margin: 6px 0 0; color: #215e91; background: none; border: 0; text-decoration: underline; font-size: 15px; }
 main .customizer-section .field-title, main .customizer-section .field-title span, main .customizer-section .text-field span { font-size: 15px; text-transform: none; }
 main .customizer-section .text-field { margin-top: 16px; }

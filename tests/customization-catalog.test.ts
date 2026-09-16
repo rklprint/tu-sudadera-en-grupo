@@ -4,6 +4,7 @@ import { DEFAULT_EXTRAS, publicAssetPath, validateDesigns } from '../lib/customi
 import { DEFAULT_CATALOG } from '../lib/catalog';
 import { extrasForGarmentCents, groupExtras } from '../lib/group-orders';
 import { createCommercialSnapshot, normalizePersonalizerSelection } from '../lib/commercial';
+import { APPROVED_DESIGNS, designsForProduct } from '../lib/approved-designs';
 
 test('public catalog paths cannot expose private files or remote active content', () => {
   for (const path of ['/api/admin/presupuestos/code/archivo', '/quote-designs/file.png', '/products/../private.png', 'https://example.invalid/file.png', '/products/file.svg', '/products/file.png?token=private']) {
@@ -19,6 +20,19 @@ test('design catalog rejects overflow, duplicate ids and missing active files', 
   assert.throws(() => validateDesigns([design, design]));
   assert.throws(() => validateDesigns([{ ...design, file: '' }]));
   assert.throws(() => validateDesigns([{ ...design, position: { x: 90, y: 90 } }]));
+  assert.throws(() => validateDesigns([{ ...design, thumbnail: '/api/admin/presupuestos/code/archivo' }]));
+  assert.throws(() => validateDesigns([{ ...design, thumbnail: 'https://example.invalid/private.png' }]));
+});
+
+test('approved artwork never replaces managed entries or leaks to another garment', () => {
+  const managed = [{ ...APPROVED_DESIGNS[0], active: false, file: '/designs/custom.webp' }];
+  assert.deepEqual(designsForProduct('sudadera-gildan-18500', 'Gildan 18500', managed), managed);
+  assert.deepEqual(designsForProduct('camiseta-personalizada', 'Gildan 18500', []), []);
+  assert.deepEqual(designsForProduct('sudadera-gildan-18500', 'Otro modelo', []), []);
+  const defaults = designsForProduct('sudadera-gildan-18500', 'Gildan 18500', []);
+  assert.equal(validateDesigns(defaults).length, 6);
+  defaults[0].active = false;
+  assert.equal(APPROVED_DESIGNS[0].active, true);
 });
 
 test('individual extras remain frozen when current catalog changes', () => {

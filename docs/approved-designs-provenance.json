@@ -1,0 +1,119 @@
+[
+  {
+    "id": "x",
+    "name": "X con nombres",
+    "source": "X.png",
+    "sha256": "d9d7fa2402449c561452ddebca46e0413da755fb94c1fba29b1edb4948fe2edb",
+    "original": {
+      "width": 2370,
+      "height": 2206,
+      "bytes": 91241
+    },
+    "bounds": {
+      "left": 83,
+      "top": 48,
+      "width": 2211,
+      "height": 2145
+    },
+    "webBytes": 33096,
+    "thumbnailBytes": 67862,
+    "encoding": "Full-size lossless WebP; 400px lossless thumbnail"
+  },
+  {
+    "id": "number27",
+    "name": "Número 27",
+    "source": "27.png",
+    "sha256": "d614b46c3dab1c3032d489edd81f3b977626e8633998aa5926a0d8003c924348",
+    "original": {
+      "width": 3288,
+      "height": 1880,
+      "bytes": 96466
+    },
+    "bounds": {
+      "left": 45,
+      "top": 37,
+      "width": 3198,
+      "height": 1821
+    },
+    "webBytes": 37176,
+    "thumbnailBytes": 51704,
+    "encoding": "Full-size lossless WebP; 400px lossless thumbnail"
+  },
+  {
+    "id": "number10",
+    "name": "Número 10",
+    "source": "10.png",
+    "sha256": "49f7cb726913f31dce0613578aa5b704b767926f733a3e4b5e196826f1413149",
+    "original": {
+      "width": 3338,
+      "height": 2286,
+      "bytes": 124345
+    },
+    "bounds": {
+      "left": 43,
+      "top": 25,
+      "width": 3203,
+      "height": 2200
+    },
+    "webBytes": 47832,
+    "thumbnailBytes": 67138,
+    "encoding": "Full-size lossless WebP; 400px lossless thumbnail"
+  },
+  {
+    "id": "colegas",
+    "name": "Los colegas del pueblo",
+    "source": "TIENDA - 2026-09-16T110739.522.png",
+    "sha256": "87d1308189ba296431f17dc22b5f78f15036995bce0171008ae0ec5c50a89612",
+    "original": {
+      "width": 4500,
+      "height": 3182,
+      "bytes": 2977001
+    },
+    "bounds": {
+      "left": 748,
+      "top": 96,
+      "width": 2992,
+      "height": 3057
+    },
+    "webBytes": 322512,
+    "thumbnailBytes": 61838
+  },
+  {
+    "id": "torredonjimeno",
+    "name": "Torredonjimeno en fiestas",
+    "source": "TIENDA - 2026-09-16T110812.279.png",
+    "sha256": "c89278d5b165977f514a9bd99eb1bf21d473c12156d36115f445ed81b57a2535",
+    "original": {
+      "width": 4500,
+      "height": 3182,
+      "bytes": 8039868
+    },
+    "bounds": {
+      "left": 1174,
+      "top": 56,
+      "width": 2148,
+      "height": 3075
+    },
+    "webBytes": 1145202,
+    "thumbnailBytes": 126912
+  },
+  {
+    "id": "tarragona",
+    "name": "Tarragona en festa",
+    "source": "TIENDA - 2026-09-16T110838.426.png",
+    "sha256": "d6b905ab386fad08aa90dcb89e6390c39637de4d20436f04be9bb82eb585f33c",
+    "original": {
+      "width": 4500,
+      "height": 3182,
+      "bytes": 8925096
+    },
+    "bounds": {
+      "left": 1083,
+      "top": 0,
+      "width": 2335,
+      "height": 3159
+    },
+    "webBytes": 1151534,
+    "thumbnailBytes": 121374
+  }
+]

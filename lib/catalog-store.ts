@@ -1,4 +1,5 @@
 import { CORE_COLORS } from "@/lib/catalog";
+import { designsForProduct } from "@/lib/approved-designs";
 import { DEFAULT_EXTRAS, publicAssetPath, validateDesigns, type CatalogDesign } from "@/lib/customization-catalog";
 import { ensureQuoteSchema } from "@/db";
 import type { CatalogColor, CatalogPriceTier, CatalogProduct } from "@/lib/catalog";
@@ -78,7 +79,7 @@ export async function readCatalog(includeInactive = false): Promise<ManagedCatal
       }));
 
     const images = JSON.parse(product.images_json) as CatalogColor[];
-    const designs = validateDesigns(JSON.parse(product.designs_json));
+    const designs = designsForProduct(product.slug, product.model, validateDesigns(JSON.parse(product.designs_json)));
     return {
       designs: includeInactive ? designs : designs.filter(design => design.active && design.products.includes(product.slug)),
       extras: ((extraRows.results ?? []) as ExtraRow[]).filter(row => row.product_id === product.id).flatMap(row => {

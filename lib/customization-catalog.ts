@@ -14,7 +14,7 @@ export const DEFAULT_EXTRAS: CatalogExtra[] = [
 ].map((extra, order) => ({ ...extra, products: ['sudadera-gildan-18500'], active: true, perGarment: true, order })) as CatalogExtra[];
 
 export type CatalogDesign = {
-  id: string; name: string; file: string; view: 'front' | 'back';
+  id: string; name: string; file: string; thumbnail?: string; view: 'front' | 'back';
   position: { x: number; y: number }; size: { width: number; height: number };
   products: string[]; personalizable: boolean;
   fields: { id: string; label: string; maxLength: number; required: boolean }[];
@@ -48,7 +48,8 @@ export function validateDesigns(value: unknown): CatalogDesign[] {
     if (!Array.isArray(design.products) || !design.products.length || design.products.some(p => typeof p !== 'string' || !/^[a-z0-9-]+$/.test(p))) throw new Error('Define productos compatibles.');
     if (!Array.isArray(design.fields) || design.fields.length > 10 || design.fields.some(f => !/^[a-z0-9-]+$/.test(f.id) || !f.label || !Number.isInteger(f.maxLength) || f.maxLength < 1 || f.maxLength > 500)) throw new Error('Campos personalizables inválidos.');
     const file = publicAssetPath(design.file, 'design');
+    const thumbnail = publicAssetPath(design.thumbnail, 'design');
     if (design.active && !file) throw new Error('Un diseño activo necesita archivo.');
-    return { ...design, name: design.name.trim().slice(0, 100), file, active: design.active === true, personalizable: design.personalizable === true, order: Number.isInteger(design.order) ? design.order : 0 };
+    return { ...design, name: design.name.trim().slice(0, 100), file, ...(thumbnail ? { thumbnail } : {}), active: design.active === true, personalizable: design.personalizable === true, order: Number.isInteger(design.order) ? design.order : 0 };
   });
 }
