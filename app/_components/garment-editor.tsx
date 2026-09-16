@@ -39,7 +39,7 @@ type Props = {
 };
 
 export function GarmentEditor({ garments, onChange, unitPriceCents, model = "Gildan 18500", extras: extraCatalog = DEFAULT_EXTRAS, sizes = CORE_SIZES, disabled = false }: Props) {
-  const productLabel = /camiseta/i.test(model) || /por confirmar/i.test(model) ? "camiseta" : "sudadera";
+  const productLabel = /camiseta|gildan 2000/i.test(model) || /por confirmar/i.test(model) ? "camiseta" : "sudadera";
   const update = (index: number, field: keyof GarmentDraft, value: string) => {
     onChange(garments.map((garment, itemIndex) => {
       if (itemIndex !== index) return garment;

@@ -65,6 +65,10 @@ export const HOODIE_PRICE_TIERS = [
   { min: 100, max: null, label: "100+", unitPriceCents: null },
 ] as const satisfies readonly CatalogPriceTier[];
 
+export const TSHIRT_PRICE_TIERS = HOODIE_PRICE_TIERS.map((tier, index) => ({
+  ...tier, unitPriceCents: [1500, 1300, 1100, 950, 900, 850, 800, null][index],
+}));
+
 export const DEFAULT_CATALOG = [
   {
     id: "hoodie-gildan-18500",
@@ -82,18 +86,19 @@ export const DEFAULT_CATALOG = [
     designs: APPROVED_DESIGNS,
   },
   {
-    id: "tshirt-pending",
+    id: "tshirt-gildan-2000",
     slug: "camiseta-personalizada",
     category: "tshirt",
     name: "Camiseta personalizada",
-    model: "Modelo por confirmar",
-    description: "Camisetas para grupos en nueve colores. Modelo, tallas y tarifa por confirmar.",
+    model: "Gildan 2000",
+    description: "Ultra Cotton unisex, tallas S–3XL. Incluye DTF en pecho y espalda, nombre, IVA y envío conjunto a Península.",
     active: true,
     featured: false,
-    quoteOnly: true,
+    quoteOnly: false,
     sizes: CORE_SIZES,
     colors: TSHIRT_COLORS,
-    priceTiers: [],
+    priceTiers: TSHIRT_PRICE_TIERS,
+    designs: APPROVED_DESIGNS,
   },
 ] as const satisfies readonly CatalogProduct[];
 

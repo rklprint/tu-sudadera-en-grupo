@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DEFAULT_CATALOG } from "../lib/catalog";
+import { DEFAULT_CATALOG, type CatalogProduct } from "../lib/catalog";
 import { COMMERCIAL_BASE_INCLUDES, createCommercialSnapshot, priceFromCommercialSnapshot, pricingForSelection } from "../lib/commercial";
 
 const product = DEFAULT_CATALOG[0];
@@ -47,6 +47,22 @@ test("common supplements are added once and custom embroidery requires review", 
   const custom = pricingForSelection(product, 25, { ...selection, frontType: "logo", frontTechnique: "embroidery" });
   assert.equal(custom.quotedUnitPriceCents, null);
   assert.equal(custom.customPricingRequired, true);
+});
+
+test("Gildan 2000 uses VAT-inclusive shirt prices at every boundary and preserves quoted terms", () => {
+  const shirt: CatalogProduct = structuredClone(DEFAULT_CATALOG[1]);
+  for (const [quantity, cents] of [[5,1500],[10,1500],[11,1300],[20,1300],[21,1100],[30,1100],[31,950],[40,950],[41,900],[50,900],[51,850],[75,850],[76,800],[99,800],[100,null],[500,null]] as const) {
+    assert.equal(pricingForSelection(shirt, quantity, selection).quotedUnitPriceCents, cents, `${quantity} shirts`);
+  }
+  assert.equal(pricingForSelection(shirt, 35, { ...selection, sleeveFlag: 'community', sleeveTechnique: 'print' }).quotedUnitPriceCents, 1050);
+  assert.equal(pricingForSelection(shirt, 35, { ...selection, sleeveFlag: 'community', sleeveTechnique: 'embroidery' }).quotedUnitPriceCents, 1150);
+  assert.equal(pricingForSelection(shirt, 35, { ...selection, frontType: 'logo', frontTechnique: 'embroidery' }).quotedUnitPriceCents, null);
+  const snapshot = createCommercialSnapshot(shirt, 35, { ...selection, productCategory: 'tshirt', productSlug: shirt.slug, product: 'Camiseta', model: shirt.model });
+  assert.equal(snapshot.model, 'Gildan 2000');
+  assert.equal(snapshot.baseIncludes, 'Camiseta + impresión en pecho + espalda + nombre');
+  shirt.priceTiers = [];
+  assert.equal(priceFromCommercialSnapshot(snapshot, 35), 950);
+  assert.equal(priceFromCommercialSnapshot(snapshot, 100), null);
 });
 
 test("existing commercial snapshots keep the former 100-unit price", () => {

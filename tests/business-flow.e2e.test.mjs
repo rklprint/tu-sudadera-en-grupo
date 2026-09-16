@@ -45,6 +45,22 @@ test("100-unit boundary migration is scoped and repeatable", () => {
 });
 let flowQuoteCode = "";
 
+test("Gildan 2000 migration only promotes an unpriced provisional shirt and is repeatable", () => {
+  const sql = readFileSync(new URL('../drizzle/0011_gildan_2000_catalog.sql', import.meta.url), 'utf8');
+  for (const managed of [false, true]) {
+    const fixture = new D1TestDatabase();
+    fixture.execute("INSERT INTO products (id, name, slug, category, model, quote_only) VALUES (1, 'Camiseta', 'camiseta-personalizada', 'tshirt', 'Modelo por confirmar', 1), (2, 'Other', 'other', 'tshirt', 'Other', 1)");
+    if (managed) fixture.execute('INSERT INTO product_price_tiers (product_id,min_quantity,max_quantity,unit_price_cents) VALUES (1,5,99,1234)');
+    fixture.database.exec(sql);
+    fixture.database.exec(sql);
+    assert.equal(fixture.query('SELECT model FROM products WHERE id=1').model, managed ? 'Modelo por confirmar' : 'Gildan 2000');
+    const tiers = fixture.queryAll('SELECT unit_price_cents FROM product_price_tiers WHERE product_id=1 ORDER BY min_quantity');
+    assert.deepEqual(tiers.map(tier => tier.unit_price_cents), managed ? [1234] : [1500,1300,1100,950,900,850,800,null]);
+    assert.equal(fixture.query('SELECT model FROM products WHERE id=2').model, 'Other');
+    fixture.close();
+  }
+});
+
 function headers(admin = false) {
   return {
     origin,
@@ -422,4 +438,26 @@ test("catalog edits preserve exact assets and do not reseed removed variants", a
   assert.equal(actual.colors[0].backImage, color.backImage);
   assert.equal((await jsonRequest('/api/admin/catalogo', 'PATCH', { id: product.numericId, product: edited })).response.status, 403);
   assert.equal((await jsonRequest('/api/admin/catalogo', 'PATCH', { id: product.numericId, product: { ...edited, colors: [{ ...color, frontImage: '/quote-designs/private.png' }] } }, true)).response.status, 400);
+});
+
+test("shirt quote validates its design and freezes server prices instead of client values", async () => {
+  const catalog = await request('/api/catalogo');
+  const shirt = catalog.body.products.find(product => product.slug === 'camiseta-personalizada');
+  assert.equal(shirt.model, 'Gildan 2000');
+  assert.equal(shirt.designs.length, 6);
+  const design = shirt.designs.find(design => design.preview?.nameField === 'name');
+  const created = await jsonRequest('/api/presupuestos', 'POST', {
+    organizerName: 'Organizador camisetas', phone: '600000003', email: 'camisetas@example.invalid',
+    groupName: 'Grupo camisetas', groupType: 'Otro', location: 'Madrid', quantity: 35, privacyAccepted: true,
+    configuration: { ...selection, productSlug: shirt.slug, productCategory: 'tshirt', color: 'Rosa', designPath: 'template', designStyle: design.id, designFields: { name: 'LAURA' } },
+  });
+  assert.equal(created.response.status, 201, JSON.stringify(created.body));
+  assert.equal(created.body.pricing.quotedUnitPriceCents, 950);
+  const stored = JSON.parse(db.query('SELECT configuration_json FROM quote_requests WHERE code=?', created.body.code).configuration_json);
+  assert.equal(stored.model, 'Gildan 2000');
+  assert.equal(stored.product, 'Camiseta');
+  assert.equal(stored.designFields.name, 'LAURA');
+  assert.equal(stored.designSnapshot.id, design.id);
+  assert.equal(stored.commercialSnapshot.baseIncludes, 'Camiseta + impresión en pecho + espalda + nombre');
+  assert.equal(stored.commercialSnapshot.quotedUnitPriceCents, 950);
 });

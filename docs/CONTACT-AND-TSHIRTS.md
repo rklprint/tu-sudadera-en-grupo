@@ -1,5 +1,7 @@
 # Contacto y fotografías de camisetas
 
+Actualización: modelo, tarifa e inclusiones confirmados e incorporados en `GILDAN-2000.md`. Lo siguiente documenta la incorporación inicial de fotografías, anterior a esa confirmación.
+
 Datos facilitados por el titular el 16 de septiembre de 2026: +34 641 228 861, info@tusudaderaengrupo.es y tusudaderaengrupo.es. El dominio ya era la URL canónica; no se han modificado DNS. Los enlaces de teléfono, correo y WhatsApp aparecen en los pies de página. Personalizador y presupuesto preparan un mensaje con producto, modelo, color, cantidad y opciones de diseño. No añaden los datos personales del formulario ni enlaces privados; el usuario decide enviarlo en WhatsApp. El correo público y el destinatario de respaldo se actualizan; se respetan las variables de entorno configuradas y no se afirma que el envío real esté verificado.
 
 Las fotografías originales 19–36 se convierten a WebP calidad 90 conservando transparencia y lienzo 2000 × 2000; 18 archivos, 2,16 MB en total. Correspondencias y procedencia: `tshirt-assets-provenance.json`. Los originales permanecen intactos. El catálogo administrado tiene prioridad sobre las fotografías predeterminadas; solo se aplica el respaldo al producto y modelo provisional existentes. Sin migraciones ni escrituras remotas. El producto continúa con precio a consultar, sin asignarle un modelo Gildan concreto ni una guía de tallas de sudadera.

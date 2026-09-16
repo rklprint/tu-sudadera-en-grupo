@@ -26,6 +26,11 @@ export function resolveSleeveFlag(selection: SleeveSelection) {
 // Calibrated for the existing normalized Gildan image pairs only.
 // The same physical sleeve is on opposite sides when the garment turns.
 export function sleevePlacement(productSlug: string, src: string | undefined, side: 'front' | 'back') {
+  if (productSlug === 'camiseta-personalizada' && src && new RegExp(`^/products/camiseta/(granate|azul-cielo|rosa|azul-petroleo|azul-marino|gris|verde-oliva|verde-botella|negro)/${side}\\.webp$`).test(src)) {
+    return side === 'back'
+      ? { x: 79, y: 33, width: 5.5, rotation: -30 }
+      : { x: 21, y: 33, width: 5.5, rotation: 30 };
+  }
   if (productSlug !== 'sudadera-gildan-18500' || !src || !new RegExp(`^/products/gildan-18500/color-[1-9]/${side}\\.webp$`).test(src)) return undefined;
   return side === 'back'
     ? { x: 72.5, y: 45, width: 5.5, rotation: -14 }

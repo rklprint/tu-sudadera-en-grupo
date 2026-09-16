@@ -60,10 +60,12 @@ test('live name previews preserve editable fields and hide unsupported personali
   }
 });
 
-test('pending t-shirt never inherits hoodie photography', () => {
+test('priced t-shirt keeps its own photography and shared approved designs', () => {
   const shirt = DEFAULT_CATALOG.find(product => product.category === 'tshirt');
-  assert.ok(shirt?.quoteOnly);
-  assert.equal(shirt.priceTiers.length, 0);
+  assert.ok(shirt);
+  assert.equal(shirt.quoteOnly, false);
+  assert.equal(shirt.priceTiers.length, 8);
+  assert.equal(designsForProduct(shirt.slug, shirt.model, []).length, 6);
   for (const color of shirt.colors) {
     assert.ok(color.frontImage.startsWith('/products/camiseta/'));
     assert.ok(color.backImage.startsWith('/products/camiseta/'));

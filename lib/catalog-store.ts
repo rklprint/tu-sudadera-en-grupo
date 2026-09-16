@@ -102,7 +102,7 @@ export async function readCatalog(includeInactive = false): Promise<ManagedCatal
       sizes: sizeRows.filter((size: (typeof sizeRows)[number]) => size.product_id === product.id).map((size: (typeof sizeRows)[number]) => size.name),
       colors: colorRows.filter((color: (typeof colorRows)[number]) => color.product_id === product.id).map((color: (typeof colorRows)[number]) => ({ name: color.name, value: color.hex, ...(() => {
         const match = images.find(image => image.name === color.name);
-        const defaults = product.slug === "sudadera-gildan-18500" && product.model === "Gildan 18500" ? CORE_COLORS : product.slug === "camiseta-personalizada" && product.model === "Modelo por confirmar" ? TSHIRT_COLORS : [];
+        const defaults = product.slug === "sudadera-gildan-18500" && product.model === "Gildan 18500" ? CORE_COLORS : product.slug === "camiseta-personalizada" && product.model === "Gildan 2000" ? TSHIRT_COLORS : [];
         const original = defaults.find(image => image.name === color.name && image.value === color.hex);
         const image = match ?? original;
         return image ? { slug: image.slug, assetKey: image.assetKey, frontImage: image.frontImage, backImage: image.backImage } : {};

@@ -11,7 +11,7 @@ export const DEFAULT_EXTRAS: CatalogExtra[] = [
   { id: 'manga-bandera-bordada', name: 'Bandera bordada', priceCents: 200, position: 'sleeve', type: 'embroidery', requiresText: true, requiresFile: false },
   { id: 'pecho-logo-bordado', name: 'Logo bordado propio', priceCents: null, position: 'front', type: 'embroidery', requiresText: true, requiresFile: false },
   { id: 'manga-logo-bordado', name: 'Logo bordado propio', priceCents: null, position: 'sleeve', type: 'embroidery', requiresText: true, requiresFile: false },
-].map((extra, order) => ({ ...extra, products: ['sudadera-gildan-18500'], active: true, perGarment: true, order })) as CatalogExtra[];
+].map((extra, order) => ({ ...extra, products: ['sudadera-gildan-18500', 'camiseta-personalizada'], active: true, perGarment: true, order })) as CatalogExtra[];
 
 export type CatalogDesign = {
   id: string; name: string; file: string; thumbnail?: string; view: 'front' | 'back';

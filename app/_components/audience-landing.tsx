@@ -9,6 +9,7 @@ import { SITE_URL } from "@/lib/site";
 export function AudienceLanding({ data }: { data: AudiencePageData }) {
   const pageUrl = `${SITE_URL}/${data.slug}`;
   const quoteHref = `/presupuesto?groupType=${encodeURIComponent(data.groupType)}&backDesign=${encodeURIComponent(data.quoteDesign)}`;
+  const productQuery = data.garmentKind === "tshirt" ? "&productSlug=camiseta-personalizada&productCategory=tshirt&product=Camiseta&model=Gildan%202000" : "";
   const relatedPages = audiencePageList.filter(
     (candidate) => candidate.slug !== data.slug,
   );
@@ -40,7 +41,7 @@ export function AudienceLanding({ data }: { data: AudiencePageData }) {
         url: pageUrl,
         provider: { "@id": `${SITE_URL}/#organization` },
         areaServed: { "@type": "Country", name: "España" },
-        serviceOutput: "Sudaderas personalizadas para grupos",
+        serviceOutput: data.label,
       },
       {
         "@type": "FAQPage",
@@ -91,10 +92,10 @@ export function AudienceLanding({ data }: { data: AudiencePageData }) {
           </h1>
           <p>{data.lead}</p>
           <div className="audience-actions">
-            <Link className="audience-primary" href={quoteHref}>
+            <Link className="audience-primary" href={quoteHref + productQuery}>
               Pedir presupuesto <span>↗</span>
             </Link>
-            <Link className="audience-secondary" href="/#personalizador">
+            <Link className="audience-secondary" href={productQuery ? `/?${productQuery.slice(1)}#personalizador` : "/#personalizador"}>
               Probar el personalizador
             </Link>
           </div>
@@ -143,7 +144,7 @@ export function AudienceLanding({ data }: { data: AudiencePageData }) {
           {data.intro.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}
-          <Link href={quoteHref}>Contarnos vuestra idea →</Link>
+          <Link href={quoteHref + productQuery}>Contarnos vuestra idea →</Link>
         </div>
       </section>
 

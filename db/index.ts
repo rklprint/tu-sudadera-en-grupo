@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { getSiteRuntimeEnv } from "@/lib/runtime-env";
-import { CORE_COLORS, CORE_SIZES, HOODIE_PRICE_TIERS } from "@/lib/catalog";
+import { CORE_COLORS, CORE_SIZES, HOODIE_PRICE_TIERS, TSHIRT_PRICE_TIERS } from "@/lib/catalog";
 import * as schema from "./schema";
 
 export async function ensureQuoteSchema() {
@@ -33,7 +33,7 @@ async function seedCatalog(DB: NonNullable<ReturnType<typeof getSiteRuntimeEnv>[
     DB.prepare(`INSERT OR IGNORE INTO products (name, slug, category, model, description, quote_only, active, featured, position)
       VALUES ('Sudadera personalizada', 'sudadera-gildan-18500', 'hoodie', 'Gildan 18500', 'Heavy Blend unisex para grupos.', 0, 1, 1, 1)`),
     DB.prepare(`INSERT OR IGNORE INTO products (name, slug, category, model, description, quote_only, active, featured, position)
-      VALUES ('Camiseta personalizada', 'camiseta-personalizada', 'tshirt', 'Modelo por confirmar', 'Producto secundario pendiente de modelo y tarifa definitivos.', 1, 1, 0, 2)`),
+      VALUES ('Camiseta personalizada', 'camiseta-personalizada', 'tshirt', 'Gildan 2000', 'Ultra Cotton unisex para grupos. DTF pecho, espalda y nombre incluidos.', 0, 1, 0, 2)`),
     DB.prepare(`INSERT OR IGNORE INTO extras (name, slug, description, placement, technique, price_cents, quote_only, active, position)
       VALUES ('Bandera o logo en manga · DTF', 'manga-dtf', 'Impresión adicional en manga.', 'sleeve', 'dtf', 100, 0, 1, 1)`),
     DB.prepare(`INSERT OR IGNORE INTO extras (name, slug, description, placement, technique, price_cents, quote_only, active, position)
@@ -56,9 +56,9 @@ async function seedCatalog(DB: NonNullable<ReturnType<typeof getSiteRuntimeEnv>[
     ...CORE_COLORS.map((color, position) => DB.prepare("INSERT OR IGNORE INTO product_colors (product_id, name, hex, position) VALUES (?, ?, ?, ?)").bind(productId, color.name, color.value, position + 1)),
     ...CORE_SIZES.map((size, position) => DB.prepare("INSERT OR IGNORE INTO product_sizes (product_id, name, position) VALUES (?, ?, ?)").bind(productId, size, position + 1)),
   ]);
-  const tiers = HOODIE_PRICE_TIERS.map((tier, position) => DB.prepare("INSERT OR IGNORE INTO product_price_tiers (product_id, min_quantity, max_quantity, unit_price_cents, position) VALUES (?, ?, ?, ?, ?)").bind(hoodieId, tier.min, tier.max, tier.unitPriceCents, position + 1));
+  const tiers = ([[hoodieId, HOODIE_PRICE_TIERS], [tshirtId, TSHIRT_PRICE_TIERS]] as const).flatMap(([productId, priceTiers]) => priceTiers.map((tier, position) => DB.prepare("INSERT OR IGNORE INTO product_price_tiers (product_id, min_quantity, max_quantity, unit_price_cents, position) VALUES (?, ?, ?, ?, ?)").bind(productId, tier.min, tier.max, tier.unitPriceCents, position + 1)));
   await DB.batch([...variants, ...tiers]);
 
-  await DB.prepare(`INSERT OR IGNORE INTO product_extras (product_id, extra_id)
-    SELECT ?, id FROM extras WHERE active = 1`).bind(hoodieId).run();
+  await DB.batch([hoodieId, tshirtId].map(productId => DB.prepare(`INSERT OR IGNORE INTO product_extras (product_id, extra_id)
+    SELECT ?, id FROM extras WHERE active = 1`).bind(productId)));
 }

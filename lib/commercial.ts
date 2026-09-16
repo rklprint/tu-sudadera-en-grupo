@@ -47,7 +47,7 @@ export type SelectionPricing = {
 export type CommercialSnapshot = SelectionPricing & {
   version: typeof COMMERCIAL_TERMS_VERSION;
   currency: "EUR";
-  baseIncludes: typeof COMMERCIAL_BASE_INCLUDES;
+  baseIncludes: string;
   productId: string;
   productSlug: string;
   productCategory: ProductCategory;
@@ -112,7 +112,7 @@ export function createCommercialSnapshot(
   return {
     version: COMMERCIAL_TERMS_VERSION,
     currency: "EUR",
-    baseIncludes: COMMERCIAL_BASE_INCLUDES,
+    baseIncludes: product.category === "tshirt" ? "Camiseta + impresión en pecho + espalda + nombre" : COMMERCIAL_BASE_INCLUDES,
     productId: product.id,
     productSlug: product.slug,
     productCategory: product.category,

@@ -15,7 +15,7 @@ export const APPROVED_DESIGNS: CatalogDesign[] = [
   view: 'back',
   position: { x: 36, y: 35 },
   size: { width: 28, height: 34 },
-  products: ['sudadera-gildan-18500'],
+  products: ['sudadera-gildan-18500', 'camiseta-personalizada'],
   preview: { recolorable: true, ...(['x', 'number27', 'number10'].includes(id) ? { nameField: 'name' } : {}) },
   personalizable: ['x', 'number27', 'number10'].includes(id),
   fields: ['x', 'number27', 'number10'].includes(id)
@@ -26,7 +26,9 @@ export const APPROVED_DESIGNS: CatalogDesign[] = [
 
 /** Existing managed catalogs, including deliberately inactive entries, win. */
 export function designsForProduct(slug: string, model: string, managed: CatalogDesign[]): CatalogDesign[] {
-  return managed.length || slug !== 'sudadera-gildan-18500' || model !== 'Gildan 18500'
+  const supported = (slug === 'sudadera-gildan-18500' && model === 'Gildan 18500')
+    || (slug === 'camiseta-personalizada' && model === 'Gildan 2000');
+  return managed.length || !supported
     ? managed
     : structuredClone(APPROVED_DESIGNS);
 }

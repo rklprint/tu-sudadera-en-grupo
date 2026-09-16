@@ -139,7 +139,7 @@ test("el producto se elige antes de la preview sin duplicar el selector", async 
   assert.ok(selectorIndex > 0 && selectorIndex < previewIndex);
   assert.equal(page.match(/aria-label="Tipo de prenda"/g)?.length, 1);
   assert.doesNotMatch(page, /className="product-type-options"/);
-  assert.match(page, /Modelo y tarifa por confirmar/);
+  assert.doesNotMatch(page, /Modelo y tarifa por confirmar/);
 });
 
 test("la calculadora usa un resumen textual fiable y elimina la mini preview", async () => {
