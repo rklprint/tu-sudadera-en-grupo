@@ -34,11 +34,9 @@ export function PaymentCheckout({ scope, credential, amountCents, availability }
       }
       if (result.kind === "transfer" && result.instructions) {
         setTransfer(result.instructions);
-        void trackProductEvent("bank_transfer_selected", { payment_method: "transfer" });
         return;
       }
       if (result.kind !== "redsys" || !result.form) throw new Error("La respuesta del TPV no es válida.");
-      void trackProductEvent("payment_started", { payment_method: method });
       submitHostedForm(result.form);
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : "No hemos podido iniciar el pago.");

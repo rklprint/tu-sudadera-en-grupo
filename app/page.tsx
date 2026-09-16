@@ -9,7 +9,7 @@ import { ArrowRight, BadgeCheck, ImageIcon, MapPin, PencilLine, Shirt, Sparkles,
 import { toast } from "sonner";
 import { DesignThumbnail, ProductPreview } from "@/app/_components/product-preview";
 import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
-import { pricingForSelection } from "@/lib/commercial";
+import { normalizePersonalizerSelection, pricingForSelection } from "@/lib/commercial";
 import { SLEEVE_FLAGS, resolveSleeveFlag, sleevePlacement } from "@/lib/sleeve-preview";
 import { trackProductEvent } from "@/lib/analytics";
 
@@ -50,6 +50,8 @@ const flagOptions = [
 ] as const;
 
 const faqItems = [
+  { question: "¿Cuánto tarda el pedido?", answer: "El plazo es de 10–15 días laborables tras la aprobación del diseño y el pago completo. Enviamos todo junto a una dirección del grupo." },
+  { question: "¿Qué prenda y personalización incluye el precio?", answer: "Sudadera Gildan 18500, tallas S–3XL, DTF a todo color en pecho hasta A5 y espalda hasta A3, y nombre individual. IVA incluido; los extras se muestran por separado. Desde 100 unidades, presupuesto a medida." },
   {
     question: "¿Podemos poner un nombre distinto en cada sudadera?",
     answer:
@@ -186,13 +188,41 @@ export default function Home() {
   const [previewFailures, setPreviewFailures] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    const restore = (products: CatalogProduct[]) => {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has("productSlug")) return;
+      let fields = {};
+      try { fields = JSON.parse(params.get("designFields") || "{}"); } catch { /* Keep empty fields for malformed links. */ }
+      const saved = normalizePersonalizerSelection({ ...Object.fromEntries(params), designFields: fields });
+      const product = products.find(item => item.slug === saved.productSlug && item.active);
+      if (!product) return;
+      setProductType(product.category);
+      setGarment(product.colors.find(color => color.name === saved.color) || product.colors[0] || defaultGarmentColors[0]);
+      setPrint(printColors.find(color => color.name === saved.printColor) || printColors[0]);
+      setStyle({ id: saved.designStyle, label: saved.backDesign, sample: "" });
+      setDesignPath(saved.designPath);
+      setDesignFields(saved.designFields || {});
+      setGroupName(saved.groupName);
+      setFrontType(saved.frontType);
+      setFrontText(saved.frontText);
+      setFrontTexts(current => ({ ...current, [saved.frontType]: saved.frontText }));
+      setFrontTechnique(saved.frontTechnique);
+      setSleeveFlag(saved.sleeveFlag);
+      setSleeveDetail(saved.sleeveDetail);
+      setSleeveDetails(current => ({ ...current, [saved.sleeveFlag]: saved.sleeveDetail }));
+      setSleeveTechnique(saved.sleeveTechnique);
+      const amount = Number(params.get("quantity"));
+      const restoredQuantity = Number.isFinite(amount) ? Math.min(500, Math.max(5, Math.round(amount))) : 25;
+      setQuantity(restoredQuantity);
+      setQuantityDraft(String(restoredQuantity));
+    };
     fetch("/api/catalogo")
       .then(async (response) => {
         if (!response.ok) throw new Error("catalog unavailable");
         const result = await response.json() as { products?: CatalogProduct[] };
-        if (result.products) setCatalog(result.products);
+        if (result.products) { setCatalog(result.products); restore(result.products); }
       })
-      .catch(() => undefined)
+      .catch(() => restore([...DEFAULT_CATALOG]))
       .finally(() => setCatalogLoaded(true));
   }, []);
 
@@ -370,7 +400,7 @@ export default function Home() {
     <div className="announcement"><span>Precios claros · IVA incluido</span><i aria-hidden="true" /><span>Nombre individual incluido</span><i aria-hidden="true" /><span>Envío gratis a Península</span></div>
     <header className="site-header">
       <a className="brand" href="#inicio" aria-label="Tu sudadera en grupo, inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a>
-      <nav id="site-navigation" className={menuOpen ? "open" : ""} aria-label="Navegación principal"><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseñadla</a><a onClick={() => setMenuOpen(false)} href="#para-grupos">Para grupos</a><a onClick={() => setMenuOpen(false)} href="#inspiracion">Diseños</a><a onClick={() => setMenuOpen(false)} href="#pagos">Pagos</a><a onClick={() => setMenuOpen(false)} href="#como-funciona">Cómo funciona</a><a onClick={() => setMenuOpen(false)} href="#preguntas">Dudas</a></nav>
+      <nav id="site-navigation" className={menuOpen ? "open" : ""} aria-label="Navegación principal"><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseñadla</a><a onClick={() => setMenuOpen(false)} href="#para-grupos">Para grupos</a><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseños</a><a onClick={() => setMenuOpen(false)} href="#pagos">Pagos</a><a onClick={() => setMenuOpen(false)} href="#como-funciona">Cómo funciona</a><a onClick={() => setMenuOpen(false)} href="#preguntas">Dudas</a></nav>
       <div className="header-actions"><Link className="ghost-button" href="/pedido">Ya tengo un pedido</Link><button className="header-cta" onClick={goToQuote}>Pedir presupuesto <span>↗</span></button><button className="menu-button" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-controls="site-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><span /><span /></button></div>
     </header>
 
@@ -380,7 +410,7 @@ export default function Home() {
         <h1>Sudaderas personalizadas<br /><em>para grupos.</em></h1>
         <p className="hero-lead"><strong>Vuestro diseño. Cada persona elige su talla.</strong> Personalizad la sudadera, calculad el precio y organizad tallas y pagos desde un grupo privado.</p>
         <div className="hero-actions"><button className="primary-button" onClick={scrollToCustomizer}>Personalizar mi sudadera <span>↗</span></button><a className="play-link" href="#presupuesto"><b><ArrowRight aria-hidden="true" /></b><span>Calcular precio<br /><small>Sin dejar tus datos</small></span></a></div>
-        <div className="hero-proof"><div><strong>Desde 22 € · IVA incluido</strong><span>Sudadera, DTF delante y detrás y nombre</span></div><div><strong>Envío gratis a Península</strong><span>Un único envío para todo el grupo</span></div></div>
+        <div className="hero-proof"><div><strong>Desde 22 € · 76–99 unidades</strong><span>IVA, DTF pecho A5 y espalda A3 y nombre incluidos</span></div><div><strong>Envío gratis a Península</strong><span>Un único envío para todo el grupo</span></div></div>
       </div>
       <div className="hero-stage"><div className="stage-grid" /><span className="sticker sticker-one">VUESTRO<br />DISEÑO</span><span className="sticker sticker-two">HECHO<br />JUNTOS</span><div className="hero-hoodie hero-hoodie-back"><Hoodie color={CORE_COLORS[4].value} printColor="#9ed8f4" text={"PROMO 26\nX"} side="back" designStyle="x" /></div><div className="hero-hoodie hero-hoodie-front"><Hoodie color={CORE_COLORS[0].value} printColor="#f7f3e9" text={"PROMO\n26"} side="front" frontType="name" frontText="PROMO 26" sleeveFlag="spain" /></div><div className="stage-note"><span>01</span><p>Dos vistas.<br /><strong>Mil posibilidades.</strong></p></div></div>
     </section>
@@ -414,7 +444,7 @@ export default function Home() {
               </div>
               <div className="zoom-hint">Vista orientativa</div>
             </div>
-            <div className="mobile-preview-controls" aria-label="Color de la prenda">
+            <div className="mobile-preview-controls" role="group" aria-label="Color de la prenda">
               <div className="mobile-preview-controls-heading">
                 <span>Color</span>
                 <strong aria-live="polite">{garment.name}</strong>
@@ -445,8 +475,8 @@ export default function Home() {
       <h3 className="customizer-title">Cantidad y precio</h3>
       <div className="price-card">
         <div className="price-top"><label htmlFor="quantity-input">Número de {productName.toLowerCase()}s</label><div className="quantity-input-wrap"><input id="quantity-input" aria-label={`Número de ${productName.toLowerCase()}s`} type="number" inputMode="numeric" min="5" max="500" step="1" value={quantityDraft} onChange={event => { const value = event.target.value; setQuantityDraft(value); const number = Number(value); if (Number.isInteger(number) && number >= 5 && number <= 500) setQuantity(number); }} onBlur={commitQuantityDraft} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); commitQuantityDraft(); event.currentTarget.blur(); } }} /><span>unidades</span></div></div>
-        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} aria-valuetext={quantity >= 101 ? "Consultar para 101 o más unidades" : `${quantity} unidades`} type="range" min="5" max="101" value={Math.min(quantity, 101)} onChange={e=>updateQuantity(Number(e.target.value))} />
-        <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>101+ · consultar</span></div>
+        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} aria-valuetext={quantity >= 100 ? "Consultar para 100 o más unidades" : `${quantity} unidades`} type="range" min="5" max="101" value={Math.min(quantity, 101)} onChange={e=>updateQuantity(Number(e.target.value))} />
+        <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>100+ · consultar</span></div>
         <div className="price-live-result" aria-live="polite" aria-atomic="true">
           <div className={configuredUnitPrice === null ? "consult" : ""}>
             <span>Vuestra configuración</span>
@@ -467,7 +497,7 @@ export default function Home() {
         </dl><p className="config-help">{productType === "hoodie" ? "Incluye pecho, espalda y nombre. IVA y envío a Península incluidos." : "Modelo y tarifa de camiseta pendientes."}</p><p className="config-help">De 1 a 4 unidades: consultad por WhatsApp.</p></details>
         {hasPriceExtra && <div className={customEmbroidery ? "price-extra-notice consult" : "price-extra-notice"}><b>{customEmbroidery ? "Revisión necesaria" : "Extras calculados"}</b><span>{customEmbroidery ? "Un logo bordado se valora según tamaño, puntadas y complejidad. No inventamos un precio automático." : `La configuración añade ${knownExtras} € por cada prenda que lleve esos extras.`}</span></div>}
         <button className="price-quote-button" onClick={goToQuote}>Pedir mi presupuesto <b>↗</b></button>
-        <small className="price-disclaimer">El precio definitivo se fija al cerrar la cantidad real con el organizador. Para 101 o más unidades y bordados personalizados, preparamos una valoración específica.</small>
+        <small className="price-disclaimer">El precio definitivo se fija al cerrar la cantidad real con el organizador. Para 100 o más unidades y bordados personalizados, preparamos una valoración específica.</small>
       </div>
     </section>
           </div>
@@ -485,7 +515,7 @@ export default function Home() {
       </div>
     </section>
 
-    <section className="inspiration-section" id="inspiracion"><div className="section-heading"><div><p className="eyebrow"><span /> Diseños con historia</p><h2>Cinco formas de decir<br /><em>“somos nosotros”.</em></h2></div><p>Elegid una idea como punto de partida. Prepararemos la maqueta con vuestro diseño antes de producir.</p></div><DesignCarousel><ShowcaseCard className="sky" number="01" eyebrow="Nombres del grupo" title="La X de nombres" text="Todos dentro del mismo diseño." design="x" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard number="02" eyebrow="Orgullo local" title="Vuestro pueblo" text="Calles, monumentos y coordenadas." design="monument" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard number="03" eyebrow="100% vuestro" title="El grupo ilustrado" text="De una foto a un recuerdo." design="group" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard number="04" eyebrow="Muchos recuerdos" title="Collage local" text="Símbolos que solo vosotros entendéis." design="collage" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard className="dark" number="05" eyebrow="Peñas y equipos" title="Mascota + aniversario" text="Una identidad que vuelve cada año." design="mascot" product={activeProduct} onSelect={chooseShowcaseDesign} /></DesignCarousel></section>
+    {catalogDesigns.some(item => ["x", "monument", "group", "collage", "mascot"].includes(item.id) && item.file && item.view === "back") && <section className="inspiration-section" id="inspiracion"><div className="section-heading"><div><p className="eyebrow"><span /> Diseños con historia</p><h2>Ideas para decir<br /><em>“somos nosotros”.</em></h2></div><p>Elegid una idea como punto de partida. Prepararemos la maqueta con vuestro diseño antes de producir.</p></div><DesignCarousel><ShowcaseCard className="sky" number="01" eyebrow="Nombres del grupo" title="La X de nombres" text="Todos dentro del mismo diseño." design="x" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard number="02" eyebrow="Orgullo local" title="Vuestro pueblo" text="Calles, monumentos y coordenadas." design="monument" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard number="03" eyebrow="100% vuestro" title="El grupo ilustrado" text="De una foto a un recuerdo." design="group" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard number="04" eyebrow="Muchos recuerdos" title="Collage local" text="Símbolos que solo vosotros entendéis." design="collage" product={activeProduct} onSelect={chooseShowcaseDesign} /><ShowcaseCard className="dark" number="05" eyebrow="Peñas y equipos" title="Mascota + aniversario" text="Una identidad que vuelve cada año." design="mascot" product={activeProduct} onSelect={chooseShowcaseDesign} /></DesignCarousel></section>}
 
     <section className="why-section"><div className="why-copy"><p className="eyebrow light"><span /> Cero dramas de grupo</p><h2>Tallas y pagos,<br /><em>sin llevar listas.</em></h2><p>Cada persona registra sus prendas. Tú consultas cantidades, tallas y pagos pendientes desde el panel, con los datos personales protegidos.</p><a href="#pagos">Ver el recorrido del grupo <span>↗</span></a></div><div className="phone-mockup"><div className="phone-top"><i /><span>Ejemplo de panel · Promo 26</span><b>•••</b></div><div className="phone-card"><span>Resumen del grupo</span><strong>18 de 25 pagadas</strong><div><i style={{width:"72%"}} /></div></div><div className="member-list aggregate-list">{[["25","Registradas","Lista cerrada"],["18","Pagadas","72% completado"],["7","Pendientes","Importe restante"],["S–3XL","Tallas","Reparto disponible"]].map((item)=><article key={item[1]}><b>{item[0]}</b><span><strong>{item[1]}</strong><small>{item[2]}</small></span><i>→</i></article>)}</div></div></section>
 
@@ -511,10 +541,10 @@ export default function Home() {
       </div>
     </section>
 
-    <section className="process-section" id="como-funciona"><div className="process-heading"><p className="eyebrow"><span /> Así de fácil</p><h2>De la idea<br /><em>al unboxing.</em></h2><p>Un recorrido pensado para que el precio no cambie después de cobrar y para que el organizador no tenga que perseguir a nadie.</p></div><div className="process-timeline"><article><span>01</span><div><small>Idea y presupuesto</small><h3>Veis el precio desde el principio</h3><p>Elegís producto, color, diseño y cantidad. Veis el cálculo y enviáis la configuración para revisar el presupuesto.</p></div><b>Sin compromiso</b></article><article><span>02</span><div><small>Maqueta</small><h3>Aprobáis el diseño y abrimos el grupo</h3><p>Revisamos la maqueta y las condiciones con el organizador. Después compartís el enlace privado con vuestro grupo.</p></div><b>Todo claro</b></article><article><span>03</span><div><small>Registro y pago</small><h3>Cada persona elige; tú ves el estado</h3><p>Cada participante registra sus prendas, tallas y nombres. Al cerrar el registro fijamos el precio y abrimos los pagos disponibles. El organizador consulta lo registrado, pagado y pendiente.</p></div><b>Precio cerrado</b></article><article><span>04</span><div><small>Producción y envío</small><h3>10–15 días laborables</h3><p>Con el pedido completamente pagado, producimos y enviamos todo junto gratis a una dirección en Península.</p></div><b>Seguimiento</b></article></div></section>
+    <section className="process-section" id="como-funciona"><div className="process-heading"><p className="eyebrow"><span /> Así de fácil</p><h2>De la idea<br /><em>al unboxing.</em></h2><p>Un recorrido pensado para que el precio no cambie después de cobrar y para que el organizador no tenga que perseguir a nadie.</p></div><div className="process-timeline"><article><span>01</span><div><small>Idea y presupuesto</small><h3>Veis el precio desde el principio</h3><p>Elegís producto, color, diseño y cantidad. Veis el cálculo y enviáis la configuración para revisar el presupuesto.</p></div><b>Sin compromiso</b></article><article><span>02</span><div><small>Maqueta</small><h3>Aprobáis el diseño y abrimos el grupo</h3><p>Revisamos la maqueta y las condiciones con el organizador. Después compartís el enlace privado con vuestro grupo.</p></div><b>Todo claro</b></article><article><span>03</span><div><small>Registro y pago</small><h3>Cada persona elige; tú ves el estado</h3><p>Cada participante registra sus prendas, tallas y nombres. Al cerrar el registro fijamos el precio y abrimos los pagos disponibles. El organizador consulta lo registrado, pagado y pendiente.</p></div><b>Precio cerrado</b></article><article><span>04</span><div><small>Producción y envío</small><h3>10–15 días laborables</h3><p>Tras aprobar el diseño y completar el pago, producimos y enviamos todo junto gratis a una dirección en Península.</p></div><b>Seguimiento</b></article></div></section>
 
     <section className="reviews-section" aria-labelledby="process-proof-title"><div className="reviews-heading"><p className="eyebrow"><span /> Confianza sin letra pequeña</p><h2 id="process-proof-title">Antes de producir,<br /><em>todo está claro.</em></h2><p className="proof-intro">Maqueta, precio y estado del grupo: sabéis qué está aprobado y qué falta antes de producir.</p></div><div className="review-grid proof-grid"><article className="review-card proof-card"><span>01</span><h3>Veis la maqueta</h3><p>Revisáis diseño, colores, nombres y colocaciones antes de aprobar la producción.</p><strong>Sin producir a ciegas</strong></article><article className="review-card proof-card"><span>02</span><h3>Confirmáis el precio</h3><p>El pago solo se abre después de cerrar cantidades, acabados y precio definitivo.</p><strong>Sin sorpresas</strong></article><article className="review-card proof-card"><span>03</span><h3>Controláis el grupo</h3><p>El pedido privado reúne tallas, personalizaciones y pagos individuales o conjuntos.</p><strong>Todo en un solo sitio</strong></article></div></section>
-    <section className="faq-section" id="preguntas"><div className="faq-heading"><p className="eyebrow"><span /> Todo claro</p><h2>Las dudas<br /><em>antes del sí.</em></h2><p>Si vuestra pregunta no está aquí, nos escribís y os respondemos sin bots ni respuestas copiadas.</p></div><div className="faq-list">{faqItems.map((item, index) => <details key={item.question} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
+    <section className="faq-section" id="preguntas"><div className="faq-heading"><p className="eyebrow"><span /> Todo claro</p><h2>Las dudas<br /><em>antes del sí.</em></h2><p>Consultadnos las dudas antes de aprobar el presupuesto y la maqueta.</p></div><div className="faq-list">{faqItems.map((item, index) => <details key={item.question} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
     <section className="final-cta"><div className="cta-orbit"><span>✦</span></div><p>No hace falta tener el diseño perfecto.</p><h2>Solo una idea que<br /><em>merezca llevarse puesta.</em></h2><button onClick={goToQuote}>Pedir presupuesto <span>↗</span></button></section>
     <footer><div className="footer-top"><a className="brand footer-brand" href="#inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a><p>Sudaderas para grupos con precios claros, diseño incluido y entrega conjunta en toda España.</p></div><div className="footer-links"><div><strong>Empezar</strong><a href="#personalizador">Personalizador</a><a href="#presupuesto">Precios</a><Link href="/presupuesto">Pedir presupuesto</Link><Link href="/camisetas-personalizadas">Camisetas</Link></div><div><strong>Para grupos</strong><Link href="/sudaderas-personalizadas">Sudaderas personalizadas</Link><Link href="/sudaderas-colegios-institutos">Colegios e institutos</Link><Link href="/sudaderas-fin-de-curso">Fin de curso</Link><Link href="/sudaderas-penas">Peñas</Link><Link href="/sudaderas-viaje-estudios">Viajes de estudios</Link><Link href="/sudaderas-equipos-clubes">Equipos y clubes</Link></div><div><strong>Información</strong><Link href="/pedido">Entrar a un pedido</Link><a href="#como-funciona">Cómo funciona</a><a href="#preguntas">Preguntas</a><Link href="/privacidad">Privacidad</Link><Link href="/cookies">Cookies</Link><Link href="/condiciones">Condiciones</Link></div><div><strong>Contacto</strong><span>WhatsApp · se activará al lanzamiento</span><a href="mailto:pedidos@tusudaderaengrupo.es" onClick={() => void trackProductEvent("contact_email_clicked", { source: "footer" })}>pedidos@tusudaderaengrupo.es</a><span>Servicio para toda España</span></div></div><div className="footer-bottom"><small>© 2026 Tu sudadera en grupo</small><span>Hecho para pertenecer ✦</span><div><span>Datos fiscales pendientes antes del lanzamiento</span></div></div></footer>
     <CustomizerDrawer
@@ -554,6 +584,7 @@ function Hoodie({color,printColor,text,side,designStyle="default",frontType="nam
 
 function ShowcaseCard({className="",number,eyebrow,title,text,design,product,onSelect}:{className?:string;number:string;eyebrow:string;title:string;text:string;design:string;product:CatalogProduct;onSelect:(design:string,title:string)=>void}) {
   const artwork = product.designs?.find(item => item.id === design && item.active && item.file && item.view === "back" && item.products.includes(product.slug));
+  if (!artwork) return null;
   return <article className={`showcase-card ${className}`}>
     <div className="showcase-copy"><span>{number} · {eyebrow}</span><h3>{title}</h3><p>{text}</p><button type="button" onClick={()=>onSelect(design,title)}>Usar como inicio <ArrowRight aria-hidden="true" /></button></div>
     <div className="showcase-visual showcase-artwork">{artwork ? <DesignThumbnail design={artwork} /> : <p>Maqueta por preparar<br /><small>La revisaremos con vuestro grupo.</small></p>}</div>

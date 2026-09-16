@@ -32,8 +32,8 @@ test("freezes the commercial table and the exact base inclusion", () => {
   assert.equal(priceFromCommercialSnapshot(snapshot, 25), 2600);
   assert.equal(priceFromCommercialSnapshot(snapshot, 30), 2600);
   assert.equal(priceFromCommercialSnapshot(snapshot, 31), 2500);
-  assert.equal(priceFromCommercialSnapshot(snapshot, 100), 2200);
-  assert.equal(priceFromCommercialSnapshot(snapshot, 101), null);
+  assert.equal(priceFromCommercialSnapshot(snapshot, 99), 2200);
+  assert.equal(priceFromCommercialSnapshot(snapshot, 100), null);
   assert.equal(priceFromCommercialSnapshot(snapshot, 500), null);
 });
 
@@ -47,4 +47,13 @@ test("common supplements are added once and custom embroidery requires review", 
   const custom = pricingForSelection(product, 25, { ...selection, frontType: "logo", frontTechnique: "embroidery" });
   assert.equal(custom.quotedUnitPriceCents, null);
   assert.equal(custom.customPricingRequired, true);
+});
+
+test("existing commercial snapshots keep the former 100-unit price", () => {
+  const previous = createCommercialSnapshot(product, 100, selection);
+  previous.priceTiers = previous.priceTiers.map(tier => tier.min === 76
+    ? { ...tier, max: 100 } : tier.min === 100 ? { ...tier, min: 101 } : tier);
+  assert.equal(priceFromCommercialSnapshot(previous, 100), 2200);
+  assert.equal(pricingForSelection(product, 99, selection).quotedUnitPriceCents, 2200);
+  assert.equal(pricingForSelection(product, 100, selection).quotedUnitPriceCents, null);
 });

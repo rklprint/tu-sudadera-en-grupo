@@ -7,7 +7,6 @@ const revealSelector = [
   ".audience-directory-heading > *",
   ".audience-directory-grid > a",
   ".customizer-section > .section-heading > *",
-  ".customizer-shell",
   ".inspiration-section > .section-heading > *",
   ".design-showcase > .showcase-card",
   ".why-copy > *",
@@ -17,7 +16,6 @@ const revealSelector = [
   ".process-heading > *",
   ".process-timeline > article",
   ".price-copy > *",
-  ".price-card",
   ".reviews-heading > *",
   ".review-grid > article",
   ".faq-heading > *",
@@ -38,7 +36,6 @@ const revealSelector = [
   ".audience-faq details",
   ".audience-related a",
   ".audience-cta > *",
-  ".flow-page > section",
   ".flow-page > .flow-steps",
 ].join(",");
 

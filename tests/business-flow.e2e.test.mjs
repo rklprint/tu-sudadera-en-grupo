@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { D1TestDatabase, R2TestBucket } from "./helpers/d1-test-database.mjs";
 
 const SIGNING_KEY = "sq7HjrUOBfKmC576ILgskD5srU870gJ7";
@@ -27,6 +28,21 @@ const runtime = {
 };
 const execution = { waitUntil() {}, passThroughOnException() {} };
 const origin = "https://e2e.example.invalid";
+
+test("100-unit boundary migration is scoped and repeatable", () => {
+  const fixture = new D1TestDatabase();
+  fixture.execute("INSERT INTO products (id, name, slug, category, model) VALUES (1, 'QA', 'sudadera-gildan-18500', 'hoodie', 'Gildan 18500'), (2, 'Other', 'other', 'hoodie', 'Other')");
+  fixture.execute("INSERT INTO product_price_tiers (product_id,min_quantity,max_quantity,unit_price_cents) VALUES (1,76,100,2200),(1,101,NULL,NULL),(2,76,100,2200)");
+  const sql = readFileSync(new URL('../drizzle/0010_quote_from_100.sql', import.meta.url), 'utf8');
+  fixture.database.exec(sql);
+  fixture.database.exec(sql);
+  assert.deepEqual(fixture.queryAll('SELECT min_quantity,max_quantity,unit_price_cents FROM product_price_tiers WHERE product_id=1 ORDER BY min_quantity'), [
+    { min_quantity:76, max_quantity:99, unit_price_cents:2200 },
+    { min_quantity:100, max_quantity:null, unit_price_cents:null },
+  ]);
+  assert.equal(fixture.query('SELECT max_quantity FROM product_price_tiers WHERE product_id=2').max_quantity,100);
+  fixture.close();
+});
 let flowQuoteCode = "";
 
 function headers(admin = false) {

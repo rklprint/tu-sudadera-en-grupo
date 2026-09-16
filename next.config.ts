@@ -26,7 +26,7 @@ const securityHeaders = [
     ].join("; "),
   },
 ];
-const nonProductionHeaders = process.env.APP_ENV && process.env.APP_ENV !== "production"
+const nonProductionHeaders = (process.env.APP_ENV && process.env.APP_ENV !== "production") || process.env.VERCEL_ENV === "preview"
   ? [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, noimageindex" }]
   : [];
 

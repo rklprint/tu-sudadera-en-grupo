@@ -138,6 +138,14 @@ main .customizer-section .print-swatches .swatch small { width: 74px; margin: 0;
 main .customizer-section .print-swatches .swatch.active i::after { content: "✓"; display: grid; place-items: center; width: 18px; height: 18px; margin: -5px 0 0 23px; background: #152137; color: #fff; border-radius: 50%; font-size: 14px; }
 main .customizer-section .customizer-price-link { display: inline-flex; align-items: center; min-height: 44px; color: #a5daf1; font-size: 16px; text-decoration: underline; }
 .customizer-drawer-content { max-height: 90svh; overflow-y: auto; overscroll-behavior: contain; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+
+/* Keep calculator conditions and scale labels readable on white. */
+main .customizer-section .range-labels,
+main .customizer-section .quantity-input-wrap > span,
+main .customizer-section .price-disclaimer,
+main .customizer-section .product-segmented-control small,
+main .customizer-section .front-details summary small { color: #526275; }
+main .customizer-section .dark-heading .eyebrow { color: #9ed8f4; }
 .customizer-drawer-content .customizer-drawer-summary strong { overflow-wrap: anywhere; white-space: normal; overflow: visible; }
 .customizer-drawer-content .customizer-drawer-summary { grid-template-columns: 1fr; }
 .customizer-drawer-content .customizer-drawer-total { flex-wrap: wrap; gap: 12px; }

@@ -71,6 +71,13 @@
       "when": 1788729243199,
       "tag": "0009_mighty_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789545600000,
+      "tag": "0010_quote_from_100",
+      "breakpoints": true
     }
   ]
 }

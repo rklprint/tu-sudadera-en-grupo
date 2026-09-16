@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
 import { trackProductEvent } from "@/lib/analytics";
-import type { PersonalizerSelection } from "@/lib/commercial";
+import { pricingForSelection, type PersonalizerSelection } from "@/lib/commercial";
+import { DEFAULT_CATALOG, type CatalogProduct } from "@/lib/catalog";
 
 const groupTypes = [
   "Colegio o instituto",
@@ -17,6 +18,12 @@ const groupTypes = [
   "Grupo de amigos",
   "Otro",
 ];
+
+type TurnstileWindow = Window & { turnstile?: {
+  render: (element: HTMLElement, options: { sitekey: string; action: string; theme: string; size: string }) => string;
+  reset: (id: string) => void;
+  remove: (id: string) => void;
+} };
 
 type Configuration = PersonalizerSelection & {
   basePrice: string;
@@ -96,6 +103,32 @@ function QuotePageContent() {
   const errorRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
   const [designFile, setDesignFile] = useState<File | null>(null);
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([...DEFAULT_CATALOG]);
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | undefined>(undefined);
+  const renderTurnstile = () => {
+    const api = (window as TurnstileWindow).turnstile;
+    if (!api || !turnstileRef.current || widgetId.current !== undefined || !turnstileSiteKey) return;
+    widgetId.current = api.render(turnstileRef.current, { sitekey: turnstileSiteKey, action: "quote_request", theme: "light", size: "flexible" });
+  };
+  useEffect(() => {
+    fetch("/api/catalogo").then(async response => {
+      if (response.ok) {
+        const result = await response.json() as { products?: CatalogProduct[] };
+        if (result.products) setCatalog(result.products);
+      }
+    }).catch(() => undefined);
+    return () => {
+      if (widgetId.current !== undefined) (window as TurnstileWindow).turnstile?.remove(widgetId.current);
+      widgetId.current = undefined;
+    };
+  }, []);
+  const product = catalog.find(item => item.slug === configuration.productSlug && item.active);
+  const pricing = product ? pricingForSelection(product, form.quantity, configuration) : null;
+  const money = (cents: number | null | undefined) => cents == null ? "Consultar" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(cents / 100);
+  const editQuery = new URLSearchParams(query.toString());
+  editQuery.set("quantity", String(form.quantity));
+  editQuery.set("groupName", form.groupName);
 
   useEffect(() => {
     void trackProductEvent("presupuesto_started", {
@@ -117,7 +150,9 @@ function QuotePageContent() {
     setError("");
 
     try {
-      const body = new FormData();
+      // Include Turnstile's hidden response field, then the controlled inputs.
+      const body = new FormData(event.currentTarget);
+      if (turnstileSiteKey && !body.get("cf-turnstile-response")) throw new Error("Completa la verificación de seguridad antes de enviar.");
       body.set("organizerName", form.organizerName);
       body.set("phone", form.phone);
       body.set("email", form.email);
@@ -138,15 +173,12 @@ function QuotePageContent() {
       });
       const result = await response.json() as { code?: string; emailStatus?: string; error?: string };
       if (!response.ok || !result.code) throw new Error(result.error || "No hemos podido enviar la solicitud.");
-      await trackProductEvent("presupuesto_submitted", {
-        product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie",
-        quantity: form.quantity,
-        group_type: form.groupType,
-      });
+      // The server records successful submissions exactly once.
       router.push(`/presupuesto/recibido?ref=${encodeURIComponent(result.code)}&mail=${encodeURIComponent(result.emailStatus || "pending")}`);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "No hemos podido enviar la solicitud.");
       setSending(false);
+      if (widgetId.current !== undefined) (window as TurnstileWindow).turnstile?.reset(widgetId.current);
     }
   };
 
@@ -158,8 +190,10 @@ function QuotePageContent() {
     ["Espalda", configuration.backDesign],
     ["Delantera", configuration.frontDesign],
     ["Manga", configuration.sleeve],
-    ["Precio base", configuration.basePrice],
-    ["Configuración", configuration.configuredPrice],
+    ["Cantidad", `${form.quantity} prendas`],
+    ["Precio base estimado", `${money(pricing?.baseUnitPriceCents)} / unidad`],
+    ["Configuración estimada", `${money(pricing?.quotedUnitPriceCents)} / unidad`],
+    ["Total estimado · IVA incluido", money(pricing?.quotedUnitPriceCents == null ? null : pricing.quotedUnitPriceCents * form.quantity)],
   ];
 
   return <main className="flow-page">
@@ -170,13 +204,13 @@ function QuotePageContent() {
         <p className="flow-eyebrow">Solicitud de presupuesto</p>
         <h1>Contadnos<br /><em>quiénes sois.</em></h1>
       </div>
-      <p>No pagaréis nada ahora. Recibiréis confirmación por correo y una respuesta personal en menos de 24 horas laborables.</p>
+      <p>No pagaréis nada ahora. Revisaremos vuestra idea y os contactaremos para confirmar diseño, cantidad y precio antes de abrir el pedido.</p>
     </section>
 
     <section className="quote-layout">
       <aside className="idea-summary compact-idea-summary">
         <details><summary>Ver vuestra configuración</summary>
-        <div className="idea-summary-top"><span>Vuestra idea</span><Link href="/#personalizador">Editar diseño</Link></div>
+        <div className="idea-summary-top"><span>Vuestra idea</span><Link href={`/?${editQuery.toString()}#personalizador`}>Editar diseño</Link></div>
 
         <div className="idea-details">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
         <div className="summary-note"><b>Después de enviarla</b><p>Un diseñador revisará composición, acabados y viabilidad. La propuesta final se aprueba con vosotros antes de producir.</p></div>
@@ -208,14 +242,14 @@ function QuotePageContent() {
 
         </details>
 
-        {turnstileSiteKey && <div className="turnstile-field"><div className="cf-turnstile" data-sitekey={turnstileSiteKey} data-action="quote_request" data-theme="light" /></div>}
+        {turnstileSiteKey && <div className="turnstile-field"><div ref={turnstileRef} /></div>}
         <label className="consent-field"><input required type="checkbox" checked={form.privacyAccepted} onChange={event => setField("privacyAccepted", event.target.checked)} /><span>Acepto que utilicéis estos datos únicamente para preparar el presupuesto y contactarme sobre este pedido. <Link href="/privacidad" target="_blank">Más información sobre privacidad</Link>.</span></label>
         {error && <p ref={errorRef} tabIndex={-1} className="form-error" role="alert">{error}</p>}
         <button className="quote-submit" type="submit" disabled={sending}><span><small>{sending ? "Guardando la solicitud" : "Sin compromiso"}</small>{sending ? "Un momento…" : "Enviar mi idea"}</span><b>{sending ? "···" : "↗"}</b></button>
-        <p className="form-destination">La solicitud quedará registrada con una referencia. Recibiréis una confirmación automática y continuaremos por WhatsApp.</p>
+        <p className="form-destination">Al guardarse la solicitud veréis su referencia y podréis consultar el estado. La propuesta final requiere vuestra aprobación.</p>
       </form>
     </section>
-    {turnstileSiteKey && <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />}
+    {turnstileSiteKey && <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={renderTurnstile} />}
     <FlowFooter />
   </main>;
 }

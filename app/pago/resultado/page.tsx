@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FlowFooter, FlowHeader } from "@/app/_components/flow-shell";
-import { trackProductEvent } from "@/lib/analytics";
+
 
 function PaymentResultContent() {
   const query = useSearchParams();
@@ -32,12 +32,10 @@ function PaymentResultContent() {
         if (!response.ok || !result.status) throw new Error("unknown");
         if (result.status === "confirmed") {
           setStatus("confirmed");
-          void trackProductEvent("payment_completed", { payment_status: "confirmed" });
           return;
         }
         if (["failed", "rejected"].includes(result.status)) {
           setStatus("failed");
-          void trackProductEvent("payment_failed", { payment_status: result.status });
           return;
         }
         if (result.status === "cancelled") { setStatus("cancelled"); return; }

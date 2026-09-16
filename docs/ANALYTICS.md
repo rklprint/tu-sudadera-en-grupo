@@ -17,7 +17,7 @@ Solo se aceptan propiedades de bajo riesgo: tipo de producto, modelo, color, can
 | Pago | `checkout_started`, `payment_method_selected`, `payment_started`, `payment_completed`, `payment_failed`, `bank_transfer_selected` |
 | Operación | `order_completed` |
 
-Los eventos de negocio críticos también se registran desde servidor para no depender del navegador. Los de interfaz permanecen en cliente.
+Los eventos `presupuesto_submitted`, `payment_started`, `bank_transfer_selected`, `payment_completed` y `payment_failed` se registran únicamente desde el servidor después de la operación correspondiente. No se repiten al recibir la respuesta en el navegador ni al recargar el resultado del pago. Los eventos de interfaz y registro del participante permanecen en cliente. PostHog se descarga solo cuando existe clave pública configurada.
 
 ## KPIs recomendados
 
