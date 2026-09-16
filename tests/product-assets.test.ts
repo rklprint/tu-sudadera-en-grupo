@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { CORE_COLORS } from "../lib/catalog";
+import { CORE_COLORS, TSHIRT_COLORS } from "../lib/catalog";
 
 function readVp8xDimensions(buffer: Buffer) {
   assert.equal(buffer.subarray(0, 4).toString("ascii"), "RIFF");
@@ -13,12 +13,13 @@ function readVp8xDimensions(buffer: Buffer) {
   return { width, height };
 }
 
-test("cada color activo del Gildan 18500 tiene frontal y espalda web coherentes", () => {
+for (const [product, colors] of [["Gildan 18500", CORE_COLORS], ["Camiseta", TSHIRT_COLORS]] as const) {
+test(`cada color activo de ${product} tiene frontal y espalda web coherentes`, () => {
   const assetKeys = new Set<string>();
   const frontImages = new Set<string>();
   const backImages = new Set<string>();
 
-  for (const color of CORE_COLORS) {
+  for (const color of colors) {
     assert.ok(color.slug, `${color.name}: falta slug`);
     assert.ok(color.assetKey, `${color.name}: falta assetKey`);
     assert.ok(color.frontImage, `${color.name}: falta frontal`);
@@ -37,3 +38,4 @@ test("cada color activo del Gildan 18500 tiene frontal y espalda web coherentes"
     }
   }
 });
+}

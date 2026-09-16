@@ -63,5 +63,9 @@ test('live name previews preserve editable fields and hide unsupported personali
 test('pending t-shirt never inherits hoodie photography', () => {
   const shirt = DEFAULT_CATALOG.find(product => product.category === 'tshirt');
   assert.ok(shirt?.quoteOnly);
-  assert.equal(shirt?.colors.some(color => 'frontImage' in color || 'backImage' in color), false);
+  assert.equal(shirt.priceTiers.length, 0);
+  for (const color of shirt.colors) {
+    assert.ok(color.frontImage.startsWith('/products/camiseta/'));
+    assert.ok(color.backImage.startsWith('/products/camiseta/'));
+  }
 });

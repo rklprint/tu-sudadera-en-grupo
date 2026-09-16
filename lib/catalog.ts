@@ -48,6 +48,12 @@ export const CORE_COLORS = [
   { name: "Negro", slug: "negro", value: "#212021", frontImage: "/products/gildan-18500/color-9/front.webp", backImage: "/products/gildan-18500/color-6/back.webp", assetKey: "negro" },
 ] as const satisfies readonly CatalogColor[];
 
+export const TSHIRT_COLORS = CORE_COLORS.map(({ name, value, slug }) => ({
+  name, value, slug, assetKey: `camiseta-${slug}`,
+  frontImage: `/products/camiseta/${slug}/front.webp`,
+  backImage: `/products/camiseta/${slug}/back.webp`,
+}));
+
 export const HOODIE_PRICE_TIERS = [
   { min: 5, max: 10, label: "5–10", unitPriceCents: 3_000 },
   { min: 11, max: 20, label: "11–20", unitPriceCents: 2_800 },
@@ -81,12 +87,12 @@ export const DEFAULT_CATALOG = [
     category: "tshirt",
     name: "Camiseta personalizada",
     model: "Modelo por confirmar",
-    description: "Producto secundario preparado para incorporarse sin inventar modelo ni tarifa.",
+    description: "Camisetas para grupos en nueve colores. Modelo, tallas y tarifa por confirmar.",
     active: true,
     featured: false,
     quoteOnly: true,
     sizes: CORE_SIZES,
-    colors: CORE_COLORS.map(({ name, value, slug }) => ({ name, value, slug })),
+    colors: TSHIRT_COLORS,
     priceTiers: [],
   },
 ] as const satisfies readonly CatalogProduct[];

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
+import { WhatsAppLink } from "@/app/_components/whatsapp-link";
 import { trackProductEvent } from "@/lib/analytics";
 import { normalizePersonalizerSelection, pricingForSelection, type PersonalizerSelection } from "@/lib/commercial";
 import { DEFAULT_CATALOG, type CatalogProduct } from "@/lib/catalog";
@@ -217,6 +218,7 @@ function QuotePageContent() {
         <div className="idea-details">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
         <div className="summary-note"><b>Después de enviarla</b><p>Un diseñador revisará composición, acabados y viabilidad. La propuesta final se aprueba con vosotros antes de producir.</p></div>
         </details>
+        <WhatsAppLink source="presupuesto" configuration={{ product: configuration.product, model: configuration.model, color: configuration.color, quantity: form.quantity, design: configuration.backDesign, printColor: configuration.printColor, front: configuration.frontDesign, sleeve: configuration.sleeve }} />
       </aside>
 
       <form className="quote-form" onSubmit={submit}>

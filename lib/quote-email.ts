@@ -83,7 +83,7 @@ export async function notifyQuoteRequest(payload: QuoteEmailPayload): Promise<Em
       },
       body: JSON.stringify({
         from: runtimeEnv.QUOTE_FROM_EMAIL || "Tu Sudadera en Grupo <web@tusudaderaengrupo.es>",
-        to: [runtimeEnv.QUOTE_TO_EMAIL || "pedidos@tusudaderaengrupo.es"],
+        to: [runtimeEnv.QUOTE_TO_EMAIL || "info@tusudaderaengrupo.es"],
         reply_to: payload.email || undefined,
         subject: `Nueva solicitud ${payload.code} · ${payload.configuration.groupName || payload.groupType} · ${payload.quantity} sudaderas`,
         html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto;color:#0b1830"><div style="padding:28px;background:#0b1830;color:white"><div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9ed8f4">Tu Sudadera en Grupo</div><h1 style="margin:10px 0 0;font-size:28px">Nueva solicitud ${escapeHtml(payload.code)}</h1></div><table style="width:100%;border-collapse:collapse;background:#fff">${htmlRows}</table><div style="padding:24px;background:#f4f0e7"><a href="${escapeHtml(payload.statusUrl)}" style="display:inline-block;padding:13px 18px;border-radius:999px;background:#0b1830;color:#fff;text-decoration:none;font-weight:700">Abrir solicitud</a></div></div>`,
@@ -103,7 +103,7 @@ export async function notifyQuoteRequest(payload: QuoteEmailPayload): Promise<Em
       body: JSON.stringify({
         from: runtimeEnv.QUOTE_FROM_EMAIL || "Tu Sudadera en Grupo <web@tusudaderaengrupo.es>",
         to: [payload.email],
-        reply_to: runtimeEnv.QUOTE_TO_EMAIL || "pedidos@tusudaderaengrupo.es",
+        reply_to: runtimeEnv.QUOTE_TO_EMAIL || "info@tusudaderaengrupo.es",
         subject: `Hemos recibido vuestra idea · ${payload.code}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#0b1830"><div style="padding:30px;background:#0b1830;color:white"><div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9ed8f4">Tu Sudadera en Grupo</div><h1 style="margin:12px 0 0;font-size:30px">Idea recibida</h1></div><div style="padding:30px;background:#fff"><p>Hola ${escapeHtml(payload.organizerName)},</p><p>Ya tenemos la solicitud de <strong>${escapeHtml(payload.configuration.groupName || payload.groupType)}</strong>. La revisaremos y os contactaremos para confirmar la propuesta.</p><div style="margin:24px 0;padding:18px;background:#f4f0e7"><div style="font-size:11px;color:#66758a;text-transform:uppercase">Referencia</div><div style="margin-top:6px;font-size:22px;font-weight:800">${escapeHtml(payload.code)}</div></div><p style="color:#66758a">Todavía no se ha abierto ningún pago. Primero cerraremos diseño, cantidad y precio con el organizador.</p><a href="${escapeHtml(payload.statusUrl)}" style="display:inline-block;margin-top:10px;padding:13px 18px;border-radius:999px;background:#0b1830;color:#fff;text-decoration:none;font-weight:700">Consultar solicitud</a></div></div>`,
         text: `Hola ${payload.organizerName},\n\nHemos recibido la solicitud de ${payload.configuration.groupName || payload.groupType}. Referencia: ${payload.code}. Os contactaremos para confirmar la propuesta.\n\nConsultar solicitud: ${payload.statusUrl}`,

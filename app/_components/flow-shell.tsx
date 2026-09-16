@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF } from "@/lib/contact";
+import { WhatsAppLink } from "@/app/_components/whatsapp-link";
+
 
 export function FlowBrand() {
   return <span className="flow-brand-mark"><i>T</i><b>S</b><em>G</em></span>;
@@ -30,7 +33,9 @@ export function FlowSteps({ active }: { active: 1 | 2 | 3 | 4 }) {
 export function FlowFooter() {
   return <footer className="flow-footer">
     <span>© 2026 Tu Sudadera en Grupo</span>
-    <a href="mailto:pedidos@tusudaderaengrupo.es">pedidos@tusudaderaengrupo.es</a>
+    <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+    <a href={CONTACT_PHONE_HREF}>{CONTACT_PHONE}</a>
+    <WhatsAppLink source="flow_footer" />
     <span><Link href="/privacidad">Privacidad</Link> · <Link href="/cookies">Cookies</Link> · Hecho para pertenecer ✦</span>
   </footer>;
 }

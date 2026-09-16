@@ -1,5 +1,6 @@
 "use client";
 
+import { WhatsAppLink } from "@/app/_components/whatsapp-link";
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -20,7 +21,7 @@ function QuoteReceivedContent() {
       <h1>Ahora empieza<br /><em>la parte buena.</em></h1>
       <p>{mailStatus === "sent" ? "Os hemos enviado una confirmación por correo." : "La solicitud está guardada correctamente; la confirmación automática por correo está pendiente de activación."} Revisaremos la idea y os contactaremos para confirmar la propuesta. Todavía no hay ningún pago abierto.</p>
       <div className="reference-box"><span>Vuestra referencia</span><strong>{reference}</strong><small>Guardadla para consultar el estado de la solicitud.</small></div>
-      <div className="received-actions"><Link className="primary-flow-action" href={`/pedido/${encodeURIComponent(reference)}`}>Consultar solicitud <span>↗</span></Link><span className="whatsapp-pending" aria-disabled="true">WhatsApp · se activará al lanzamiento</span><Link href="/">Volver al inicio</Link></div>
+      <div className="received-actions"><Link className="primary-flow-action" href={`/pedido/${encodeURIComponent(reference)}`}>Consultar solicitud <span>↗</span></Link><WhatsAppLink source="presupuesto_recibido" /><Link href="/">Volver al inicio</Link></div>
       <div className="received-timeline"><div className="done"><i>✓</i><span><b>Idea recibida</b><small>Ya está registrada</small></span></div><div><i>02</i><span><b>Hablamos por WhatsApp</b><small>Diseño, cantidad y fecha</small></span></div><div><i>03</i><span><b>Aprobáis la propuesta</b><small>Precio final sin sorpresas</small></span></div><div><i>04</i><span><b>Abrimos el pedido</b><small>Tallas y pagos privados</small></span></div></div>
     </section>
     <FlowFooter />

@@ -1,0 +1,18 @@
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  min-height: 44px;
+  padding: .7rem 1rem;
+  margin-block: .5rem;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  color: #14532d;
+  background: #f0fdf4;
+  font-size: .875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.link:hover { background: #dcfce7; }
+.link:focus-visible { outline: 3px solid #14532d; outline-offset: 3px; }

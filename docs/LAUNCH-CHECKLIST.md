@@ -5,7 +5,8 @@
 - [ ] Repositorio GitHub independiente conectado y rama subida mediante PR.
 - [ ] Proyecto/preview de Vercel y estrategia de datos de staging decidida.
 - [ ] Dominio definitivo, DNS y correo del dominio verificados.
-- [ ] WhatsApp de la marca y enlaces de Instagram/TikTok definitivos.
+- [x] Contacto comercial confirmado: WhatsApp/teléfono +34 641 228 861, info@tusudaderaengrupo.es y dominio tusudaderaengrupo.es. Enlaces de contacto integrados; DNS y entrega de correo siguen pendientes de verificación.
+- [ ] Enlaces de Instagram/TikTok definitivos.
 - [ ] Modelo, proveedor, coste, tallas y tramos de la camiseta confirmados.
 - [ ] Fotografías/vídeos reales optimizados y permisos de reseñas/imágenes.
 - [ ] Datos fiscales, aviso legal, contratación, devoluciones y privacidad revisados.
@@ -28,6 +29,7 @@
 ## Contenido y UX
 
 - [x] Guía de tallas Gildan 18500 en cm contrastada con catálogo europeo del fabricante; personalizador y registro/edición de prendas. Véase `SIZE-GUIDE.md`.
+- [x] Nueve parejas de frontal/espalda de camisetas aportadas por el titular, optimizadas y comprobadas en el selector. Modelo, tallas y tarifas aún por confirmar; se mantiene «Consultar».
 - [ ] Estado vacío, carga y error comprobados en catálogo/admin/grupo.
 - [ ] Navegación teclado y lector de pantalla en flujos clave.
 - [ ] 320, 375, 390, 430, tablet, laptop, desktop y ultrawide sin overflow.
