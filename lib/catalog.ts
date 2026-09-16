@@ -1,5 +1,5 @@
 import type { CatalogDesign, CatalogExtra } from "@/lib/customization-catalog";
-import { APPROVED_DESIGNS } from "@/lib/approved-designs";
+import { APPROVED_DESIGNS, APPROVED_TSHIRT_DESIGNS } from "@/lib/approved-designs";
 export type CatalogColor = {
   name: string;
   value: string;
@@ -98,7 +98,7 @@ export const DEFAULT_CATALOG = [
     sizes: CORE_SIZES,
     colors: TSHIRT_COLORS,
     priceTiers: TSHIRT_PRICE_TIERS,
-    designs: APPROVED_DESIGNS,
+    designs: APPROVED_TSHIRT_DESIGNS,
   },
 ] as const satisfies readonly CatalogProduct[];
 
