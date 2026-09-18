@@ -1,3 +1,4 @@
+import { currentHoodieMockup } from './hoodie-mockups';
 import type { CatalogDesign, CatalogExtra } from "@/lib/customization-catalog";
 import { APPROVED_DESIGNS, APPROVED_TSHIRT_DESIGNS } from "@/lib/approved-designs";
 export type CatalogColor = {
@@ -46,7 +47,7 @@ export const CORE_COLORS = [
   { name: "Verde oliva", slug: "verde-oliva", value: "#45583d", frontImage: "/products/gildan-18500/color-7/front.webp", backImage: "/products/gildan-18500/color-3/back.webp", assetKey: "verde-oliva" },
   { name: "Verde botella", slug: "verde-botella", value: "#1c331f", frontImage: "/products/gildan-18500/color-8/front.webp", backImage: "/products/gildan-18500/color-2/back.webp", assetKey: "verde-botella" },
   { name: "Negro", slug: "negro", value: "#212021", frontImage: "/products/gildan-18500/color-9/front.webp", backImage: "/products/gildan-18500/color-6/back.webp", assetKey: "negro" },
-] as const satisfies readonly CatalogColor[];
+].map(color => ({ ...color, frontImage: currentHoodieMockup(color.frontImage, 'front')!, backImage: currentHoodieMockup(color.backImage, 'back')! })) satisfies readonly CatalogColor[];
 
 export const TSHIRT_COLORS = CORE_COLORS.map(({ name, value, slug }) => ({
   name, value, slug, assetKey: `camiseta-${slug}`,

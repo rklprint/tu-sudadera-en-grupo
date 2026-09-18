@@ -15,6 +15,7 @@ import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } 
 import { normalizePersonalizerSelection, pricingForSelection } from "@/lib/commercial";
 import { SLEEVE_FLAGS, resolveSleeveFlag, sleevePlacement } from "@/lib/sleeve-preview";
 import { canPreviewDesign } from "@/lib/customization-catalog";
+import { hoodieMockupSwatch } from "@/lib/hoodie-mockups";
 import { trackProductEvent } from "@/lib/analytics";
 
 type Side = "front" | "back";
@@ -458,7 +459,7 @@ export default function Home() {
                 <strong aria-live="polite">{garment.name}</strong>
               </div>
               <div className="mobile-color-rail">
-                {garmentColors.map(item=><button type="button" key={item.name} className={garment.name===item.name?"mobile-color-choice active":"mobile-color-choice"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>selectColor(item)} aria-label={`Color ${item.name}`} aria-pressed={garment.name===item.name}><i /><small>{item.name}</small></button>)}
+                {garmentColors.map(item=><button type="button" key={item.name} className={garment.name===item.name?"mobile-color-choice active":"mobile-color-choice"} style={{"--swatch":hoodieMockupSwatch(item.frontImage, item.value)} as React.CSSProperties} onClick={()=>selectColor(item)} aria-label={`Color ${item.name}`} aria-pressed={garment.name===item.name}><i /><small>{item.name}</small></button>)}
               </div>
             </div>
             <p className="preview-guidance" role="status"><strong>{side === "back" ? backDesignLabel : frontDesignLabel}</strong><span>{failedPreviewAsset ? "No se ha podido cargar un archivo. Conservamos vuestra selección para la maqueta." : side === "back" && (!selectedDesign?.file || !canPreviewDesign(selectedDesign)) || side === "front" && frontType === "logo" ? "Diseño pendiente de maqueta; no representado sobre la prenda." : selectedDesign?.file && side === "back" ? selectedDesign.preview?.recolorable ? (selectedDesign.preview.nameField ? "Color y nombre superior en vista previa. Los nombres interiores se adaptan en la maqueta antes de producir." : "Color en vista previa. Los textos del dibujo se adaptan en la maqueta antes de producir.") : "Archivo de referencia. Nombres, textos y colores se adaptan en la maqueta antes de producir." : "Vista orientativa. Aprobaréis la maqueta antes de producir."}</span>{sleeveFlag !== "none" && <span>Manga: {sleeveDetail || selectedFlag} · {sleeveInMontage ? "posición orientativa" : "montaje pendiente"}</span>}</p>

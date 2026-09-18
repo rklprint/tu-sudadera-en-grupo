@@ -1,5 +1,6 @@
 import { CORE_COLORS, TSHIRT_COLORS } from "@/lib/catalog";
 import { designsForProduct } from "@/lib/approved-designs";
+import { currentHoodieMockup } from "@/lib/hoodie-mockups";
 import { DEFAULT_EXTRAS, publicAssetPath, validateDesigns, type CatalogDesign } from "@/lib/customization-catalog";
 import { ensureQuoteSchema } from "@/db";
 import type { CatalogColor, CatalogPriceTier, CatalogProduct } from "@/lib/catalog";
@@ -105,7 +106,11 @@ export async function readCatalog(includeInactive = false): Promise<ManagedCatal
         const defaults = product.slug === "sudadera-gildan-18500" && product.model === "Gildan 18500" ? CORE_COLORS : product.slug === "camiseta-personalizada" && product.model === "Gildan 2000" ? TSHIRT_COLORS : [];
         const original = defaults.find(image => image.name === color.name && image.value === color.hex);
         const image = match ?? original;
-        return image ? { slug: image.slug, assetKey: image.assetKey, frontImage: image.frontImage, backImage: image.backImage } : {};
+        const isHoodie = product.slug === 'sudadera-gildan-18500' && product.model === 'Gildan 18500';
+        return image ? { slug: image.slug, assetKey: image.assetKey,
+          frontImage: isHoodie ? currentHoodieMockup(image.frontImage, 'front') : image.frontImage,
+          backImage: isHoodie ? currentHoodieMockup(image.backImage, 'back') : image.backImage,
+        } : {};
       })() })),
       priceTiers,
     };

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { CatalogColor, CatalogProduct } from '@/lib/catalog';
 import type { CatalogDesign } from '@/lib/customization-catalog';
 import { canPreviewDesign } from '@/lib/customization-catalog';
+import { isDefinitiveHoodieMockup } from '@/lib/hoodie-mockups';
 import { resolveSleeveFlag, sleevePlacement, type SleeveSelection } from '@/lib/sleeve-preview';
 
 /** Only exact product/color/view assets; never substitute a different garment. */
@@ -24,6 +25,7 @@ export function ProductPreview({ product, color, side, design, summary, overlay,
 }) {
   const variant = product.colors.find(item => item.name === color.name && item.value === color.value);
   const src = side === 'front' ? variant?.frontImage : variant?.backImage;
+  const definitiveHoodie = product.slug === 'sudadera-gildan-18500' && isDefinitiveHoodieMockup(src, side);
   const [failed, setFailed] = useState('');
   const [failedDesign, setFailedDesign] = useState('');
   const [failedFlag, setFailedFlag] = useState('');
@@ -33,9 +35,9 @@ export function ProductPreview({ product, color, side, design, summary, overlay,
   const visibleDesign = design?.active && Boolean(design.file) && canPreviewDesign(design) && design.view === side && design.products.includes(product.slug) && design.file !== failedDesign;
   const backName = (overlay.backName?.trim() || 'NOMBRE').slice(0, 18).toUpperCase();
   const printStyle = { '--preview-print': overlay.printColor } as CSSProperties;
-  return <div className="product-preview-frame" data-calibrated={Boolean(placement)} style={printStyle}>
+  return <div className="product-preview-frame" data-calibrated={Boolean(placement)} data-hoodie-mockup={definitiveHoodie || undefined} style={printStyle}>
     {src && failed !== src ? <>
-      <Image key={src} unoptimized src={src} alt={`${product.model} · ${color.name} · ${side === 'front' ? 'Delante' : 'Espalda'}`} width={2000} height={2000} loading="eager" sizes="(max-width: 700px) 94vw, 620px" onLoad={onLoad} onError={() => { setFailed(src); onAssetError(src); onLoad(); }} />
+      <Image key={src} unoptimized src={src} alt={`${product.model} · ${color.name} · ${side === 'front' ? 'Delante' : 'Espalda'}`} width={definitiveHoodie ? 1139 : 2000} height={definitiveHoodie ? 1381 : 2000} loading="eager" sizes="(max-width: 700px) 94vw, 620px" onLoad={onLoad} onError={() => { setFailed(src); onAssetError(src); onLoad(); }} />
       {visibleDesign && <div className="product-preview-artwork" style={{ position: 'absolute', left: `${design.position.x}%`, top: `${design.position.y}%`, width: `${design.size.width}%`, height: `${design.size.height}%` }}>
         {design.preview?.nameField && <svg className="product-preview-back-name" viewBox="0 0 180 42" role="img" aria-label={`Nombre sobre el diseño: ${backName}`}><text x="90" y="32" textAnchor="middle" fontSize="33" fontWeight="800" fill={overlay.printColor} textLength={backName.length > 11 ? 176 : undefined} lengthAdjust="spacingAndGlyphs">{backName}</text></svg>}
         <DesignArtwork src={design.file} label={`${design.name} · diseño de referencia`} color={design.preview?.recolorable ? overlay.printColor : undefined} onError={() => { setFailedDesign(design.file); onAssetError(design.file); }} />

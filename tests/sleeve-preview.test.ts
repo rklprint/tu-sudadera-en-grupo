@@ -2,8 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { resolveSleeveFlag, sleevePlacement, SLEEVE_FLAGS, type SleeveSelection } from '../lib/sleeve-preview';
+import { HOODIE_MOCKUPS, hoodieMockupPath } from '../lib/hoodie-mockups';
 
 const selection = (type: SleeveSelection['type'], detail = ''): SleeveSelection => ({ type, detail, technique: 'print' });
+
+test('all definitive pairs retain the same physical sleeve and reject a mismatched view', () => {
+  for (const pair of HOODIE_MOCKUPS) {
+    const front = sleevePlacement('sudadera-gildan-18500', hoodieMockupPath(pair.file, 'front'), 'front');
+    const back = sleevePlacement('sudadera-gildan-18500', hoodieMockupPath(pair.file, 'back'), 'back');
+    assert.ok(front && back);
+    assert.equal(front.x + back.x, 100);
+    assert.equal(front.width, back.width);
+    assert.equal(sleevePlacement('sudadera-gildan-18500', hoodieMockupPath(pair.file, 'front'), 'back'), undefined);
+  }
+});
 
 test('sleeve artwork resolves the exact selection and never substitutes a country', () => {
   assert.equal(resolveSleeveFlag(selection('spain'))?.id, 'espana');

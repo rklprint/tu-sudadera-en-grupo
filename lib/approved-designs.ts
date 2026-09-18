@@ -13,7 +13,7 @@ export const APPROVED_DESIGNS: CatalogDesign[] = [
   file: `/designs/approved/${id}.webp`,
   thumbnail: `/designs/approved/${id}-thumb.webp`,
   view: 'back',
-  position: { x: 36, y: 35 },
+  position: { x: 36, y: 43 },
   size: { width: 28, height: 34 },
   products: ['sudadera-gildan-18500', 'camiseta-personalizada'],
   preview: { recolorable: true, ...(['x', 'number27', 'number10'].includes(id) ? { nameField: 'name' } : {}) },
