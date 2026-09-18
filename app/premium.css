@@ -1,0 +1,167 @@
+/* Final visual layer: shared state language, legibility and responsive polish. */
+.status-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 7px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.status-badge svg { width: 14px; height: 14px; stroke-width: 2; }
+.status-badge-neutral { color: #5f6d80; background: #f1f3f4; }
+.status-badge-info { color: #215f91; background: #e9f5fb; }
+.status-badge-warning { color: #8b610f; background: #fff7df; }
+.status-badge-success { color: #11684f; background: #e8f7f1; }
+.status-badge-danger { color: #963d36; background: #fff0ed; }
+
+.play-link svg { width: 18px; height: 18px; }
+
+.site-header nav a,
+.ghost-button,
+.header-cta,
+.primary-button {
+  transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.ghost-button:hover,
+.primary-button:hover,
+.header-cta:hover { transform: translateY(-1px); }
+
+.checkout-methods button {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  justify-content: initial;
+}
+
+.checkout-methods button > svg { width: 20px; color: #2e73ad; }
+.checkout-methods button > span { display: flex; flex-direction: column; gap: 4px; min-width: 0; color: var(--navy); }
+.checkout-methods button small { color: #68768a; font-size: 11px; }
+.checkout-status { display: flex; align-items: center; gap: 8px; }
+.checkout-status svg { width: 16px; animation: checkout-spin .9s linear infinite; }
+.checkout-security { display: flex; align-items: flex-start; gap: 8px; color: #68768a; font-size: 11px; line-height: 1.5; }
+.checkout-security svg { flex: 0 0 16px; width: 16px; color: var(--success); }
+
+.group-next-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  border: 1px solid rgba(47,120,185,.2);
+  border-radius: var(--radius-md);
+  background: linear-gradient(105deg, #f4fbfe, #e7f4fa);
+}
+
+.group-next-action > div { min-width: 0; }
+.group-next-action > div > span { color: #2f78b9; font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.group-next-action strong { display: block; margin-top: 5px; font-size: 19px; letter-spacing: -.025em; }
+.group-next-action p { max-width: 760px; margin: 6px 0 0; color: #5e6e84; font-size: 11px; line-height: 1.55; }
+.group-next-production { border-color: rgba(20,122,98,.2); background: linear-gradient(105deg, #f2faf7, #e4f5ee); }
+
+.aggregate-board article > svg { width: 19px; height: 19px; margin-bottom: 15px; color: var(--blue); stroke-width: 1.8; }
+.aggregate-board span { font-size: 9px; }
+.aggregate-board small { font-size: 10px; }
+.group-capacity > small { font-size: 10px; }
+.group-phase-track b { font-size: 11px; }
+.group-phase-track span { font-size: 9px; }
+.deadline-pill small { font-size: 9px; }
+.deadline-pill b { font-size: 11px; }
+
+.participant-fields label span,
+.garment-fields label span { font-size: 10px; }
+.participant-fields input,
+.garment-fields input,
+.garment-fields select { font-size: 14px; }
+.garment-editor-head span,
+.garment-card > header small,
+.garment-card > footer span,
+.privacy-note { font-size: 9px; }
+
+.admin-topbar strong { font-size: 12px; }
+.admin-topbar small,
+.admin-topbar a { font-size: 10px; }
+.admin-kpis span { font-size: 10px; }
+.admin-tabs button { gap: 8px; font-size: 11px; }
+.admin-tabs button > svg { width: 16px; height: 16px; }
+.admin-tabs button > span { font-size: 8px; }
+.admin-quote > header span,
+.admin-group > header span,
+.admin-quote time,
+.admin-quote header p,
+.admin-group header p,
+.admin-group header > a { font-size: 10px; }
+.admin-detail-grid span,
+.group-state-grid > p > span:first-child { font-size: 9px; }
+.admin-detail-grid b { font-size: 12px; }
+.group-state-grid .status-badge span { color: inherit; font-size: 10px; text-transform: none; }
+.admin-notice,
+.admin-notes,
+.admin-quote > footer a,
+.admin-action-row button,
+.admin-action-row a { font-size: 10px; }
+.admin-payment span,
+.admin-payment small { font-size: 10px; }
+.admin-payment strong { font-size: 12px; }
+.admin-payment .status-badge span { color: inherit; font-size: 10px; }
+.admin-payment button { min-height: 40px; font-size: 10px; }
+.admin-empty > span svg { width: 21px; height: 21px; }
+.admin-empty strong { font-size: 15px; }
+.admin-empty p { font-size: 11px; }
+
+@keyframes checkout-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 820px) {
+  .site-header nav { top: 74px; padding: 14px 17px 20px; box-shadow: 0 18px 34px rgba(8,20,42,.12); }
+  .site-header nav a { width: 100%; min-height: 46px; border-bottom: 1px solid var(--line); }
+  .site-header nav a:last-child { border-bottom: 0; }
+  .site-header nav a::after { display: none; }
+}
+
+@media (max-width: 680px) {
+  .group-next-action { align-items: flex-start; flex-direction: column; gap: 14px; padding: 18px; }
+  .group-next-action strong { font-size: 17px; }
+  .group-next-action p { font-size: 11px; }
+  .aggregate-board article { min-height: 132px; }
+}
+
+@media (max-width: 430px) {
+  main.homepage-flow .hero h1 { font-size: clamp(45px, 13vw, 54px); }
+  main.homepage-flow .hero-actions { gap: 15px; }
+  main.homepage-flow .primary-button { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+  main.homepage-flow .play-link { width: 100%; }
+}
+
+@media (max-width: 390px) {
+  .customizer-drawer-heading p { font-size: 11px; }
+  .customizer-drawer-summary small { font-size: 8px; }
+  .customizer-drawer-summary strong { font-size: 11px; }
+}
+
+@media (max-width: 375px) {
+  main.homepage-flow .hero h1 { font-size: 47px; }
+  .mobile-customizer-trigger strong { max-width: 132px; }
+}
+
+@media (max-width: 320px) {
+  main.homepage-flow .hero h1 { font-size: 42px; }
+  main.homepage-flow .hero-lead { font-size: 13px; }
+  .mobile-customizer-trigger { right: 7px; left: 7px; }
+  .mobile-customizer-trigger strong { max-width: 108px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-status svg { animation: none; }
+  .menu-button span,
+  .site-header nav a,
+  .ghost-button,
+  .header-cta,
+  .primary-button { transition: none; }
+}

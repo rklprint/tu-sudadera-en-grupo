@@ -1,0 +1,57 @@
+# Checklist de lanzamiento
+
+## Bloqueantes externos
+
+- [ ] Repositorio GitHub independiente conectado y rama subida mediante PR.
+- [ ] Proyecto/preview de Vercel y estrategia de datos de staging decidida.
+- [ ] Dominio definitivo, DNS y correo del dominio verificados.
+- [x] Contacto comercial confirmado: WhatsApp/teléfono +34 641 228 861, info@tusudaderaengrupo.es y dominio tusudaderaengrupo.es. Enlaces de contacto integrados; DNS y entrega de correo siguen pendientes de verificación.
+- [ ] Enlaces de Instagram/TikTok definitivos.
+- [x] Camiseta Gildan 2000 Ultra Cotton (ficha Falk&Ross): tarifa del titular con IVA, misma base que sudadera, diseños compartidos y guía en cm para S–3XL.
+- [ ] Coste de compra y disponibilidad de colores/tallas del proveedor antes de producción.
+- [ ] Fotografías/vídeos reales optimizados y permisos de reseñas/imágenes.
+- [ ] Datos fiscales, aviso legal, contratación, devoluciones y privacidad revisados.
+- [ ] Descriptor/TPV Redsys de la marca, test de banco y Bizum confirmado.
+- [ ] IBAN y titular de transferencia configurados como secretos.
+
+## Ingeniería
+
+- [ ] Autenticación admin con MFA/RBAC y recuperación segura.
+- [ ] Migraciones ejecutadas en pipeline, sin DDL en petición.
+- [ ] Outbox/cola de email con reintentos y alertas.
+- [ ] Editor de participante migrado a extras compatibles totalmente administrables.
+- [ ] Rate limit distribuido, WAF y Turnstile comprobados.
+- [ ] Escaneo o cuarentena de archivos PDF/AI.
+- [ ] Backup/restore de DB y retención/borrado de datos probados.
+- [ ] Sentry, PostHog y alertas verificadas en preview.
+- [ ] Redsys E2E completo e idempotencia verificada.
+- [ ] Exportación Excel contrastada contra totales del panel.
+
+## Contenido y UX
+
+- [x] Guía de tallas Gildan 18500 en cm contrastada con catálogo europeo del fabricante; personalizador y registro/edición de prendas. Véase `SIZE-GUIDE.md`.
+- [x] Nueve parejas de frontal/espalda de camisetas aportadas por el titular, optimizadas y comprobadas en el selector. Modelo Gildan 2000 y tarifas confirmados; «Consultar» desde 100 unidades.
+- [ ] Estado vacío, carga y error comprobados en catálogo/admin/grupo.
+- [ ] Navegación teclado y lector de pantalla en flujos clave.
+- [ ] 320, 375, 390, 430, tablet, laptop, desktop y ultrawide sin overflow.
+- [ ] Safari iOS, Chrome Android, Chrome/Edge/Firefox desktop.
+- [ ] Formularios con errores reales, red lenta y reintentos.
+- [ ] Copy final de camisetas, WhatsApp, redes y prueba social.
+
+## SEO y rendimiento
+
+- [ ] Dominio y canonical definitivos en preview de producción.
+- [ ] Search Console verificada y sitemap enviado.
+- [ ] `noindex` en staging, admin, grupos, participantes, checkout y pagos.
+- [ ] Imágenes AVIF/WebP con dimensiones, `srcset`, lazy load y alt.
+- [ ] Lighthouse móvil y WebPageTest con imágenes reales.
+- [ ] Objetivo: LCP ≤ 2,5 s, INP ≤ 200 ms, CLS ≤ 0,1 en p75.
+- [ ] 404, redirects, sitemap, robots y schemas validados.
+
+## Go/no-go
+
+- [ ] CI y pruebas E2E verdes.
+- [ ] Auditoría de autorización/IDOR sin hallazgos altos.
+- [ ] Ningún secreto en Git ni sourcemaps públicos.
+- [ ] Operación de compra de prueba reconciliada de extremo a extremo.
+- [ ] Responsable de soporte y procedimiento de incidencia definidos.

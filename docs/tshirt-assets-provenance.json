@@ -1,0 +1,185 @@
+{
+  "note": "User-supplied front/back photos. Original canvas and alpha retained; WebP quality 90. Commercial model and prices pending confirmation.",
+  "assets": [
+    {
+      "source": "camisetas/21.png",
+      "color": "granate",
+      "side": "front",
+      "output": "/products/camiseta/granate/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 71796
+    },
+    {
+      "source": "camisetas/34.png",
+      "color": "granate",
+      "side": "back",
+      "output": "/products/camiseta/granate/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 75036
+    },
+    {
+      "source": "camisetas/19.png",
+      "color": "azul-cielo",
+      "side": "front",
+      "output": "/products/camiseta/azul-cielo/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 76696
+    },
+    {
+      "source": "camisetas/36.png",
+      "color": "azul-cielo",
+      "side": "back",
+      "output": "/products/camiseta/azul-cielo/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 77996
+    },
+    {
+      "source": "camisetas/20.png",
+      "color": "rosa",
+      "side": "front",
+      "output": "/products/camiseta/rosa/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 77736
+    },
+    {
+      "source": "camisetas/28.png",
+      "color": "rosa",
+      "side": "back",
+      "output": "/products/camiseta/rosa/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 82922
+    },
+    {
+      "source": "camisetas/27.png",
+      "color": "azul-petroleo",
+      "side": "front",
+      "output": "/products/camiseta/azul-petroleo/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 236738
+    },
+    {
+      "source": "camisetas/35.png",
+      "color": "azul-petroleo",
+      "side": "back",
+      "output": "/products/camiseta/azul-petroleo/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 194798
+    },
+    {
+      "source": "camisetas/26.png",
+      "color": "azul-marino",
+      "side": "front",
+      "output": "/products/camiseta/azul-marino/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 99412
+    },
+    {
+      "source": "camisetas/31.png",
+      "color": "azul-marino",
+      "side": "back",
+      "output": "/products/camiseta/azul-marino/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 82188
+    },
+    {
+      "source": "camisetas/25.png",
+      "color": "gris",
+      "side": "front",
+      "output": "/products/camiseta/gris/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 223224
+    },
+    {
+      "source": "camisetas/29.png",
+      "color": "gris",
+      "side": "back",
+      "output": "/products/camiseta/gris/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 174494
+    },
+    {
+      "source": "camisetas/22.png",
+      "color": "verde-oliva",
+      "side": "front",
+      "output": "/products/camiseta/verde-oliva/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 145432
+    },
+    {
+      "source": "camisetas/30.png",
+      "color": "verde-oliva",
+      "side": "back",
+      "output": "/products/camiseta/verde-oliva/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 153416
+    },
+    {
+      "source": "camisetas/23.png",
+      "color": "verde-botella",
+      "side": "front",
+      "output": "/products/camiseta/verde-botella/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 91946
+    },
+    {
+      "source": "camisetas/32.png",
+      "color": "verde-botella",
+      "side": "back",
+      "output": "/products/camiseta/verde-botella/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 96192
+    },
+    {
+      "source": "camisetas/24.png",
+      "color": "negro",
+      "side": "front",
+      "output": "/products/camiseta/negro/front.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 104034
+    },
+    {
+      "source": "camisetas/33.png",
+      "color": "negro",
+      "side": "back",
+      "output": "/products/camiseta/negro/back.webp",
+      "width": 2000,
+      "height": 2000,
+      "alpha": true,
+      "bytes": 97040
+    }
+  ]
+}

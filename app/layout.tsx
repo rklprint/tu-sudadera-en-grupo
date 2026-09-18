@@ -1,0 +1,112 @@
+import type { Metadata } from "next";
+import localFont from "next/font/local";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  SOCIAL_IMAGE,
+} from "@/lib/site";
+import { SiteMotion } from "@/app/_components/site-motion";
+import { Observability } from "@/app/_components/observability";
+import { AppToaster } from "@/app/_components/app-toaster";
+import "./globals.css";
+import "./motion.css";
+import "./premium.css";
+import "./customizer-mobile.css";
+import "./legibility.css";
+import "./customizer-simple.css";
+
+const geistSans = localFont({
+  src: "../.vinext/fonts/geist-8ac0455e797f/geist-98bbbccb.woff2",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+  display: "swap",
+});
+
+const geistMono = localFont({
+  src: "../.vinext/fonts/geist-mono-00e989178794/geist-mono-013b2f2f.woff2",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `Sudaderas personalizadas para colegios y grupos | Precios claros`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "Personalización textil",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: `Sudaderas personalizadas para colegios y grupos | Precios claros`,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    siteName: SITE_NAME,
+    locale: "es_ES",
+    type: "website",
+    images: [
+      {
+        url: SOCIAL_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "Sudaderas personalizadas para grupos — Tu Sudadera en Grupo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Sudaderas personalizadas para colegios y grupos | Precios claros`,
+    description: SITE_DESCRIPTION,
+    images: [SOCIAL_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  manifest: "/manifest.webmanifest",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="es">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Observability />
+        <SiteMotion />
+        {children}
+        <AppToaster />
+      </body>
+    </html>
+  );
+}

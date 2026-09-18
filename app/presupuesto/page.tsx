@@ -1,0 +1,263 @@
+"use client";
+
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import Script from "next/script";
+import { FlowFooter, FlowHeader, FlowSteps } from "@/app/_components/flow-shell";
+import { WhatsAppLink } from "@/app/_components/whatsapp-link";
+import { trackProductEvent } from "@/lib/analytics";
+import { normalizePersonalizerSelection, pricingForSelection, type PersonalizerSelection } from "@/lib/commercial";
+import { DEFAULT_CATALOG, type CatalogProduct } from "@/lib/catalog";
+
+const groupTypes = [
+  "Colegio o instituto",
+  "Universidad o promoción",
+  "Peña o fiestas",
+  "Equipo o club",
+  "Viaje o evento",
+  "Grupo de amigos",
+  "Otro",
+];
+
+type TurnstileWindow = Window & { turnstile?: {
+  render: (element: HTMLElement, options: { sitekey: string; action: string; theme: string; size: string }) => string;
+  reset: (id: string) => void;
+  remove: (id: string) => void;
+} };
+
+type Configuration = PersonalizerSelection & {
+  basePrice: string;
+  configuredPrice: string;
+};
+
+const defaultConfiguration: Configuration = {
+  productSlug: "sudadera-gildan-18500",
+  productCategory: "hoodie",
+  product: "Sudadera",
+  model: "Gildan 18500",
+  color: "Por elegir",
+  printColor: "Por elegir",
+  designPath: "template",
+  designStyle: "x",
+  backDesign: "Idea por definir",
+  groupName: "Vuestro grupo",
+  frontType: "coordinates",
+  frontText: "",
+  frontTechnique: "print",
+  frontDesign: "Por definir",
+  sleeveFlag: "none",
+  sleeveDetail: "",
+  sleeveTechnique: "print",
+  sleeve: "Sin decidir",
+  basePrice: "Según cantidad",
+  configuredPrice: "Según configuración",
+};
+
+function QuotePageContent() {
+  const router = useRouter();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const query = useSearchParams();
+  const queriedGroupType = query.get("groupType");
+  const configuration: Configuration = {
+    designFields: (() => { try { return normalizePersonalizerSelection({ designFields: JSON.parse(query.get("designFields") || "{}") }).designFields; } catch { return {}; } })(),
+    productSlug: query.get("productSlug") || defaultConfiguration.productSlug,
+    productCategory: query.get("productCategory") === "tshirt" ? "tshirt" : "hoodie",
+    product: query.get("product") || defaultConfiguration.product,
+    model: query.get("model") || defaultConfiguration.model,
+    color: query.get("color") || defaultConfiguration.color,
+    printColor: query.get("printColor") || defaultConfiguration.printColor,
+    designPath: query.get("designPath") === "upload" ? "upload" : query.get("designPath") === "studio" ? "studio" : "template",
+    designStyle: query.get("designStyle") || defaultConfiguration.designStyle,
+    backDesign: query.get("backDesign") || defaultConfiguration.backDesign,
+    groupName: query.get("groupName") || defaultConfiguration.groupName,
+    frontType: query.get("frontType") === "logo" ? "logo" : query.get("frontType") === "name" ? "name" : "coordinates",
+    frontText: query.get("frontText") || "",
+    frontTechnique: query.get("frontTechnique") === "embroidery" ? "embroidery" : "print",
+    frontDesign: query.get("frontDesign") || defaultConfiguration.frontDesign,
+    sleeveFlag: ["spain", "community", "country", "custom"].includes(query.get("sleeveFlag") || "") ? query.get("sleeveFlag") as Configuration["sleeveFlag"] : "none",
+    sleeveDetail: query.get("sleeveDetail") || "",
+    sleeveTechnique: query.get("sleeveTechnique") === "embroidery" ? "embroidery" : "print",
+    sleeve: query.get("sleeve") || defaultConfiguration.sleeve,
+    basePrice: query.get("basePrice") || defaultConfiguration.basePrice,
+    configuredPrice: query.get("configuredPrice") || defaultConfiguration.configuredPrice,
+  };
+  const queriedQuantity = Number(query.get("quantity"));
+  const [form, setForm] = useState({
+    organizerName: "",
+    phone: "",
+    email: "",
+    groupName: configuration.groupName === defaultConfiguration.groupName ? "" : configuration.groupName,
+    groupType: groupTypes.includes(queriedGroupType || "")
+      ? queriedGroupType as string
+      : groupTypes[0],
+    location: "",
+    quantity: Number.isFinite(queriedQuantity) && queriedQuantity >= 5 ? Math.min(500, Math.round(queriedQuantity)) : 25,
+    desiredDate: "",
+    notes: "",
+    referenceUrl: "",
+    privacyAccepted: false,
+    website: "",
+  });
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
+  const [designFile, setDesignFile] = useState<File | null>(null);
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([...DEFAULT_CATALOG]);
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | undefined>(undefined);
+  const renderTurnstile = () => {
+    const api = (window as TurnstileWindow).turnstile;
+    if (!api || !turnstileRef.current || widgetId.current !== undefined || !turnstileSiteKey) return;
+    widgetId.current = api.render(turnstileRef.current, { sitekey: turnstileSiteKey, action: "quote_request", theme: "light", size: "flexible" });
+  };
+  useEffect(() => {
+    fetch("/api/catalogo").then(async response => {
+      if (response.ok) {
+        const result = await response.json() as { products?: CatalogProduct[] };
+        if (result.products) setCatalog(result.products);
+      }
+    }).catch(() => undefined);
+    return () => {
+      if (widgetId.current !== undefined) (window as TurnstileWindow).turnstile?.remove(widgetId.current);
+      widgetId.current = undefined;
+    };
+  }, []);
+  const product = catalog.find(item => item.slug === configuration.productSlug && item.active);
+  const selectedDesign = configuration.designPath === 'template' ? product?.designs?.find(design => design.id === configuration.designStyle) : undefined;
+  const pricing = product ? pricingForSelection(product, form.quantity, configuration) : null;
+  const money = (cents: number | null | undefined) => cents == null ? "Consultar" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(cents / 100);
+  const editQuery = new URLSearchParams(query.toString());
+  editQuery.set("quantity", String(form.quantity));
+  editQuery.set("groupName", form.groupName);
+
+  useEffect(() => {
+    void trackProductEvent("presupuesto_started", {
+      product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie",
+      model: configuration.model,
+      source: query.get("product") ? "personalizador" : "direct",
+    });
+  // This event intentionally runs once per form visit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+    setForm(current => ({ ...current, [key]: value }));
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSending(true);
+    setError("");
+
+    try {
+      // Include Turnstile's hidden response field, then the controlled inputs.
+      const body = new FormData(event.currentTarget);
+      if (turnstileSiteKey && !body.get("cf-turnstile-response")) throw new Error("Completa la verificación de seguridad antes de enviar.");
+      body.set("organizerName", form.organizerName);
+      body.set("phone", form.phone);
+      body.set("email", form.email);
+      body.set("groupName", form.groupName);
+      body.set("groupType", form.groupType);
+      body.set("location", form.location);
+      body.set("quantity", String(form.quantity));
+      body.set("desiredDate", form.desiredDate);
+      body.set("notes", form.notes);
+      body.set("referenceUrl", form.referenceUrl);
+      body.set("privacyAccepted", String(form.privacyAccepted));
+      body.set("website", form.website);
+      body.set("configuration", JSON.stringify({ ...configuration, groupName: form.groupName }));
+      if (designFile) body.set("designFile", designFile);
+      const response = await fetch("/api/presupuestos", {
+        method: "POST",
+        body,
+      });
+      const result = await response.json() as { code?: string; emailStatus?: string; error?: string };
+      if (!response.ok || !result.code) throw new Error(result.error || "No hemos podido enviar la solicitud.");
+      // The server records successful submissions exactly once.
+      router.push(`/presupuesto/recibido?ref=${encodeURIComponent(result.code)}&mail=${encodeURIComponent(result.emailStatus || "pending")}`);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "No hemos podido enviar la solicitud.");
+      setSending(false);
+      if (widgetId.current !== undefined) (window as TurnstileWindow).turnstile?.reset(widgetId.current);
+    }
+  };
+
+  const summary = [
+    ["Producto", configuration.product],
+    ["Modelo", configuration.model],
+    ["Color", configuration.color],
+    ["Color del diseño", configuration.printColor],
+    ["Espalda", configuration.backDesign],
+    ...(selectedDesign?.fields.filter(field => configuration.designFields?.[field.id]).map(field => [field.label, configuration.designFields![field.id]]) || []),
+    ["Delantera", configuration.frontDesign],
+    ["Manga", configuration.sleeve],
+    ["Cantidad", `${form.quantity} prendas`],
+    ["Precio base estimado", `${money(pricing?.baseUnitPriceCents)} / unidad`],
+    ["Configuración estimada", `${money(pricing?.quotedUnitPriceCents)} / unidad`],
+    ["Total estimado · IVA incluido", money(pricing?.quotedUnitPriceCents == null ? null : pricing.quotedUnitPriceCents * form.quantity)],
+  ];
+
+  return <main className="flow-page">
+    <FlowHeader current="quote" />
+    <FlowSteps active={2} />
+    <section className="quote-hero">
+      <div>
+        <p className="flow-eyebrow">Solicitud de presupuesto</p>
+        <h1>Contadnos<br /><em>quiénes sois.</em></h1>
+      </div>
+      <p>No pagaréis nada ahora. Revisaremos vuestra idea y os contactaremos para confirmar diseño, cantidad y precio antes de abrir el pedido.</p>
+    </section>
+
+    <section className="quote-layout">
+      <aside className="idea-summary compact-idea-summary">
+        <details><summary>Ver vuestra configuración</summary>
+        <div className="idea-summary-top"><span>Vuestra idea</span><Link href={`/?${editQuery.toString()}#personalizador`}>Editar diseño</Link></div>
+
+        <div className="idea-details">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
+        <div className="summary-note"><b>Después de enviarla</b><p>Un diseñador revisará composición, acabados y viabilidad. La propuesta final se aprueba con vosotros antes de producir.</p></div>
+        </details>
+        <WhatsAppLink source="presupuesto" configuration={{ product: configuration.product, model: configuration.model, color: configuration.color, quantity: form.quantity, design: configuration.backDesign, printColor: configuration.printColor, front: configuration.frontDesign, sleeve: configuration.sleeve }} />
+      </aside>
+
+      <form className="quote-form" onSubmit={submit}>
+        <div className="form-heading"><span>01</span><div><h2>Datos del organizador</h2><p>Los campos con * son obligatorios. El resto es opcional.</p></div></div>
+        <div className="form-grid">
+          <label className="wide"><span>Nombre y apellidos *</span><input required minLength={2} maxLength={80} autoComplete="name" value={form.organizerName} onChange={event => setField("organizerName", event.target.value)} placeholder="Ej. Lucía Martínez" /></label>
+          <label><span>WhatsApp *</span><input required type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={event => setField("phone", event.target.value)} placeholder="600 000 000" /></label>
+          <label><span>Email *</span><input required type="email" autoComplete="email" value={form.email} onChange={event => setField("email", event.target.value)} placeholder="nombre@correo.es" /></label>
+          <label className="wide"><span>Nombre del grupo *</span><input required minLength={2} maxLength={90} value={form.groupName} onChange={event => setField("groupName", event.target.value)} placeholder="Ej. Promoción 2026 · IES Las Encinas" /></label>
+        </div>
+
+        <div className="form-heading second"><span>02</span><div><h2>Datos del grupo</h2><p>Una aproximación es suficiente para preparar la primera propuesta.</p></div></div>
+        <div className="form-grid">
+          <label><span>Tipo de grupo</span><select value={form.groupType} onChange={event => setField("groupType", event.target.value)}>{groupTypes.map(type => <option key={type}>{type}</option>)}</select></label>
+          <label><span>Localidad</span><input maxLength={90} value={form.location} onChange={event => setField("location", event.target.value)} placeholder="Ej. Sevilla" /></label>
+          <label><span>¿Cuántos sois? *</span><input required type="number" min={5} max={500} value={form.quantity} onChange={event => setField("quantity", Number(event.target.value))} /></label>
+          <label><span>Fecha deseada</span><input type="date" value={form.desiredDate} onChange={event => setField("desiredDate", event.target.value)} /></label>
+          </div>
+        <details className="quote-optional" open={configuration.designPath === "upload"}><summary>Añadir diseño, referencias o comentarios (opcional)</summary><div className="form-grid">
+          <label className="wide"><span>Enlace a referencias</span><input type="url" maxLength={500} value={form.referenceUrl} onChange={event => setField("referenceUrl", event.target.value)} placeholder="Drive, Instagram, Pinterest… También podréis enviarlas por WhatsApp" /></label>
+          <label className="wide quote-file-field"><span>Adjuntar diseño o referencia</span><input type="file" accept=".png,.jpg,.jpeg,.pdf,.ai,image/png,image/jpeg,application/pdf,application/postscript" onChange={event => { const file = event.target.files?.[0] || null; setDesignFile(file); if (file) void trackProductEvent("archivo_uploaded", { product_type: configuration.product.toLowerCase().includes("camiseta") ? "tshirt" : "hoodie" }); }} /><small>{designFile ? `${designFile.name} · ${(designFile.size / 1024 / 1024).toFixed(1).replace(".0", "")} MB` : "PNG, JPG, PDF o AI · máximo 15 MB"}</small></label>
+          <label className="wide"><span>Contadnos lo que tenéis en mente</span><textarea maxLength={1200} rows={5} value={form.notes} onChange={event => setField("notes", event.target.value)} placeholder="Nombres individuales, fecha del viaje, dudas, una broma del grupo…" /></label>
+          <label className="honeypot" aria-hidden="true"><span>Web</span><input tabIndex={-1} autoComplete="off" value={form.website} onChange={event => setField("website", event.target.value)} /></label>
+        </div>
+
+        </details>
+
+        {turnstileSiteKey && <div className="turnstile-field"><div ref={turnstileRef} /></div>}
+        <label className="consent-field"><input required type="checkbox" checked={form.privacyAccepted} onChange={event => setField("privacyAccepted", event.target.checked)} /><span>Acepto que utilicéis estos datos únicamente para preparar el presupuesto y contactarme sobre este pedido. <Link href="/privacidad" target="_blank">Más información sobre privacidad</Link>.</span></label>
+        {error && <p ref={errorRef} tabIndex={-1} className="form-error" role="alert">{error}</p>}
+        <button className="quote-submit" type="submit" disabled={sending}><span><small>{sending ? "Guardando la solicitud" : "Sin compromiso"}</small>{sending ? "Un momento…" : "Enviar mi idea"}</span><b>{sending ? "···" : "↗"}</b></button>
+        <p className="form-destination">Al guardarse la solicitud veréis su referencia y podréis consultar el estado. La propuesta final requiere vuestra aprobación.</p>
+      </form>
+    </section>
+    {turnstileSiteKey && <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={renderTurnstile} />}
+    <FlowFooter />
+  </main>;
+}
+
+export default function QuotePage() {
+  return <Suspense fallback={<main className="flow-page"><FlowHeader current="quote" /><section className="order-loading"><i /><p>Preparando vuestro presupuesto…</p></section><FlowFooter /></main>}><QuotePageContent /></Suspense>;
+}

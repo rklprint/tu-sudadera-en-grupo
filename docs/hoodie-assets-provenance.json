@@ -1,0 +1,164 @@
+[
+  {
+    "color": "granate",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-granate.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-granate.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "aa32602bc0d27875db356444eb29833212ad23c22a65ab679ca055adfacee4e9"
+  },
+  {
+    "color": "granate",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-granate.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-granate.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "1cbbfc6df34de16831920ee57970094d640d868ba4e9259f0a55eeccf23447c6"
+  },
+  {
+    "color": "azul-cielo",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-azul-cielo.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-azul-cielo.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "6135fd3cdb35dd9a73b938e85e951b7b0f48310f1369a9106d7aee8f935dea70"
+  },
+  {
+    "color": "azul-cielo",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-azul-cielo.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-azul-cielo.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "a13bb813bb4d37874a7e4e9c3534fb82a89f853f1ed0c9314664b90032b3bbe6"
+  },
+  {
+    "color": "rosa",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-rosa.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-rosa.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "de34fc648b0f0f79040469a336c72585d5883505694a8640b520d77aa9b67b9f"
+  },
+  {
+    "color": "rosa",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-rosa.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-rosa.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "23fa0a0aaf6ac02bad80ebd7a78f56155088a653d8f842ea2f1884c7aa12fd63"
+  },
+  {
+    "color": "azul-petroleo",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-azul-petroleo.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-azul-petroleo.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "0fc7872c317f8c614cd6604844ff5a5a1379edf72ec99db1e66fcf4a74706b58"
+  },
+  {
+    "color": "azul-petroleo",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-azul-petroleo.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-azul-petroleo.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "b68bc5ae9685893865beab4af75ef7499c3d0ac1c476d10c35f972eebfdac3cb"
+  },
+  {
+    "color": "azul-marino",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-azul-marino.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-azul-marino.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "0df01b3b84b95c6098ec851b0731ddcbbdbbdee1ca6b6173e05117393a2d2651"
+  },
+  {
+    "color": "azul-marino",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-azul-marino.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-azul-marino.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "55264fceb0fe02fe1c1ca3b11b87adbf9d9e0625c60298a9cff51f4ced307aa7"
+  },
+  {
+    "color": "gris",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-gris-oscuro.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-gris-oscuro.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "4f779a32ff93d857f2cce27109c381069bcd327e477dee5aaa9c187ca5cbc5f0"
+  },
+  {
+    "color": "gris",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-gris-oscuro.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-gris-oscuro.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "38e98c4f21e1c9e4bd35f6f11be25979d2b04f28230fd762dd9e8e0a2da7c27a"
+  },
+  {
+    "color": "verde-oliva",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-verde-oliva.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-verde-oliva.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "3e2c585f294c56700898393029ead4c3b90be75499c174db9eb87de7fdc6c0af"
+  },
+  {
+    "color": "verde-oliva",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-verde-oliva.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-verde-oliva.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "bf336739daa6232e1659b943f7ef48b4d01746324cf86b4fa7f5c12c4bb15cbf"
+  },
+  {
+    "color": "verde-botella",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-verde-botella.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-verde-botella.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "eb5fcc24c8521b23c14bcf17df8b0991eed84f0812ddd969eb04571bdf2152b8"
+  },
+  {
+    "color": "verde-botella",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-verde-botella.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-verde-botella.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "45a42f89045736e360c70d568964351323863342f1cdfcd042dbb2d6965f61d2"
+  },
+  {
+    "color": "negro",
+    "side": "front",
+    "sourceFile": "sudadera-frontal-lazo-negro.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-frontal-lazo-negro.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "1895a3e0abcd78ff268d03517565c76bb1377b934dd8b355044b80b8873dbf8c"
+  },
+  {
+    "color": "negro",
+    "side": "back",
+    "sourceFile": "sudadera-espalda-negro.webp",
+    "path": "/products/gildan-18500/definitive/sudadera-espalda-negro.webp",
+    "width": 1139,
+    "height": 1381,
+    "sha256": "2c3df1cf7719eef35dcb3b8adc88bc374658600074cba4e5634b2535e70d6eae"
+  }
+]

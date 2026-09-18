@@ -1,0 +1,602 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowRight, BadgeCheck, ImageIcon, MapPin, PencilLine, Shirt, Sparkles, Upload, UserRound } from "lucide-react";
+import { toast } from "sonner";
+import { DesignThumbnail, ProductPreview } from "@/app/_components/product-preview";
+import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF } from "@/lib/contact";
+import { WhatsAppLink } from "@/app/_components/whatsapp-link";
+import { SizeGuide } from "@/app/_components/size-guide";
+import { CORE_COLORS, DEFAULT_CATALOG, type CatalogColor, type CatalogProduct } from "@/lib/catalog";
+import { normalizePersonalizerSelection, pricingForSelection } from "@/lib/commercial";
+import { SLEEVE_FLAGS, resolveSleeveFlag, sleevePlacement } from "@/lib/sleeve-preview";
+import { canPreviewDesign } from "@/lib/customization-catalog";
+import { hoodieMockupSwatch } from "@/lib/hoodie-mockups";
+import { trackProductEvent } from "@/lib/analytics";
+
+type Side = "front" | "back";
+type DesignPath = "template" | "upload" | "studio";
+type ProductType = "hoodie" | "tshirt";
+
+const DesignCarousel = dynamic(() => import("@/app/_components/design-carousel").then((module) => module.DesignCarousel));
+const CustomizerDrawer = dynamic(() => import("@/app/_components/customizer-drawer").then((module) => module.CustomizerDrawer), { ssr: false });
+
+const defaultGarmentColors = CORE_COLORS;
+const formatPrice = (amount: number) => amount.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+const printColors = [
+  { name: "Blanco", value: "#ffffff" }, { name: "Amarillo fosforito", value: "#eaff00" },
+  { name: "Rosa fosforito", value: "#ff2aad" }, { name: "Negro", value: "#17191d" },
+  { name: "Azul claro", value: "#9ed8f4" },
+  { name: "Blanco roto", value: "#f7f3e9" }, { name: "Rojo", value: "#ff554b" },
+];
+const styles = [
+  { id: "x", label: "X con nombres", tag: "TOP", sample: "X" },
+  { id: "number27", label: "Número 27", sample: "27" }, { id: "number26", label: "Número 26", sample: "26" },
+  { id: "college", label: "College", sample: "COLLEGE" }, { id: "monument", label: "Nuestro pueblo", sample: "⌂ ♜ ⛪" },
+  { id: "group", label: "Ilustración grupo", sample: "● ● ● ●" }, { id: "globe", label: "Sello + frase", sample: "◎" },
+  { id: "collage", label: "Collage local", sample: "✦ ♜ ◇" }, { id: "mascot", label: "Mascota", sample: "★" },
+];
+const designPathOptions = [
+  { id: "template", label: "Elegir diseño", Icon: ImageIcon },
+  { id: "upload", label: "Subir mi diseño", Icon: Upload },
+  { id: "studio", label: "Diseño a medida", Icon: PencilLine },
+] as const;
+const frontOptions = [
+  { id: "coordinates", label: "Coordenadas", Icon: MapPin },
+  { id: "logo", label: "Logo", Icon: BadgeCheck },
+  { id: "name", label: "Nombre", Icon: UserRound },
+] as const;
+const flagOptions = [
+  { id: "none", label: "Sin manga", symbol: "" }, { id: "spain", label: "España", symbol: "spain" },
+  { id: "community", label: "Comunidad autónoma", symbol: "community" }, { id: "country", label: "Otro país", symbol: "country" },
+  { id: "custom", label: "Logo propio", symbol: "custom" },
+] as const;
+
+const faqItems = [
+  { question: "¿Cuánto tarda el pedido?", answer: "El plazo es de 10–15 días laborables tras la aprobación del diseño y el pago completo. Enviamos todo junto a una dirección del grupo." },
+  { question: "¿Qué prenda y personalización incluye el precio?", answer: "Sudadera Gildan 18500 o camiseta Gildan 2000 Ultra Cotton, tallas S–3XL, DTF a todo color en pecho hasta A5 y espalda hasta A3, y nombre individual. IVA incluido; los extras se muestran por separado. Desde 100 unidades, presupuesto a medida." },
+  {
+    question: "¿Podemos poner un nombre distinto en cada sudadera?",
+    answer:
+      "Sí. Cada sudadera puede llevar un nombre distinto en pecho o espalda, y está incluido en el precio base.",
+  },
+  {
+    question: "¿Puedo pagar directamente al pedir presupuesto?",
+    answer:
+      "No. Primero hablamos con el organizador, cerramos diseño y precio, y después activamos el enlace privado del grupo. Así nadie paga una prenda que todavía no está aprobada.",
+  },
+  {
+    question: "¿Cómo funcionan los pagos individuales?",
+    answer:
+      "Primero cada persona registra talla, nombre y extras. Nuestro equipo y el organizador cierran la cantidad y el tramo de precio; después se abre el pago. Pueden convivir pagos individuales y un pago final del organizador.",
+  },
+  {
+    question: "¿Tengo que recopilar las tallas en una lista?",
+    answer: "No. Compartís el enlace privado y cada participante añade sus prendas, con su talla y nombre. El organizador consulta el resumen del grupo y el estado de los pagos en su panel.",
+  },
+  {
+    question: "¿Puedo cambiar mi talla después de pagar?",
+    answer: "Puedes editar tus prendas mientras el registro lo permita y no estén pagadas. Tras confirmar el pago, la configuración queda bloqueada; cualquier corrección debe revisarla nuestro equipo.",
+  },
+  {
+    question: "¿Enviar una transferencia confirma el pago?",
+    answer: "No. La transferencia queda pendiente hasta que nuestro equipo compruebe el ingreso. El panel mostrará la confirmación cuando se valide.",
+  },
+  {
+    question: "¿Qué pasa si alguien no paga a tiempo?",
+    answer:
+      "No producimos hasta que el pedido esté completamente pagado. Si queda algo pendiente, lo resolvemos directamente con el organizador.",
+  },
+  {
+    question: "¿Qué pasa si no tenemos ningún diseño?",
+    answer:
+      "Elegid Diseño a medida, mandadnos referencias y nuestro equipo convertirá la idea en una propuesta.",
+  },
+  {
+    question: "¿La bandera puede ir bordada?",
+    answer:
+      "Sí. Una bandera de país o comunidad autónoma cuesta 1 € en DTF o 2 € bordada por prenda. Un logotipo bordado aportado por el cliente se presupuesta según su complejidad.",
+  },
+  {
+    question: "¿Cuál es el pedido mínimo?",
+    answer:
+      "La tarifa para grupos empieza en 5 unidades. Para pedidos de 1 a 4 sudaderas, contactad directamente por WhatsApp.",
+  },
+  {
+    question: "¿Podemos mezclar tallas y colores?",
+    answer:
+      "Podéis mezclar tallas. Para cambios de color dentro del mismo diseño, revisaremos el contraste y la producción.",
+  },
+  {
+    question: "¿Cómo se calcula el envío?",
+    answer:
+      "El envío conjunto del grupo a Península está incluido. Para Baleares, Canarias, otros países o más de un destino, preparamos una cotización específica.",
+  },
+];
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://tusudaderaengrupo.es/#organization",
+      name: "Tu Sudadera en Grupo",
+      url: "https://tusudaderaengrupo.es",
+      logo: "https://tusudaderaengrupo.es/favicon.svg",
+      email: CONTACT_EMAIL,
+      telephone: "+34641228861",
+      areaServed: { "@type": "Country", name: "España" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tusudaderaengrupo.es/#website",
+      url: "https://tusudaderaengrupo.es",
+      name: "Tu Sudadera en Grupo",
+      inLanguage: "es-ES",
+      publisher: { "@id": "https://tusudaderaengrupo.es/#organization" },
+    },
+    {
+      "@type": "Service",
+      "@id": "https://tusudaderaengrupo.es/#service",
+      name: "Sudaderas personalizadas para grupos",
+      serviceType: "Diseño y producción de sudaderas personalizadas",
+      provider: { "@id": "https://tusudaderaengrupo.es/#organization" },
+      areaServed: { "@type": "Country", name: "España" },
+      audience: {
+        "@type": "Audience",
+        audienceType:
+          "Colegios, institutos, promociones, peñas, equipos, clubes y grupos de amigos",
+      },
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://tusudaderaengrupo.es/#preguntas",
+      mainEntity: faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    },
+  ],
+};
+
+export default function Home() {
+  const router = useRouter();
+  const [productType, setProductType] = useState<ProductType>("hoodie");
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([...DEFAULT_CATALOG]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [garment, setGarment] = useState<CatalogColor>(defaultGarmentColors[0]);
+  const [print, setPrint] = useState(printColors[0]);
+  const [requestedStyle, setStyle] = useState(styles[0]);
+  const [side, setSide] = useState<Side>("back");
+  const [designPath, setDesignPath] = useState<DesignPath>("template");
+  const [designFields, setDesignFields] = useState<Record<string, string>>({});
+  const [groupName, setGroupName] = useState("PROMO 26");
+  const [frontType, setFrontType] = useState<(typeof frontOptions)[number]["id"]>("coordinates");
+  const [frontText, setFrontText] = useState("37°53'N · 4°46'W");
+  const [frontTexts, setFrontTexts] = useState({ coordinates: "37°53'N · 4°46'W", name: "", logo: "" });
+  const [frontLogo, setFrontLogo] = useState("");
+  const [frontTechnique, setFrontTechnique] = useState<"print" | "embroidery">("print");
+  const [sleeveFlag, setSleeveFlag] = useState<(typeof flagOptions)[number]["id"]>("none");
+  const [sleeveTechnique, setSleeveTechnique] = useState<"print" | "embroidery">("print");
+  const [sleeveDetail, setSleeveDetail] = useState("");
+  const [sleeveDetails, setSleeveDetails] = useState({ none: "", spain: "España", community: "", country: "", custom: "" });
+  const [showAllDesigns, setShowAllDesigns] = useState(false);
+  const [quantity, setQuantity] = useState(25);
+  const [quantityDraft, setQuantityDraft] = useState("25");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [loadedPreviewKey, setLoadedPreviewKey] = useState("");
+  const [previewFailures, setPreviewFailures] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const restore = (products: CatalogProduct[]) => {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has("productSlug")) return;
+      let fields = {};
+      try { fields = JSON.parse(params.get("designFields") || "{}"); } catch { /* Keep empty fields for malformed links. */ }
+      const saved = normalizePersonalizerSelection({ ...Object.fromEntries(params), designFields: fields });
+      const product = products.find(item => item.slug === saved.productSlug && item.active);
+      if (!product) return;
+      setProductType(product.category);
+      setGarment(product.colors.find(color => color.name === saved.color) || product.colors[0] || defaultGarmentColors[0]);
+      setPrint(printColors.find(color => color.name === ({ "Azul cielo": "Azul claro", "Amarillo flúor": "Amarillo fosforito" }[saved.printColor] || saved.printColor)) || printColors[0]);
+      setStyle({ id: saved.designStyle, label: saved.backDesign, sample: "" });
+      setDesignPath(saved.designPath);
+      setDesignFields(saved.designFields || {});
+      setGroupName(saved.groupName);
+      setFrontType(saved.frontType);
+      setFrontText(saved.frontText);
+      setFrontTexts(current => ({ ...current, [saved.frontType]: saved.frontText }));
+      setFrontTechnique(saved.frontTechnique);
+      setSleeveFlag(saved.sleeveFlag);
+      setSleeveDetail(saved.sleeveDetail);
+      setSleeveDetails(current => ({ ...current, [saved.sleeveFlag]: saved.sleeveDetail }));
+      setSleeveTechnique(saved.sleeveTechnique);
+      const amount = Number(params.get("quantity"));
+      const restoredQuantity = Number.isFinite(amount) ? Math.min(500, Math.max(5, Math.round(amount))) : 25;
+      setQuantity(restoredQuantity);
+      setQuantityDraft(String(restoredQuantity));
+    };
+    fetch("/api/catalogo")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("catalog unavailable");
+        const result = await response.json() as { products?: CatalogProduct[] };
+        if (result.products) { setCatalog(result.products); restore(result.products); }
+      })
+      .catch(() => restore([...DEFAULT_CATALOG]))
+      .finally(() => setCatalogLoaded(true));
+  }, []);
+
+  const categoryAvailable = (category: ProductType) => !catalogLoaded || catalog.some((product) => product.category === category && product.active);
+  const activeProduct: CatalogProduct = catalog.find((product) => product.category === productType && product.active)
+    || (!catalogLoaded ? DEFAULT_CATALOG.find((product) => product.category === productType) : undefined)
+    || { ...DEFAULT_CATALOG[productType === "tshirt" ? 1 : 0], active: false, quoteOnly: true, colors: [], priceTiers: [] };
+  const hoodieProduct = catalog.find((product) => product.category === "hoodie" && product.active)
+    || DEFAULT_CATALOG.find((product) => product.category === "hoodie");
+  const tshirtProduct = catalog.find((product) => product.category === "tshirt" && product.active)
+    || DEFAULT_CATALOG.find((product) => product.category === "tshirt");
+  const garmentColors = activeProduct.colors;
+  const selectedVariant = garmentColors.find(color => color.name === garment.name && color.value === garment.value);
+  const catalogDesigns = (activeProduct.designs || []).filter(design => design.active && design.products.includes(activeProduct.slug)).sort((a, b) => a.order - b.order);
+  const designChoices = activeProduct.designs?.length
+    ? catalogDesigns.map(design => ({ id: design.id, label: design.name, sample: "", tag: undefined }))
+    : styles;
+  const style = designChoices.find(item => item.id === requestedStyle.id) || designChoices[0] || { id: "", label: "Ninguna plantilla disponible", sample: "" };
+  const visibleDesignChoices = showAllDesigns ? designChoices : designChoices.filter((item, index) => index < 3 || item.id === style.id || (index === 3 && designChoices.findIndex(choice => choice.id === style.id) < 4));
+  const selectedDesign = designPath === "template" ? catalogDesigns.find(design => design.id === style.id) : undefined;
+
+  useEffect(() => {
+    return () => {
+      if (frontLogo.startsWith("blob:")) URL.revokeObjectURL(frontLogo);
+    };
+  }, [frontLogo]);
+
+  const designText = (() => {
+    const name = groupName || "VUESTRO GRUPO";
+    if (designPath === "upload") return "TU DISEÑO\nSUBIDO";
+    if (designPath === "studio") return "IDEA 100%\nA MEDIDA";
+    if (selectedDesign) return `${name}\n${selectedDesign.name}`;
+    if (style.id === "x") return `${name}\nX`;
+    if (style.id === "number27") return `27\n${name}`;
+    if (style.id === "number26") return `26\n${name}`;
+    if (style.id === "college") return `${name}\nCOLLEGE`;
+    if (style.id === "monument") return `${name}\nPUEBLO & FIESTA`;
+    if (style.id === "group") return `${name}\nLA PEÑA`;
+    if (style.id === "globe") return `${name}\nNUESTRA FRASE`;
+    if (style.id === "collage") return `${name}\nRECUERDOS`;
+    return `${name}\nX ANIVERSARIO`;
+  })();
+  const previewBackLines = selectedDesign?.personalizable
+    ? [selectedDesign.name, ...selectedDesign.fields.map(field => designFields[field.id] || field.label)]
+    : designText.split("\n");
+  const previewKey = `${productType}-${garment.name}-${side}`;
+  const previewLoaded = !(side === "front" ? selectedVariant?.frontImage : selectedVariant?.backImage) || loadedPreviewKey === previewKey;
+  const selectedFlagAsset = resolveSleeveFlag({ type: sleeveFlag, detail: sleeveDetail, technique: sleeveTechnique });
+  const activeImage = side === "front" ? selectedVariant?.frontImage : selectedVariant?.backImage;
+  const sleeveInMontage = Boolean(selectedFlagAsset && !previewFailures[selectedFlagAsset.file] && activeImage && !previewFailures[activeImage] && sleevePlacement(activeProduct.slug, activeImage, side));
+  const failedPreviewAsset = Boolean((activeImage && previewFailures[activeImage]) || (selectedDesign?.file && selectedDesign.view === side && previewFailures[selectedDesign.file]) || (selectedFlagAsset && previewFailures[selectedFlagAsset.file]));
+
+  const selectionPricing = pricingForSelection(activeProduct, quantity, {
+    frontType,
+    frontTechnique,
+    sleeveFlag,
+    sleeveTechnique,
+  });
+  const basePriceCents = selectionPricing.baseUnitPriceCents;
+  const baseUnitPrice = basePriceCents === null ? null : basePriceCents / 100;
+  const productName = productType === "hoodie" ? "Sudadera" : "Camiseta";
+  const productModel = activeProduct.model;
+  const backDesignLabel = designPath === "template" ? (selectedDesign?.name || style.label) : designPath === "upload" ? "Diseño aportado" : "Diseño a medida";
+  const frontDesignLabel = frontOptions.find((item) => item.id === frontType)?.label || "Detalle delantero";
+  const selectedFlag = flagOptions.find((item) => item.id === sleeveFlag)?.label || "Sin bandera";
+  const personalizationSummary = [
+    designPath === "template" ? `Texto: ${groupName || "Sin definir"} · Color del diseño: ${print.name}` : "",
+    ...(selectedDesign?.personalizable ? selectedDesign.fields.map(field => `${field.label}: ${designFields[field.id] || "Sin definir"}`) : []),
+    `${frontDesignLabel}${frontType !== "logo" && frontText ? `: ${frontText}` : ""} · ${frontTechnique === "embroidery" ? "Bordado" : "DTF"}`,
+  ].filter(Boolean).join(" · ");
+  const customEmbroidery = selectionPricing.customPricingRequired;
+  const knownExtras = selectionPricing.commonExtrasCents / 100;
+  const configuredUnitPrice = selectionPricing.quotedUnitPriceCents === null
+    ? null
+    : selectionPricing.quotedUnitPriceCents / 100;
+  const hasPriceExtra = knownExtras > 0 || customEmbroidery;
+  const updateQuantity = (value: number) => {
+    const next = Number.isFinite(value) ? Math.min(500, Math.max(5, Math.round(value))) : 5;
+    setQuantity(next);
+    setQuantityDraft(String(next));
+  };
+  const commitQuantityDraft = () => updateQuantity(Number(quantityDraft));
+  const scrollToCustomizer = () => {
+    void trackProductEvent("personalizador_started", { source: "homepage" });
+    document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth" });
+  };
+  const selectProduct = (nextProduct: ProductType) => {
+    if (nextProduct === productType || !categoryAvailable(nextProduct)) return;
+    setProductType(nextProduct);
+    setDesignFields({});
+    const nextCatalogProduct = catalog.find((product) => product.category === nextProduct && product.active);
+    if (nextCatalogProduct?.colors.length && !nextCatalogProduct.colors.some((color) => color.name === garment.name)) setGarment(nextCatalogProduct.colors[0]);
+    void trackProductEvent("producto_selected", { product_type: nextProduct });
+  };
+  const selectColor = (nextColor: CatalogColor) => {
+    setGarment(nextColor);
+    void trackProductEvent("color_selected", { product_type: productType, color: nextColor.name });
+  };
+  const selectFrontLogo = (file?: File) => {
+    if (!file) return;
+    setFrontLogo(URL.createObjectURL(file));
+    setSide("front");
+    toast.success("Logo seleccionado", { description: "Adjunta este archivo en el presupuesto para enviarlo al equipo." });
+  };
+  const chooseShowcaseDesign = (designId: string, title: string) => {
+    const selectedStyle = designChoices.find((item) => item.id === designId);
+    if (!selectedStyle) {
+      scrollToCustomizer();
+      toast.info("Elegid una plantilla disponible o Diseño a medida");
+      return;
+    }
+    setStyle(selectedStyle);
+    setDesignPath("template");
+    setSide("back");
+    document.getElementById("personalizador")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    toast.success("Plantilla aplicada", { description: `${title} ya es vuestro punto de partida.` });
+  };
+  const selectSleeveFlag = (nextFlag: (typeof flagOptions)[number]["id"]) => {
+    if (nextFlag === sleeveFlag) return;
+    setSleeveDetails(current => ({ ...current, [sleeveFlag]: sleeveDetail }));
+    setSleeveFlag(nextFlag);
+    setSleeveDetail(sleeveDetails[nextFlag]);
+    if (nextFlag !== "none") setSide("back");
+  };
+  const goToQuote = () => {
+    if (designPath === "template" && !style.id) {
+      scrollToCustomizer();
+      toast.info("Elegid Subir diseño o Diseño a medida");
+      return;
+    }
+    if (selectedDesign?.personalizable && selectedDesign.fields.some(field => field.required && !designFields[field.id]?.trim())) {
+      scrollToCustomizer();
+      toast.info("Completad los campos del diseño antes de continuar");
+      return;
+    }
+    void trackProductEvent("personalizador_completed", {
+      product_type: productType,
+      model: productModel,
+      color: garment.name,
+      quantity,
+      design_path: designPath,
+    });
+    const params = new URLSearchParams({
+      productSlug: activeProduct.slug,
+      productCategory: productType,
+      product: productName,
+      model: productModel,
+      color: garment.name,
+      printColor: print.name,
+      designPath,
+      designStyle: style.id,
+      designFields: JSON.stringify(selectedDesign?.personalizable ? Object.fromEntries(selectedDesign.fields.map(field => [field.id, designFields[field.id] || ""])) : {}),
+      backDesign: designPath === "template" ? style.label : designPath === "upload" ? "Diseño subido" : "Diseño a medida",
+      groupName: groupName || "Sin nombre todavía",
+      frontType,
+      frontText,
+      frontTechnique,
+      frontDesign: `${frontOptions.find((item) => item.id === frontType)?.label || "Sin definir"}${frontText ? ` · ${frontText}` : ""} · ${frontTechnique === "embroidery" ? "Bordado" : "DTF"}`,
+      sleeveFlag,
+      sleeveDetail,
+      sleeveTechnique,
+      sleeve: `${flagOptions.find((item) => item.id === sleeveFlag)?.label || "Sin manga"}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}`,
+      quantity: String(quantity),
+      basePrice: baseUnitPrice === null ? "Consultar" : `${formatPrice(baseUnitPrice)} por unidad`,
+      configuredPrice: configuredUnitPrice === null ? "Consultar" : `${formatPrice(configuredUnitPrice)} por unidad`,
+    });
+    router.push(`/presupuesto?${params.toString()}`);
+  };
+
+  return <main className="homepage-flow">
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+    <div className="announcement"><span>Precios claros · IVA incluido</span><i aria-hidden="true" /><span>Nombre individual incluido</span><i aria-hidden="true" /><span>Envío gratis a Península</span></div>
+    <header className="site-header">
+      <a className="brand" href="#inicio" aria-label="Tu sudadera en grupo, inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a>
+      <nav id="site-navigation" className={menuOpen ? "open" : ""} aria-label="Navegación principal"><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseñadla</a><a onClick={() => setMenuOpen(false)} href="#para-grupos">Para grupos</a><a onClick={() => setMenuOpen(false)} href="#personalizador">Diseños</a><a onClick={() => setMenuOpen(false)} href="#pagos">Pagos</a><a onClick={() => setMenuOpen(false)} href="#como-funciona">Cómo funciona</a><a onClick={() => setMenuOpen(false)} href="#preguntas">Dudas</a></nav>
+      <div className="header-actions"><Link className="ghost-button" href="/pedido">Ya tengo un pedido</Link><button className="header-cta" onClick={goToQuote}>Pedir presupuesto <span>↗</span></button><button className="menu-button" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-controls="site-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><span /><span /></button></div>
+    </header>
+
+    <section className="hero" id="inicio">
+      <div className="hero-copy">
+        <div className="hero-kicker"><span>Colegios · viajes de estudios · peñas · amigos</span></div>
+        <h1>Sudaderas personalizadas<br /><em>para grupos.</em></h1>
+        <p className="hero-lead"><strong>Vuestro diseño. Cada persona elige su talla.</strong> Personalizad la sudadera, calculad el precio y organizad tallas y pagos desde un grupo privado.</p>
+        <div className="hero-actions"><button className="primary-button" onClick={scrollToCustomizer}>Personalizar mi sudadera <span>↗</span></button><a className="play-link" href="#presupuesto"><b><ArrowRight aria-hidden="true" /></b><span>Calcular precio<br /><small>Sin dejar tus datos</small></span></a></div>
+        <div className="hero-proof"><div><strong>Desde 22 € · 76–99 unidades</strong><span>IVA, DTF pecho A5 y espalda A3 y nombre incluidos</span></div><div><strong>Envío gratis a Península</strong><span>Un único envío para todo el grupo</span></div></div>
+      </div>
+      <div className="hero-stage"><div className="stage-grid" /><span className="sticker sticker-one">VUESTRO<br />DISEÑO</span><span className="sticker sticker-two">HECHO<br />JUNTOS</span><div className="hero-hoodie hero-hoodie-back"><Hoodie color={CORE_COLORS[4].value} printColor="#9ed8f4" text={"PROMO 26\nX"} side="back" designStyle="x" /></div><div className="hero-hoodie hero-hoodie-front"><Hoodie color={CORE_COLORS[0].value} printColor="#f7f3e9" text={"PROMO\n26"} side="front" frontType="name" frontText="PROMO 26" sleeveFlag="spain" /></div><div className="stage-note"><span>01</span><p>Dos vistas.<br /><strong>Mil posibilidades.</strong></p></div></div>
+    </section>
+
+    <div className="ticker" aria-hidden="true"><div><span>COLEGIOS ✦ PEÑAS ✦ UNIVERSIDAD ✦ VIAJES ✦ EQUIPOS ✦ AMIGOS ✦ </span><span>COLEGIOS ✦ PEÑAS ✦ UNIVERSIDAD ✦ VIAJES ✦ EQUIPOS ✦ AMIGOS ✦ </span></div></div>
+    <section className="quick-benefits" aria-label="Ventajas"><article><span>01</span><div><h3>Vosotros imagináis</h3><p>Elegid una plantilla, subid vuestro diseño o contadnos una idea.</p></div></article><article><span>02</span><div><h3>Nosotros lo hacemos pro</h3><p>Un diseñador revisa composición, tamaños y acabados.</p></div></article><article><span>03</span><div><h3>El grupo decide</h3><p>Recibís una maqueta final antes de producir una sola prenda.</p></div></article></section>
+
+    <section className="customizer-section" id="personalizador">
+      <div className="section-heading dark-heading"><div><p className="eyebrow"><span /> Personalizador</p><h2>Personalizad vuestra prenda</h2></div><a className="customizer-price-link" href="#presupuesto">Cantidad y precio ↓</a></div>
+      <div className="customizer-shell">
+        <div className="product-selector-top">
+          <div className="product-segmented-control" role="group" aria-label="Tipo de prenda">
+            <button type="button" disabled={!categoryAvailable("hoodie")} className={productType === "hoodie" ? "active" : ""} aria-pressed={productType === "hoodie"} onClick={() => selectProduct("hoodie")}>
+              <Shirt aria-hidden="true" />
+              <span><b>Sudadera</b><small>{hoodieProduct?.model || "Gildan 18500"}</small></span>
+            </button>
+            <button type="button" disabled={!categoryAvailable("tshirt")} className={productType === "tshirt" ? "active" : ""} aria-pressed={productType === "tshirt"} onClick={() => selectProduct("tshirt")}>
+              <Shirt aria-hidden="true" />
+              <span><b>Camiseta</b><small>{tshirtProduct?.model}</small></span>
+            </button>
+          </div>
+        </div>
+        <SizeGuide model={activeProduct.model} sizes={activeProduct.sizes} />
+        <div className="customizer-layout">
+          <div className="preview-panel" id="vista-prenda">
+            <div className="preview-toolbar"><span>Vista previa en directo</span><div className="side-toggle" role="group" aria-label={`Vista de la ${productName.toLowerCase()}`}><button type="button" aria-pressed={side==="front"} className={side==="front"?"active":""} onClick={()=>setSide("front")}>Delante</button><button type="button" aria-pressed={side==="back"} className={side==="back"?"active":""} onClick={()=>setSide("back")}>Espalda</button></div></div>
+            <div className="preview-stage" aria-busy={!previewLoaded}>
+              <span className="preview-model">{productType === "hoodie" ? <>{activeProduct.model.toUpperCase()}<br /><small>Heavy Blend</small></> : <>CAMISETA<br /><small>{activeProduct.model}</small></>}</span>
+              {!previewLoaded && <div className="preview-skeleton" role="status"><span className="sr-only">Cargando vista previa del producto</span><i /><b /><em /></div>}
+              <div className="preview-media">
+                <ProductPreview product={activeProduct} color={garment} side={side} design={selectedDesign} summary={`${designText}. ${backDesignLabel}. ${frontDesignLabel}: ${frontText}. ${selectedFlag}: ${sleeveDetail}`} overlay={{ frontType, frontText, backLines: previewBackLines, printColor: print.value, backName: selectedDesign?.preview?.nameField ? designFields[selectedDesign.preview.nameField] : undefined }} sleeve={{ type: sleeveFlag, detail: sleeveDetail, technique: sleeveTechnique }} onLoad={() => setLoadedPreviewKey(previewKey)} onAssetError={src => setPreviewFailures(current => current[src] ? current : { ...current, [src]: true })} />
+              </div>
+              <div className="zoom-hint">Vista orientativa</div>
+            </div>
+            <div className="mobile-preview-controls" role="group" aria-label="Color de la prenda">
+              <div className="mobile-preview-controls-heading">
+                <span>Color</span>
+                <strong aria-live="polite">{garment.name}</strong>
+              </div>
+              <div className="mobile-color-rail">
+                {garmentColors.map(item=><button type="button" key={item.name} className={garment.name===item.name?"mobile-color-choice active":"mobile-color-choice"} style={{"--swatch":hoodieMockupSwatch(item.frontImage, item.value)} as React.CSSProperties} onClick={()=>selectColor(item)} aria-label={`Color ${item.name}`} aria-pressed={garment.name===item.name}><i /><small>{item.name}</small></button>)}
+              </div>
+            </div>
+            <p className="preview-guidance" role="status"><strong>{side === "back" ? backDesignLabel : frontDesignLabel}</strong><span>{failedPreviewAsset ? "No se ha podido cargar un archivo. Conservamos vuestra selección para la maqueta." : side === "back" && (!selectedDesign?.file || !canPreviewDesign(selectedDesign)) || side === "front" && frontType === "logo" ? "Diseño pendiente de maqueta; no representado sobre la prenda." : selectedDesign?.file && side === "back" ? selectedDesign.preview?.recolorable ? (selectedDesign.preview.nameField ? "Color y nombre superior en vista previa. Los nombres interiores se adaptan en la maqueta antes de producir." : "Color en vista previa. Los textos del dibujo se adaptan en la maqueta antes de producir.") : "Archivo de referencia. Nombres, textos y colores se adaptan en la maqueta antes de producir." : "Vista orientativa. Aprobaréis la maqueta antes de producir."}</span>{sleeveFlag !== "none" && <span>Manga: {sleeveDetail || selectedFlag} · {sleeveInMontage ? "posición orientativa" : "montaje pendiente"}</span>}</p>
+          </div>
+          <div className="controls-panel">
+            <div className="step-view" id="diseno"><div className="design-heading"><h3 className="customizer-title">Diseño</h3><a href="#vista-prenda" onClick={event => { event.preventDefault(); document.getElementById("vista-prenda")?.scrollIntoView({ behavior: "smooth" }); }}>Ver montaje</a></div><div className="path-tabs">{designPathOptions.map(item=><button type="button" key={item.id} className={designPath===item.id?"active":""} aria-pressed={designPath===item.id} onClick={()=>{setDesignPath(item.id);setSide("back")}}><b><item.Icon aria-hidden="true" /></b><span>{item.label}</span></button>)}</div>{designPath==="template"&&<><div className="style-options" data-expanded={showAllDesigns} role="group" aria-label="Diseño de la prenda">{visibleDesignChoices.map(item=><button type="button" key={item.id} className={style.id===item.id?`style-option active ${item.id}`:`style-option ${item.id}`} aria-pressed={style.id===item.id} onClick={()=>{if(style.id!==item.id){setStyle(item);}setSide(catalogDesigns.find(design => design.id === item.id)?.view || "back")}}>{item.tag&&<em>{item.tag}</em>}{catalogDesigns.find(design => design.id === item.id) ? <DesignThumbnail design={catalogDesigns.find(design => design.id === item.id)!} printColor={print.value} /> : <b>{item.sample}</b>}<small>{item.label}</small></button>)}</div>{designChoices.length > 4 && <button type="button" className="show-designs" aria-expanded={showAllDesigns} onClick={() => setShowAllDesigns(value => !value)}>{showAllDesigns ? "Ver menos" : `Ver los ${designChoices.length} diseños`}</button>}{selectedDesign?.file && <details className="design-enlargement" key={selectedDesign.id}><summary>Ampliar {selectedDesign.name}</summary><DesignThumbnail design={selectedDesign} printColor={print.value} enlarged /><p>Archivo del diseño · {selectedDesign.view === "front" ? "Delante" : "Espalda"}. La personalización se revisa en la maqueta.</p></details>}{!designChoices.length && <p role="status">No hay plantillas disponibles para este producto. Podéis subir vuestro diseño o pedir uno a medida.</p>}<details className="design-personalization" open><summary>Personalizar texto y color</summary>{selectedDesign?.file && <p className="config-help">{selectedDesign.preview?.recolorable ? "El color cambia en el montaje. Los textos integrados en el dibujo se personalizan en la maqueta." : "Los nombres, textos y colores de este archivo son una referencia. Vuestras preferencias se aplican en la maqueta."}</p>}<label className="text-field"><span>{selectedDesign?.file ? "Texto adicional para la maqueta" : "Nombre, año o frase principal"}</span><input value={groupName} onChange={e=>setGroupName(e.target.value.toUpperCase().slice(0,18))} placeholder="EJ. PROMO 26" /></label><h3 className="field-title compact-title">Color del diseño <span>{print.name}</span></h3><div className="swatches print-swatches">{printColors.map(item=><button type="button" key={item.name} className={print.name===item.name?"swatch active":"swatch"} style={{"--swatch":item.value} as React.CSSProperties} onClick={()=>setPrint(item)} aria-label={item.name} aria-pressed={print.name===item.name}><i /><small>{item.name}</small></button>)}</div></details></>}{designPath==="upload"&&<UploadDrop title="Adjuntad vuestro diseño al pedir presupuesto" text="PNG, JPG, PDF o AI · Hasta 15 MB · Envío privado." />}{designPath==="studio"&&<p className="config-help">Contadnos vuestra idea al pedir presupuesto. Prepararemos una propuesta para revisarla juntos.</p>}{selectedDesign?.personalizable && selectedDesign.fields.map(field => <label className="text-field" key={field.id}><span>{field.label}</span><input required={field.required} maxLength={field.maxLength} value={designFields[field.id] || ""} placeholder={selectedDesign.preview?.nameField === field.id ? "NOMBRE" : undefined} onChange={event => { setDesignFields(current => ({ ...current, [field.id]: (selectedDesign.preview?.nameField === field.id ? event.target.value.toUpperCase() : event.target.value).slice(0, field.maxLength) })); setSide(selectedDesign.view); }} /></label>)}<details className="front-details" onToggle={event => { if (event.currentTarget.open) setSide("front"); }}><summary><span><small>DTF incluido · bordado extra</small>Detalle delantero</span><b>{frontDesignLabel}<i>+</i></b></summary><div className="front-details-body"><div className="front-options">{frontOptions.map(item=><button type="button" key={item.id} className={frontType===item.id?"active":""} aria-pressed={frontType===item.id} onClick={()=>{if(frontType!==item.id){setFrontTexts(current => ({ ...current, [frontType]: frontText }));setFrontText(frontTexts[item.id]);setFrontType(item.id);}setSide("front")}}><b><item.Icon aria-hidden="true" /></b><span>{item.label}</span></button>)}</div>{frontType==="coordinates"&&<label className="text-field"><span>Coordenadas</span><input value={frontText} onChange={e=>setFrontText(e.target.value.slice(0,28))} placeholder="37°53'N · 4°46'W" /></label>}{frontType==="name"&&<label className="text-field"><span>Nombre o mote</span><input value={frontText} onChange={e=>setFrontText(e.target.value.toUpperCase().slice(0,18))} placeholder="NOMBRE" /></label>}{frontType==="logo"&&<label className="upload-control"><input type="file" accept="image/png,image/jpeg" onChange={e=>selectFrontLogo(e.target.files?.[0])} /><b>{frontLogo?<BadgeCheck aria-hidden="true" />:<Upload aria-hidden="true" />}</b><span>{frontLogo?"Seleccionado · adjuntar en presupuesto":"Seleccionar logo delantero"}</span><small>PNG o JPG</small></label>}<h3 className="field-title compact-title">Acabado delantero <span>{frontTechnique === "print" ? "DTF incluido" : frontType === "coordinates" ? "+1 €" : "A consultar"}</span></h3><div className="technique-cards"><button type="button" aria-pressed={frontTechnique==="print"} className={frontTechnique==="print"?"active":""} onClick={()=>setFrontTechnique("print")}><b>DTF</b><span>Incluido</span><small>A todo color y hasta A5</small></button><button type="button" aria-pressed={frontTechnique==="embroidery"} className={frontTechnique==="embroidery"?"active":""} onClick={()=>setFrontTechnique("embroidery")}><b><Sparkles aria-hidden="true" /></b><span>Bordado</span><small>{frontType === "coordinates" ? "Coordenadas · +1 €" : "Logo o texto · a consultar"}</small></button></div></div></details></div>
+            <details className="extras-details"><summary>Bandera o logo en manga <span>{sleeveFlag === "none" ? "Opcional" : sleeveDetail || selectedFlag}</span></summary>
+              <div className="extras-body">
+                <label className="text-field sleeve-select"><span>Manga</span><select value={sleeveFlag} onChange={event => selectSleeveFlag(event.target.value as typeof sleeveFlag)}>{flagOptions.map(item => <option value={item.id} key={item.id}>{item.id === "none" ? "Sin extra de manga" : item.label}</option>)}</select></label>
+                {sleeveFlag !== "none" && <>
+                  {sleeveFlag !== "spain" && <SleeveDetailField key={sleeveFlag} type={sleeveFlag} value={sleeveDetail} onChange={setSleeveDetail} />}
+                  <div className="sleeve-montage-link"><span>{sleeveInMontage ? "Bandera en manga · vista orientativa" : "El montaje se completa en la maqueta"}</span><a href="#vista-prenda" onClick={event => { event.preventDefault(); document.getElementById("vista-prenda")?.scrollIntoView({ behavior: "smooth" }); }}>Ver montaje</a></div>
+                  <h3 className="field-title compact-title">Acabado</h3>
+                  <div className="technique-cards">
+                    <button type="button" aria-pressed={sleeveTechnique==="print"} className={sleeveTechnique==="print"?"active":""} onClick={()=>setSleeveTechnique("print")}><span>Estampada</span><small>+1 € por prenda</small></button>
+                    <button type="button" aria-pressed={sleeveTechnique==="embroidery"} className={sleeveTechnique==="embroidery"?"active":""} onClick={()=>setSleeveTechnique("embroidery")}><span>Bordada</span><small>{sleeveFlag === "custom" ? "Precio según el logotipo" : "+2 € por prenda"}</small></button>
+                  </div>
+                </>}
+              </div>
+            </details>
+    <section className="price-section price-section-linked" id="presupuesto">
+      <h3 className="customizer-title">Cantidad y precio</h3>
+      <div className="price-card">
+        <div className="price-top"><label htmlFor="quantity-input">Número de {productName.toLowerCase()}s</label><div className="quantity-input-wrap"><input id="quantity-input" aria-label={`Número de ${productName.toLowerCase()}s`} type="number" inputMode="numeric" min="5" max="500" step="1" value={quantityDraft} onChange={event => { const value = event.target.value; setQuantityDraft(value); const number = Number(value); if (Number.isInteger(number) && number >= 5 && number <= 500) setQuantity(number); }} onBlur={commitQuantityDraft} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); commitQuantityDraft(); event.currentTarget.blur(); } }} /><span>unidades</span></div></div>
+        <input aria-label={`Ajustar número de ${productName.toLowerCase()}s`} aria-valuetext={quantity >= 100 ? "Consultar para 100 o más unidades" : `${quantity} unidades`} type="range" min="5" max="101" value={Math.min(quantity, 101)} onChange={e=>updateQuantity(Number(e.target.value))} />
+        <div className="range-labels"><span>5</span><span>30</span><span>50</span><span>75</span><span>100+ · consultar</span></div>
+        <div className="price-live-result" aria-live="polite" aria-atomic="true">
+          <div className={configuredUnitPrice === null ? "consult" : ""}>
+            <span>Vuestra configuración</span>
+            <strong>{configuredUnitPrice === null ? "Consultar" : <>{formatPrice(configuredUnitPrice)} <small>/ unidad</small></>}</strong>
+            <p>{configuredUnitPrice === null ? "Prepararemos un precio para vuestro grupo." : `Total estimado: ${(configuredUnitPrice * quantity).toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`}</p>
+            <small>IVA incluido · Envío conjunto a Península</small>
+          </div>
+        </div>
+        <p className="price-base-note">Precio base: {baseUnitPrice === null ? "Consultar" : `${formatPrice(baseUnitPrice)} / unidad`}{` · ${productName} + impresión en pecho + espalda + nombre`}</p>
+        {activeProduct.quoteOnly && <p className="config-help">Prepararemos una tarifa a medida para este producto.</p>}
+        <details className="price-summary"><summary>Ver resumen y condiciones</summary><dl className="configuration-text-summary">
+          <div><dt>Producto</dt><dd>{productName} · {activeProduct.model}</dd></div>
+          <div><dt>Color</dt><dd>{garment.name}</dd></div>
+          <div><dt>Cantidad</dt><dd>{quantity} unidades</dd></div>
+          <div><dt>Personalización</dt><dd>{backDesignLabel} · {personalizationSummary}</dd></div>
+          <div><dt>Extras</dt><dd>{sleeveFlag === "none" ? (hasPriceExtra ? (customEmbroidery ? "Revisión necesaria" : `+${knownExtras} € / unidad`) : "Sin extras") : `${selectedFlag}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}`}</dd></div>
+          <div><dt>Precio</dt><dd>{configuredUnitPrice === null ? "A consultar" : `${formatPrice(configuredUnitPrice)} / unidad`}</dd></div>
+        </dl><p className="config-help">Incluye pecho, espalda y nombre. IVA y envío a Península incluidos.</p><p className="config-help">De 1 a 4 unidades: consultad por WhatsApp.</p></details>
+        {hasPriceExtra && <div className={customEmbroidery ? "price-extra-notice consult" : "price-extra-notice"}><b>{customEmbroidery ? "Revisión necesaria" : "Extras calculados"}</b><span>{customEmbroidery ? "Un logo bordado se valora según tamaño, puntadas y complejidad. No inventamos un precio automático." : `La configuración añade ${knownExtras} € por cada prenda que lleve esos extras.`}</span></div>}
+        <button className="price-quote-button" onClick={goToQuote}>Pedir mi presupuesto <b>↗</b></button>
+        <WhatsAppLink source="personalizador" configuration={{ product: productName, model: productModel, color: garment.name, quantity, design: backDesignLabel, printColor: print.name, front: `${frontDesignLabel} · ${frontTechnique === "embroidery" ? "Bordado" : "DTF"}`, sleeve: `${selectedFlag}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}` }} />
+        <small className="price-disclaimer">El precio definitivo se fija al cerrar la cantidad real con el organizador. Para 100 o más unidades y bordados personalizados, preparamos una valoración específica.</small>
+      </div>
+    </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section className="audience-directory" id="para-grupos">
+      <div className="audience-directory-heading"><p className="eyebrow"><span /> Sudaderas para vuestro grupo</p><h2>La misma idea de pertenecer.<br /><em>Una historia diferente.</em></h2><p>Cada tipo de grupo necesita organizarse y expresarse de una manera. Descubrid ideas, opciones y respuestas pensadas para vosotros.</p></div>
+      <div className="audience-directory-grid">
+        <Link href="/sudaderas-colegios-institutos"><span>01</span><div><small>Clases y viajes</small><h3>Colegios e institutos</h3><p>Nombres, promociones, tallas y pagos individuales.</p></div><b>↗</b></Link>
+        <Link href="/sudaderas-penas"><span>02</span><div><small>Fiestas y amigos</small><h3>Peñas</h3><p>Mascotas, aniversarios y orgullo de pueblo.</p></div><b>↗</b></Link>
+        <Link href="/sudaderas-fin-de-curso"><span>03</span><div><small>El recuerdo del curso</small><h3>Fin de curso</h3><p>Promoción, año y todos los nombres del grupo.</p></div><b>↗</b></Link>
+        <Link href="/sudaderas-equipos-clubes"><span>04</span><div><small>Una identidad común</small><h3>Equipos y clubes</h3><p>Escudos, dorsales, cuerpo técnico y afición.</p></div><b>↗</b></Link>
+      </div>
+    </section>
+
+    {catalogDesigns.some(item => item.file && item.view === "back") && <section className="inspiration-section" id="inspiracion"><div className="section-heading"><div><p className="eyebrow"><span /> Diseños para vuestro grupo</p><h2>Elegid vuestro<br /><em>punto de partida.</em></h2></div><p>Estos son diseños de referencia. Adaptaremos nombres, textos y colores en la maqueta que aprobaréis antes de producir.</p></div><DesignCarousel>{catalogDesigns.filter(item => item.file && item.view === "back").map((design, index) => <ShowcaseCard key={design.id} number={String(index + 1).padStart(2, "0")} eyebrow="Diseño de referencia" title={design.name} text="Personalización revisada en la maqueta." design={design.id} product={activeProduct} onSelect={chooseShowcaseDesign} />)}</DesignCarousel></section>}
+
+    <section className="why-section"><div className="why-copy"><p className="eyebrow light"><span /> Cero dramas de grupo</p><h2>Tallas y pagos,<br /><em>sin llevar listas.</em></h2><p>Cada persona registra sus prendas. Tú consultas cantidades, tallas y pagos pendientes desde el panel, con los datos personales protegidos.</p><a href="#pagos">Ver el recorrido del grupo <span>↗</span></a></div><div className="phone-mockup"><div className="phone-top"><i /><span>Ejemplo de panel · Promo 26</span><b>•••</b></div><div className="phone-card"><span>Resumen del grupo</span><strong>18 de 25 pagadas</strong><div><i style={{width:"72%"}} /></div></div><div className="member-list aggregate-list">{[["25","Registradas","Lista cerrada"],["18","Pagadas","72% completado"],["7","Pendientes","Importe restante"],["S–3XL","Tallas","Reparto disponible"]].map((item)=><article key={item[1]}><b>{item[0]}</b><span><strong>{item[1]}</strong><small>{item[2]}</small></span><i>→</i></article>)}</div></div></section>
+
+    <section className="payment-section" id="pagos">
+      <div className="payment-copy">
+        <p className="eyebrow"><span /> Pagos sin perseguir a nadie</p>
+        <h2>Primero hablamos.<br /><em>Después paga el grupo.</em></h2>
+        <p>El pago nunca aparece antes de tiempo. Primero el grupo registra tallas, nombres y extras; después cerramos la cantidad real, fijamos el tramo y abrimos el pago.</p>
+        <div className="payment-options-public">
+          <article><i>01</i><div><strong>Primero, registro sin pago</strong><small>Cada persona configura sus prendas y puede editarlas desde el enlace enviado por correo.</small></div></article>
+          <article><i>02</i><div><strong>Después, precio cerrado</strong><small>El grupo paga individualmente y el organizador puede completar cualquier saldo restante.</small></div></article>
+        </div>
+        <div className="payment-rule"><b>Tarjeta, Bizum o transferencia</b><p>La pasarela se activará cuando estén aprobados diseño, cantidad y precio. Las transferencias se validan manualmente.</p></div>
+      </div>
+
+      <div className="payment-gate">
+        <span className="payment-gate-lock">⌁</span>
+        <small>ACCESO PRIVADO</small>
+        <h3>¿Ya tenéis un pedido aprobado?</h3>
+        <p>El organizador recibe un enlace único. Desde ahí el grupo registra sus prendas y, cuando la lista queda cerrada, accede al pago.</p>
+        <Link className="payment-gate-primary" href="/pedido">Entrar a mi pedido <b>→</b></Link>
+        <span className="payment-gate-note">El cobro real se activará al conectar el TPV definitivo.</span>
+      </div>
+    </section>
+
+    <section className="process-section" id="como-funciona"><div className="process-heading"><p className="eyebrow"><span /> Así de fácil</p><h2>De la idea<br /><em>al unboxing.</em></h2><p>Un recorrido pensado para que el precio no cambie después de cobrar y para que el organizador no tenga que perseguir a nadie.</p></div><div className="process-timeline"><article><span>01</span><div><small>Idea y presupuesto</small><h3>Veis el precio desde el principio</h3><p>Elegís producto, color, diseño y cantidad. Veis el cálculo y enviáis la configuración para revisar el presupuesto.</p></div><b>Sin compromiso</b></article><article><span>02</span><div><small>Maqueta</small><h3>Aprobáis el diseño y abrimos el grupo</h3><p>Revisamos la maqueta y las condiciones con el organizador. Después compartís el enlace privado con vuestro grupo.</p></div><b>Todo claro</b></article><article><span>03</span><div><small>Registro y pago</small><h3>Cada persona elige; tú ves el estado</h3><p>Cada participante registra sus prendas, tallas y nombres. Al cerrar el registro fijamos el precio y abrimos los pagos disponibles. El organizador consulta lo registrado, pagado y pendiente.</p></div><b>Precio cerrado</b></article><article><span>04</span><div><small>Producción y envío</small><h3>10–15 días laborables</h3><p>Tras aprobar el diseño y completar el pago, producimos y enviamos todo junto gratis a una dirección en Península.</p></div><b>Seguimiento</b></article></div></section>
+
+    <section className="reviews-section" aria-labelledby="process-proof-title"><div className="reviews-heading"><p className="eyebrow"><span /> Confianza sin letra pequeña</p><h2 id="process-proof-title">Antes de producir,<br /><em>todo está claro.</em></h2><p className="proof-intro">Maqueta, precio y estado del grupo: sabéis qué está aprobado y qué falta antes de producir.</p></div><div className="review-grid proof-grid"><article className="review-card proof-card"><span>01</span><h3>Veis la maqueta</h3><p>Revisáis diseño, colores, nombres y colocaciones antes de aprobar la producción.</p><strong>Sin producir a ciegas</strong></article><article className="review-card proof-card"><span>02</span><h3>Confirmáis el precio</h3><p>El pago solo se abre después de cerrar cantidades, acabados y precio definitivo.</p><strong>Sin sorpresas</strong></article><article className="review-card proof-card"><span>03</span><h3>Controláis el grupo</h3><p>El pedido privado reúne tallas, personalizaciones y pagos individuales o conjuntos.</p><strong>Todo en un solo sitio</strong></article></div></section>
+    <section className="faq-section" id="preguntas"><div className="faq-heading"><p className="eyebrow"><span /> Todo claro</p><h2>Las dudas<br /><em>antes del sí.</em></h2><p>Consultadnos las dudas antes de aprobar el presupuesto y la maqueta.</p></div><div className="faq-list">{faqItems.map((item, index) => <details key={item.question} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div></section>
+    <section className="final-cta"><div className="cta-orbit"><span>✦</span></div><p>No hace falta tener el diseño perfecto.</p><h2>Solo una idea que<br /><em>merezca llevarse puesta.</em></h2><button onClick={goToQuote}>Pedir presupuesto <span>↗</span></button></section>
+    <footer><div className="footer-top"><a className="brand footer-brand" href="#inicio"><BrandMark /><span className="brand-copy"><strong>Tu sudadera</strong><small>en grupo</small></span></a><p>Sudaderas para grupos con precios claros, diseño incluido y entrega conjunta en toda España.</p></div><div className="footer-links"><div><strong>Empezar</strong><a href="#personalizador">Personalizador</a><a href="#presupuesto">Precios</a><Link href="/presupuesto">Pedir presupuesto</Link><Link href="/camisetas-personalizadas">Camisetas</Link></div><div><strong>Para grupos</strong><Link href="/sudaderas-personalizadas">Sudaderas personalizadas</Link><Link href="/sudaderas-colegios-institutos">Colegios e institutos</Link><Link href="/sudaderas-fin-de-curso">Fin de curso</Link><Link href="/sudaderas-penas">Peñas</Link><Link href="/sudaderas-viaje-estudios">Viajes de estudios</Link><Link href="/sudaderas-equipos-clubes">Equipos y clubes</Link></div><div><strong>Información</strong><Link href="/pedido">Entrar a un pedido</Link><a href="#como-funciona">Cómo funciona</a><a href="#preguntas">Preguntas</a><Link href="/privacidad">Privacidad</Link><Link href="/cookies">Cookies</Link><Link href="/condiciones">Condiciones</Link></div><div><strong>Contacto</strong><WhatsAppLink source="footer" /><a href={CONTACT_PHONE_HREF}>{CONTACT_PHONE}</a><a href={`mailto:${CONTACT_EMAIL}`} onClick={() => void trackProductEvent("contact_email_clicked", { source: "footer" })}>{CONTACT_EMAIL}</a><span>Servicio para toda España</span></div></div><div className="footer-bottom"><small>© 2026 Tu sudadera en grupo</small><span>Hecho para pertenecer ✦</span><div><span>Datos fiscales pendientes antes del lanzamiento</span></div></div></footer>
+    <CustomizerDrawer
+      product={productName}
+      model={productModel}
+      color={garment.name}
+      design={backDesignLabel}
+      personalization={personalizationSummary}
+      total={configuredUnitPrice === null ? null : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(configuredUnitPrice * quantity)}
+      sleeve={[frontTechnique === "embroidery" ? `${frontDesignLabel}: bordado` : "", sleeveFlag === "none" ? "" : `${selectedFlag}${sleeveDetail ? ` · ${sleeveDetail}` : ""} · ${sleeveTechnique === "embroidery" ? "Bordado" : "DTF"}`].filter(Boolean).join("; ") || "Sin extras"}
+      quantity={quantity}
+      price={configuredUnitPrice === null ? "A consultar" : `${formatPrice(configuredUnitPrice)} / unidad`}
+      onQuote={goToQuote}
+    />
+  </main>;
+}
+
+function SleeveDetailField({ type, value, onChange }: { type: "community" | "country" | "custom"; value: string; onChange: (value: string) => void }) {
+  const [other, setOther] = useState(false);
+  const choices = SLEEVE_FLAGS.filter(flag => flag.type === type);
+  const known = choices.find(flag => flag.aliases.some(alias => alias.localeCompare(value, "es", { sensitivity: "base" }) === 0));
+  const freeText = type === "custom" || other || Boolean(value && !known);
+  return <div className="sleeve-detail-field">
+    {type !== "custom" && <label className="text-field"><span>{type === "community" ? "Comunidad autónoma" : "País"}</span><select value={freeText ? "other" : known?.name || ""} onChange={event => { setOther(event.target.value === "other"); onChange(event.target.value === "other" ? "" : event.target.value); }}>
+      <option value="" disabled>Selecciona una opción</option>
+      {choices.map(flag => <option key={flag.id} value={flag.name}>{flag.name}</option>)}
+      <option value="other">{type === "community" ? "Otra comunidad" : "Otro país"}</option>
+    </select></label>}
+    {freeText && <label className="text-field"><span>{type === "custom" ? "Nombre o referencia del logo" : type === "community" ? "Nombre de la comunidad" : "Nombre del país"}</span><input value={value} maxLength={50} onChange={event => onChange(event.target.value.slice(0,50))} placeholder={type === "custom" ? "Ej. escudo del club" : type === "community" ? "Ej. Madrid" : "Ej. Italia"} /></label>}
+  </div>;
+}
+
+function FlagIcon({type}:{type:string}){if(type==="spain")return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="120" height="72" fill="#AA151B"/><rect y="18" width="120" height="36" fill="#F1BF00"/></svg>;if(type==="community")return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="120" height="72" fill="#F6CF00"/><rect x="25" width="95" height="7" y="6" fill="#C8202F"/><rect x="25" width="95" height="7" y="20" fill="#C8202F"/><rect x="25" width="95" height="7" y="34" fill="#C8202F"/><rect x="25" width="95" height="7" y="48" fill="#C8202F"/><rect x="25" width="95" height="7" y="62" fill="#C8202F"/><rect width="25" height="72" fill="#19508A"/></svg>;if(type==="country")return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="40" height="72" fill="#1B3B79"/><rect x="40" width="40" height="72" fill="#FFFFFF"/><rect x="80" width="40" height="72" fill="#D52B3F"/></svg>;return <svg viewBox="0 0 120 72" role="presentation" focusable="false"><rect width="120" height="72" rx="4" fill="#17233F"/><path d="M12 36h96M60 12v48" stroke="#F1D35A" strokeWidth="7" strokeLinecap="round"/></svg>}
+function BrandMark(){return <span className="brand-mark"><i>T</i><b>S</b><em>G</em></span>}
+function UploadDrop({title,text}:{title:string;text:string}){return <div className="upload-drop"><b><Upload aria-hidden="true" /></b><h3>{title}</h3><p>{text}</p><span>El archivo se adjunta en el siguiente paso →</span></div>}
+function Hoodie({color,printColor,text,side,designStyle="default",frontType="name",frontText="PROMO",frontLogo="",sleeveFlag="",sleeveTechnique="print",onImageLoad}:{color:string;printColor:string;text:string;side:Side;designStyle?:string;frontType?:string;frontText?:string;frontLogo?:string;sleeveFlag?:string;sleeveTechnique?:string;onImageLoad?:()=>void}){const visual=CORE_COLORS.find(item=>item.value===color);const image=side==="front"?visual?.frontImage:visual?.backImage;return <div className={`hoodie hoodie-real hoodie-view-${side}`} style={{"--hoodie":color,"--print":printColor} as React.CSSProperties}>{image&&<Image unoptimized className="hoodie-real-asset" src={image} alt={visual?.name+" "+(side==="front"?"frontal":"trasera")} width={2000} height={2000} priority={side==="front"} sizes="(max-width: 768px) 94vw, 820px" onLoad={onImageLoad} />}{sleeveFlag&&<div className={`hoodie-sleeve-design ${sleeveTechnique} flag-preview`}><span className={`hoodie-flag ${sleeveFlag}`} data-flag={sleeveFlag} aria-label={sleeveFlag === "spain" ? "Bandera de España" : sleeveFlag === "community" ? "Bandera de la Comunidad Valenciana (ejemplo)" : sleeveFlag === "country" ? "Bandera de Francia (ejemplo)" : "Marca de manga"} aria-hidden="true"><FlagIcon type={sleeveFlag} /></span></div>}<div className="hoodie-body">{side==="back"?<div className={`hoodie-design back design-${designStyle}`}>{text.split("\n").map((line,index)=><span key={line+"-"+index}>{line}</span>)}</div>:<div className={`front-personalization ${frontType}`}>{frontType==="logo"?(frontLogo?<span className="uploaded-logo" role="img" aria-label="Logo subido" style={{backgroundImage:`url(${frontLogo})`}}/>:<><b>◇</b><span>LOGO</span></>):<span>{frontText||(frontType==="coordinates"?"COORDENADAS":"NOMBRE")}</span>}</div>}</div></div>}
+
+function ShowcaseCard({className="",number,eyebrow,title,text,design,product,onSelect}:{className?:string;number:string;eyebrow:string;title:string;text:string;design:string;product:CatalogProduct;onSelect:(design:string,title:string)=>void}) {
+  const artwork = product.designs?.find(item => item.id === design && item.active && item.file && item.view === "back" && item.products.includes(product.slug));
+  if (!artwork) return null;
+  return <article className={`showcase-card ${className}`}>
+    <div className="showcase-copy"><span>{number} · {eyebrow}</span><h3>{title}</h3><p>{text}</p><button type="button" onClick={()=>onSelect(design,title)}>Usar como inicio <ArrowRight aria-hidden="true" /></button></div>
+    <div className="showcase-visual showcase-artwork">{artwork ? <DesignThumbnail design={artwork} /> : <p>Maqueta por preparar<br /><small>La revisaremos con vuestro grupo.</small></p>}</div>
+  </article>;
+}
